@@ -1,3 +1,5 @@
+mod auth;
+
 use std::collections::HashMap;
 use std::io::Cursor;
 use std::sync::{Arc, Mutex};
@@ -126,6 +128,7 @@ pub fn run() {
     let focus_times_clone = Arc::clone(&focus_times);
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .manage(focus_times)
         .setup(move |app| {
             if cfg!(debug_assertions) {
@@ -145,7 +148,15 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_processes,
             export_processes_to_csv,
-            get_active_window_title
+            get_active_window_title,
+            auth::save_auth_tokens,
+            auth::load_auth_tokens,
+            auth::clear_auth_tokens,
+            auth::begin_oauth_callback_listener,
+            auth::cancel_oauth_callback_listener,
+            auth::wait_oauth_callback,
+            auth::exchange_oauth_code,
+            auth::refresh_oauth_tokens,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

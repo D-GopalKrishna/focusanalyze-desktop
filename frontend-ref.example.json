@@ -1,0 +1,6 @@
+{
+  "localPath": "../focusanalyze-fe",
+  "branch": "develop",
+  "tauriDevUrl": "http://localhost:3000",
+  "tauriFrontendDist": "../focusanalyze-fe/out"
+}

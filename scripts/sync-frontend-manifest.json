@@ -1,0 +1,39 @@
+{
+	"repoUrl": "git@github.com:D-GopalKrishna/focusanalyze-fe.git",
+	"defaultBranch": "develop",
+	"defaultLocalPath": "../focusanalyze-fe",
+	"paths": [
+		{
+			"source": "lib/rest_client_backend",
+			"dest": "lib/shared/api-client"
+		},
+		{
+			"source": "openapitools.json",
+			"dest": "lib/shared/api-client/openapitools.json"
+		},
+		{
+			"source": "lib/services",
+			"dest": "lib/shared/services"
+		},
+		{
+			"source": "lib/utils",
+			"dest": "lib/shared/utils"
+		},
+		{
+			"sources": ["lib/types", "types"],
+			"dest": "lib/shared/types"
+		},
+		{
+			"source": "keycloak.local.json",
+			"dest": "lib/shared/keycloak.local.json"
+		},
+		{
+			"source": "keycloak.dev.json",
+			"dest": "lib/shared/keycloak.dev.json"
+		},
+		{
+			"source": "keycloak.prod.json",
+			"dest": "lib/shared/keycloak.prod.json"
+		}
+	]
+}

@@ -23,15 +23,59 @@ cd focusanalyze-desktop
 npm install
 ```
 
+## Sync from focusanalyze-fe
+
+Shared API client, services, utils, and Keycloak config are synced from `focusanalyze-fe` (same pattern as mobile).
+
+**Branch matching:** `sync:frontend` reads the desktop repo’s current branch (`main`, `develop`, etc.) and checks out the **same branch** in `../focusanalyze-fe` before copying.
+
+```bash
+# Sync lib/shared from FE (default: ../focusanalyze-fe, match desktop branch)
+npm run sync:frontend
+
+# Sync without switching FE branch (warn if mismatch)
+npm run sync:frontend:check
+
+# Override branch
+npm run sync:frontend -- --branch main
+```
+
+Writes `frontend-ref.json` (gitignored) — used by `tauri:dev:fe` to locate the FE checkout.
+
+Imported paths land in `lib/shared/` with `@shared/*` TypeScript aliases. See `scripts/sync-frontend-manifest.json`.
+
 ## Development
 
-Run the Tauri desktop app (starts Next.js dev server + native shell):
+Two desktop shells:
+
+| Command | UI | Use when |
+|---------|-----|----------|
+| `npm run tauri:dev` | Full **focusanalyze-fe** in Tauri (`IS_TAURI=true`) | Default — same web app as browser, in the desktop shell |
+| `npm run tauri:dev:native` | Desktop-native (`src/`) — legacy shell | Rust/system prototype only (no full dashboard) |
+
+`tauri:dev` runs `sync:frontend` first, then starts FE’s Next dev server and opens Tauri against `/desktop-auth`.
+
+Two backend targets (local vs remote Keycloak/API):
+
+**Local stack** — Django on `:8000`, Keycloak on `:8080` (uses `.env.local`):
 
 ```bash
 npm run tauri:dev
+# or explicitly:
+npm run tauri:dev:local
 ```
 
-Or run the web UI only:
+**Remote stack** — `mind.focusanalyze.com` + `accounts.focusanalyze.com`:
+
+```bash
+npm run tauri:dev:remote
+```
+
+> The `focusanalyze-desktop` Keycloak client must exist on the target realm (local realm JSON includes it; staging/prod need the same client provisioned).
+
+Sign-in opens your **system browser** and returns via a loopback callback (`http://127.0.0.1:9473/callback`). Refresh tokens are stored in the **OS keychain** (macOS Keychain / Windows Credential Manager).
+
+Or run the web UI only (auth requires Tauri):
 
 ```bash
 npm run dev
@@ -49,11 +93,15 @@ Built artifacts are in `src-tauri/target/release/`.
 
 ```
 focusanalyze-desktop/
-├── src/                  # Next.js UI (static export for Tauri)
-│   └── app/page.tsx      # Task manager dashboard
+├── lib/
+│   ├── shared/           # Synced from focusanalyze-fe (API client, services, utils)
+│   └── tauri/            # Tauri-only code (auth, keychain, OAuth loopback)
+├── src/                  # Legacy native Next shell (tauri:dev:native only)
 └── src-tauri/
-    └── src/lib.rs        # Rust: process tracking, focus time, window detection
+    └── src/lib.rs        # Rust: OAuth keychain, process tracking, window detection
 ```
+
+Desktop login UI lives in **focusanalyze-fe** (`app/(tauri-shell)/desktop-auth`, `lib/tauri/auth/`).
 
 ### Tauri commands
 

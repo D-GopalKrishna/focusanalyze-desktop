@@ -1,0 +1,39 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "FocusAnalyze",
+  "version": "0.1.0",
+  "identifier": "com.focusanalyze.desktop",
+  "build": {
+    "frontendDist": "../../focusanalyze-fe/out",
+    "devUrl": "http://localhost:3000/desktop-auth",
+    "beforeDevCommand": "node scripts/start-fe-dev.js",
+    "beforeBuildCommand": "node scripts/build-fe.js"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "FocusAnalyze",
+        "width": 1280,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false,
+        "minWidth": 800,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

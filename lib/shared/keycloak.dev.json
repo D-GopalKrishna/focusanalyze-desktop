@@ -1,0 +1,7 @@
+{
+  "realm": "focusanalyze",
+  "auth-server-url": "http://localhost:8080/auth",
+  "ssl-required": "none",
+  "clientId": "focusanalyze-client",
+  "confidential-port": 0
+}
