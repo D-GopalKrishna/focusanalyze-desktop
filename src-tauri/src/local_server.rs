@@ -71,18 +71,29 @@ fn rewrite_dynamic_id_path(path: &str) -> Option<String> {
     Some(format!("/{}", rewritten.join("/")))
 }
 
-/// Serves the FE static export over real `http://` (see `LOCALHOST_PORT` in `lib.rs` for
+/// Serves the FE static export over real `http://` (see `LOCALHOST_PORTS` in `lib.rs` for
 /// why) using Tauri's own asset resolver — the same one the `tauri://` protocol and the
 /// (now-replaced) `tauri-plugin-localhost` both use, so MIME types/CSP headers stay correct.
 /// Unlike that plugin, this adds a fallback for dynamic-ID routes: on an exact-match miss,
 /// retry with the id segment(s) rewritten to `placeholder` before giving up.
-pub fn spawn(app: AppHandle, host: &str, port: u16) {
+///
+/// Tries each of `candidate_ports` in order and binds the first one that's free — 9843 is an
+/// uncommon port so a real clash is unlikely, but not impossible (another local app already
+/// using it), and the old single-port version had no recovery from that beyond a hard panic.
+/// Every candidate must be in the backend's CORS allowlist and the app's `remote` capability
+/// (see capabilities/default.json) since which one actually gets used isn't known until
+/// runtime. Blocks until a port binds (or all candidates are exhausted) so the caller can use
+/// the real port to build the window; the actual request-serving loop then runs on its own
+/// thread.
+pub fn spawn(app: AppHandle, host: &str, candidate_ports: &[u16]) -> u16 {
     let asset_resolver = app.asset_resolver();
-    let address = format!("{host}:{port}");
+
+    let (server, port) = candidate_ports
+        .iter()
+        .find_map(|&port| Server::http(format!("{host}:{port}")).ok().map(|s| (s, port)))
+        .expect("failed to bind local asset server on any candidate port");
 
     std::thread::spawn(move || {
-        let server = Server::http(&address).expect("failed to start local asset server");
-
         for req in server.incoming_requests() {
             let path: String = req
                 .url()
@@ -121,4 +132,6 @@ pub fn spawn(app: AppHandle, host: &str, port: u16) {
             }
         }
     });
+
+    port
 }

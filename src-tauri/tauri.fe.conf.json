@@ -10,18 +10,7 @@
     "beforeBuildCommand": "node scripts/build-fe.js"
   },
   "app": {
-    "windows": [
-      {
-        "title": "FocusAnalyze",
-        "url": "http://localhost:9843/desktop-auth.html",
-        "width": 1280,
-        "height": 800,
-        "resizable": true,
-        "fullscreen": false,
-        "minWidth": 800,
-        "minHeight": 600
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": null
     }

@@ -130,8 +130,14 @@ fn track_focus_time(focus_times: Arc<Mutex<HashMap<String, u64>>>) {
 // Next.js's client-side router uses `fetch()` for every in-app navigation (not just
 // prefetch), the FE build serves over a real `http://localhost` origin instead of the
 // custom protocol — `fetch()` against a genuine http(s) origin isn't affected by this
-// restriction at all. See tauri.fe.conf.json's window `url`, which must match this port.
-const LOCALHOST_PORT: u16 = 9843;
+// restriction at all.
+//
+// 9843 is an uncommon port, but a real clash with some other local app isn't impossible —
+// these are fallbacks, tried in order (see local_server::spawn). Every one of these must be
+// listed in capabilities/default.json's `remote.urls` AND in the backend's
+// CORS_ALLOWED_ORIGINS (focusanalyze-mind's mind_fa/settings.py + deployment/docker-compose/
+// .env.dev), since which port actually gets used isn't known until runtime.
+const LOCALHOST_PORTS: &[u16] = &[9843, 9844, 9845, 9846, 9847];
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -153,7 +159,21 @@ pub fn run() {
             // Replaces tauri-plugin-localhost, which has no fallback for the dynamic-ID
             // routes' placeholder files (see local_server.rs) — clicking into a real
             // project/task/goal/etc. 500'd because the plugin only does exact-path lookups.
-            local_server::spawn(app.handle().clone(), "localhost", LOCALHOST_PORT);
+            let port = local_server::spawn(app.handle().clone(), "localhost", LOCALHOST_PORTS);
+
+            // The window is built here instead of declaratively in tauri.fe.conf.json's
+            // `windows` array because its URL depends on which port local_server actually
+            // bound — not known until runtime. tauri.fe.conf.json declares an empty
+            // `windows: []` so Tauri doesn't also try to create a default one.
+            let url = format!("http://localhost:{port}/desktop-auth.html")
+                .parse()
+                .expect("invalid local server URL");
+            tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::External(url))
+                .title("FocusAnalyze")
+                .inner_size(1280.0, 800.0)
+                .min_inner_size(800.0, 600.0)
+                .resizable(true)
+                .build()?;
 
             // No browser chrome means no reload button and no Cmd+R by default — the only
             // way to recover from a stuck/blank page was quitting and relaunching. Add a
