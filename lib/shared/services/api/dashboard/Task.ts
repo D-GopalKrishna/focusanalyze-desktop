@@ -29,6 +29,7 @@ type TaskSearchDuePreset =
 import { createApiClient } from '../auth';
 import { stopTimerWidget, stopTimerWidgetForTask } from "@shared/utils/start-timer-widget";
 import { plannerFiltersToSearchParams } from "@shared/utils/planner-task-search-params";
+import { notifyCompanionTaskComplete } from "@shared/utils/theme/companionEvents";
 
 const api = createApiClient(TaskEndpointsApi);
 const priorityApi = createApiClient(TaskPriorityApi);
@@ -204,6 +205,7 @@ async function getTaskById(taskId: number): Promise<Task> {
  */
 async function updateTask(taskId: number, data: any): Promise<Task> {
   const response = await api.apiTaskPartialUpdate(String(taskId), data);
+  maybeCheerForDoneTask(data, response.data);
   return response.data;
 }
 
@@ -272,7 +274,18 @@ async function deleteTask(
 async function bulkUpdateTasks(records: Array<Record<string, any>>): Promise<BulkTaskUpdateResult> {
   // apiTaskBulkUpdatePartialUpdate expects PatchedBulkTaskUpdate, but we keep runtime payload minimal.
   const res = await api.apiTaskBulkUpdatePartialUpdate({ records } as any);
+  const byId = new Map(records.map((record) => [record.id, record]));
+  for (const task of res.data?.results ?? []) {
+    maybeCheerForDoneTask(byId.get(task.id), task);
+  }
   return res.data;
+}
+
+function maybeCheerForDoneTask(payload: Record<string, unknown> | undefined, task: Task): void {
+  if (payload?.status_id == null) return;
+  const done = task.workflow_done || task.status?.role === 'FINISH';
+  if (!done) return;
+  notifyCompanionTaskComplete(task.name);
 }
 
 /**
@@ -382,6 +395,90 @@ async function uploadTaskDescriptionImageDraft(
 ): Promise<UploadTaskDescriptionImageResponse> {
   const res = await taskApi.apiTaskUploadEditorImageDraftCreate(image, projectId);
   return res.data;
+}
+
+/** Durable task file attachment (docs + images). Present after OpenAPI regen; typed locally until then. */
+export type TaskFileAttachment = {
+  id: number;
+  file_name: string;
+  file_type?: string;
+  file_size?: number;
+  uploaded_at?: string;
+  kind?: 'image' | 'document' | string;
+  download_url?: string;
+  source_message_attachment_id?: number | null;
+};
+
+export type TaskWithFileAttachments = Task & {
+  file_attachments?: TaskFileAttachment[];
+};
+
+async function uploadTaskFileAttachment(
+  taskId: number,
+  file: File,
+): Promise<TaskFileAttachment> {
+  const { createApiConfiguration } = await import('../auth');
+  const { getFreshAccessToken } = await import('@/lib/middleware/keycloak');
+  const base = createApiConfiguration().basePath?.replace(/\/$/, '') ?? '';
+  const auth = (await getFreshAccessToken()) ?? '';
+  const body = new FormData();
+  body.append('file', file);
+  const res = await fetch(`${base}/api/task/${taskId}/file-attachments/`, {
+    method: 'POST',
+    headers: {
+      ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
+    },
+    body,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Upload failed (${res.status})`);
+  }
+  return res.json();
+}
+
+/** Draft upload before task exists; pass returning ids as ``pending_file_attachment_ids`` on create. */
+async function uploadTaskFileAttachmentDraft(
+  projectId: number,
+  file: File,
+): Promise<TaskFileAttachment> {
+  const { createApiConfiguration } = await import('../auth');
+  const { getFreshAccessToken } = await import('@/lib/middleware/keycloak');
+  const base = createApiConfiguration().basePath?.replace(/\/$/, '') ?? '';
+  const auth = (await getFreshAccessToken()) ?? '';
+  const body = new FormData();
+  body.append('file', file);
+  body.append('project', String(projectId));
+  const res = await fetch(`${base}/api/task/upload-file-attachment-draft/`, {
+    method: 'POST',
+    headers: {
+      ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
+    },
+    body,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Draft upload failed (${res.status})`);
+  }
+  return res.json();
+}
+
+async function fetchTaskFileAttachmentBlob(attachmentId: number): Promise<Blob> {
+  const { createApiConfiguration } = await import('../auth');
+  const { getFreshAccessToken } = await import('@/lib/middleware/keycloak');
+  const base = createApiConfiguration().basePath?.replace(/\/$/, '') ?? '';
+  const auth = (await getFreshAccessToken()) ?? '';
+  const res = await fetch(`${base}/api/task/file-attachments/${attachmentId}/`, {
+    headers: {
+      ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    throw new Error(
+      res.status === 404 ? 'Attachment not found.' : `Download failed (${res.status})`,
+    );
+  }
+  return res.blob();
 }
 
 export type TaskCommentReactionGroup = {
@@ -507,4 +604,7 @@ export {
   // Task description editor image upload
   uploadTaskDescriptionImage,
   uploadTaskDescriptionImageDraft,
+  uploadTaskFileAttachment,
+  uploadTaskFileAttachmentDraft,
+  fetchTaskFileAttachmentBlob,
 };

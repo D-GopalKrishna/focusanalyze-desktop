@@ -98,3 +98,14 @@ export function taskPriorityFromApi(task: { priority?: TaskPriority | null }): T
 export function taskPriorityIdFromApi(task: { priority?: TaskPriority | null }): number | null {
   return task.priority?.id ?? null;
 }
+
+/** Prefer seeded Task / Subtask type names; fall back to the first available type. */
+export function resolveDefaultTaskTypeId(
+  taskTypes: Array<{ id: number; name?: string | null }>,
+  opts?: { forSubtask?: boolean },
+): number | undefined {
+  if (!taskTypes.length) return undefined;
+  const preferName = opts?.forSubtask ? 'Subtask' : 'Task';
+  const named = taskTypes.find((t) => t.name === preferName);
+  return named?.id ?? taskTypes[0]?.id;
+}

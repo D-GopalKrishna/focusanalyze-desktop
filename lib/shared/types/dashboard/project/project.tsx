@@ -4,4 +4,11 @@ export type StartingCreateProjectComponentProps = {
 
 export type ProjectCreationSection = 'main' | 'create' | 'integrate' | 'import';
 
-export type ProjectViewType = 'board' | 'list' | 'all-track';
+export type ProjectViewType =
+  | 'board'
+  | 'list'
+  | 'all-track'
+  | 'timeline'
+  | 'calendar'
+  | 'releases'
+  | 'goals';

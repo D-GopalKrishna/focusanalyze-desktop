@@ -1,4 +1,5 @@
-import { JournalApi } from "@shared/api-client";
+import { JournalApi, type UserUploadedImageResponse } from "@shared/api-client";
+import type { PlanScope } from "@shared/types/dashboard/planning";
 import { createApiClient } from '../auth';
 
 const api = createApiClient(JournalApi);
@@ -95,4 +96,37 @@ export async function getWeekJournal(date: string): Promise<WeekJournal> {
 export async function updateWeekJournalNote(date: string, note: string): Promise<WeekJournal> {
   const res = await api.apiJournalWeekPartialUpdate(date, { data: { note } });
   return res.data as unknown as WeekJournal;
+}
+
+export type JournalNoteHistoryEntry = {
+  id: number;
+  note: string | null;
+  history_id: number;
+  history_date: string;
+  history_type: string;
+  date?: string;
+  week_start?: string;
+  week_end?: string;
+};
+
+export async function getDayJournalNoteHistory(date: string): Promise<JournalNoteHistoryEntry[]> {
+  const res = await api.apiJournalDayNoteHistoryList(date);
+  return res.data as JournalNoteHistoryEntry[];
+}
+
+export async function getWeekJournalNoteHistory(date: string): Promise<JournalNoteHistoryEntry[]> {
+  const res = await api.apiJournalWeekNoteHistoryList(date);
+  return res.data as JournalNoteHistoryEntry[];
+}
+
+export async function uploadJournalNoteImage(
+  date: string,
+  scope: PlanScope,
+  image: File,
+): Promise<UserUploadedImageResponse> {
+  const res =
+    scope === 'weekly'
+      ? await api.apiJournalWeekUploadEditorImageCreate(date, image)
+      : await api.apiJournalDayUploadEditorImageCreate(date, image);
+  return res.data;
 }

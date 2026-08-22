@@ -1,12 +1,31 @@
 import type { Notification as StreamNotification } from "@shared/api-client/api";
 
 import {
+  dedupeStreamNotifications,
+  getNotificationStreamDedupeKey,
+  hasStreamNotificationToastBeenShown,
+  rememberStreamNotificationToastShown,
+} from "@shared/utils/notification-stream-dedupe";
+import {
+  getStreamNotificationBacklogSummaryCopy,
+  getStreamNotificationBacklogSummaryCount,
   getStreamNotificationToastCopy,
   isStreamCalendarReminderNotification,
+  partitionStreamNotificationsByFreshness,
   shouldShowSonnerForStreamNotification,
 } from "@shared/utils/notifications";
+import {
+  DEFAULT_TIMER_COMPLETION_SOUND,
+  isTimerCompletionSoundId,
+  TIMER_COMPLETION_SOUND_FILES,
+  type TimerCompletionSoundId,
+} from "@shared/utils/timer-completion-sound-core";
+
+export type { TimerCompletionSoundId };
 
 const STORAGE_KEY = 'fa_desktop_notifications_enabled';
+/** Device-local only (not UserSettings / backend). See get/setTimerCompletionSoundPreference. */
+const TIMER_SOUND_STORAGE_KEY = 'focusanalyze.timerCompletionSound';
 
 export type BrowserNotificationPermission = 'default' | 'denied' | 'granted' | 'unsupported';
 
@@ -165,7 +184,12 @@ export function showDesktopNotificationIfGranted(
 export function showDesktopNotificationsForStream(
   notifications: StreamNotification[],
   context: {
-    isInitialNonEmptyStreamBatch: boolean;
+    /** Suppress calendar reminders on first batch / post-reconnect batch. */
+    suppressCalendarOnBatch: boolean;
+    /** Inbox backlog summary (not per-item stale rows on later SSE deltas). */
+    allowBacklogSummary: boolean;
+    /** Persistent unread count for the inbox badge; used for backlog summary copy. */
+    inboxUnreadCount?: number;
     onOpenNotification: (notification: StreamNotification) => void;
     onOpenCalendar: () => void;
     onOpenInbox: () => void;
@@ -173,12 +197,47 @@ export function showDesktopNotificationsForStream(
 ): void {
   if (!shouldShowDesktopNotificationNow() || notifications.length === 0) return;
 
-  const eligible = notifications.filter((n) =>
-    shouldShowSonnerForStreamNotification(n.type, context.isInitialNonEmptyStreamBatch),
+  const batch = dedupeStreamNotifications(notifications);
+  const eligible = batch.filter((n) =>
+    shouldShowSonnerForStreamNotification(n.type, context.suppressCalendarOnBatch),
   );
   if (eligible.length === 0) return;
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const { fresh, stale } = partitionStreamNotificationsByFreshness(eligible);
+
+  // Backlog summary desktop notification — same once-per-session policy as Sonner.
+  if (context.allowBacklogSummary && fresh.length === 0 && stale.length > 0) {
+    const summaryCount = getStreamNotificationBacklogSummaryCount(
+      stale,
+      context.inboxUnreadCount ?? 0,
+    );
+    if (summaryCount == null) {
+      return;
+    }
+    const staleOnlyCalendar = stale.every((n) => isStreamCalendarReminderNotification(n.type));
+    const { title, description } = getStreamNotificationBacklogSummaryCopy(summaryCount);
+    notify(
+      title,
+      {
+        tag: 'fa-stream-batch-stale-summary',
+        body: description,
+        icon: origin ? `${origin}/favicon.ico` : undefined,
+      },
+      () => {
+        if (staleOnlyCalendar) {
+          context.onOpenCalendar();
+          return;
+        }
+        context.onOpenInbox();
+      },
+    );
+    return;
+  }
+
+  if (fresh.length === 0) {
+    return;
+  }
 
   /**
    * Backend stream ordering note:
@@ -187,7 +246,7 @@ export function showDesktopNotificationsForStream(
    * is often oldest-first (ascending PK) but is not guaranteed.
    *
    * For best UX (least spam), show only ONE desktop notification per batch.
-   * Selection:
+   * Prefer fresh rows; among those (or eligible if none marked fresh):
    * - Prefer TaskDue/TaskOverdue items
    * - Otherwise use the newest item (based on created_at); if parsing fails, fall back to last.
    */
@@ -205,14 +264,20 @@ export function showDesktopNotificationsForStream(
     return best ?? items[items.length - 1];
   };
 
-  const taskDue = eligible.filter((n) => n.type === 'task_due' || n.type === 'task_overdue');
-  const chosen = pickNewest(taskDue.length > 0 ? taskDue : eligible);
+  const pool = fresh;
+  const taskDue = pool.filter((n) => n.type === 'task_due' || n.type === 'task_overdue');
+  const chosen = pickNewest(taskDue.length > 0 ? taskDue : pool);
+
+  const chosenKey = getNotificationStreamDedupeKey(chosen);
+  if (chosenKey && hasStreamNotificationToastBeenShown(chosenKey)) {
+    return;
+  }
 
   const { title, description } = getStreamNotificationToastCopy(chosen);
   notify(
     title,
     {
-      tag: `fa-stream-batch-${String(chosen.id)}`,
+      tag: chosenKey ?? `fa-stream-batch-${String(chosen.id)}`,
       body: description,
       icon: origin ? `${origin}/favicon.ico` : undefined,
     },
@@ -224,65 +289,102 @@ export function showDesktopNotificationsForStream(
       context.onOpenNotification(chosen);
     },
   );
+  if (chosenKey) {
+    rememberStreamNotificationToastShown(chosenKey);
+  }
 }
 
 /**
- * Short major-arpeggio “chime” for timer complete — softer than a single high beep.
- * C5 → E5 → G5 with slight stagger and gentle decay (Web Audio API).
+ * Timer completion sound preference — stored in `localStorage` only (per browser/device).
+ * Not synced via `updateUserSettings`; calendar timer widget style is the backend-backed analogue.
  */
-export async function playTimerCompletionSound(): Promise<void> {
+export function getTimerCompletionSoundPreference(): TimerCompletionSoundId {
+  if (typeof window === 'undefined') return DEFAULT_TIMER_COMPLETION_SOUND;
+  const raw = window.localStorage.getItem(TIMER_SOUND_STORAGE_KEY);
+  if (raw && isTimerCompletionSoundId(raw)) return raw;
+  return DEFAULT_TIMER_COMPLETION_SOUND;
+}
+
+export function setTimerCompletionSoundPreference(id: TimerCompletionSoundId): void {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(TIMER_SOUND_STORAGE_KEY, id);
+}
+
+/** Original FA-797 soft major-arpeggio chime (Web Audio). */
+async function playBuiltInChime(): Promise<void> {
+  const Ctx = (window.AudioContext ?? (window as any).webkitAudioContext) as
+    | (new () => AudioContext)
+    | undefined;
+  if (!Ctx) return;
+  const ctx = new Ctx();
+  if (ctx.state === 'suspended') {
+    await ctx.resume().catch(() => undefined);
+  }
+
+  const master = ctx.createGain();
+  master.gain.value = 0.42;
+  master.connect(ctx.destination);
+
+  const notes: { freq: number; delay: number; peak: number }[] = [
+    { freq: 523.25, delay: 0, peak: 0.11 },
+    { freq: 659.25, delay: 0.085, peak: 0.1 },
+    { freq: 783.99, delay: 0.17, peak: 0.09 },
+  ];
+
+  const t0 = ctx.currentTime;
+  const noteDuration = 0.38;
+  let pending = notes.length;
+
+  for (const { freq, delay, peak } of notes) {
+    const start = t0 + delay;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.exponentialRampToValueAtTime(peak, start + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + noteDuration);
+
+    osc.connect(g);
+    g.connect(master);
+    osc.start(start);
+    osc.stop(start + noteDuration + 0.05);
+    osc.onended = () => {
+      pending -= 1;
+      if (pending <= 0) {
+        try {
+          ctx.close();
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }
+}
+
+async function playAudioFile(url: string): Promise<void> {
+  const audio = new Audio(url);
+  audio.volume = 1;
+  await audio.play();
+}
+
+/**
+ * Play the preferred (or explicit) timer-complete sound.
+ * `chime` is the original built-in arpeggio; other IDs use Freesound CC0 files.
+ */
+export async function playTimerCompletionSound(
+  soundId?: TimerCompletionSoundId,
+): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
-    const Ctx = (window.AudioContext ?? (window as any).webkitAudioContext) as
-      | (new () => AudioContext)
-      | undefined;
-    if (!Ctx) return;
-    const ctx = new Ctx();
-    if (ctx.state === 'suspended') {
-      await ctx.resume().catch(() => undefined);
+    const id = soundId ?? getTimerCompletionSoundPreference();
+    const fileUrl = TIMER_COMPLETION_SOUND_FILES[id];
+    if (fileUrl) {
+      await playAudioFile(fileUrl);
+      return;
     }
-
-    const master = ctx.createGain();
-    master.gain.value = 0.42;
-    master.connect(ctx.destination);
-
-    // C5, E5, G5 (pleasant, “notification-like” major triad)
-    const notes: { freq: number; delay: number; peak: number }[] = [
-      { freq: 523.25, delay: 0, peak: 0.11 },
-      { freq: 659.25, delay: 0.085, peak: 0.1 },
-      { freq: 783.99, delay: 0.17, peak: 0.09 },
-    ];
-
-    const t0 = ctx.currentTime;
-    const noteDuration = 0.38;
-    let pending = notes.length;
-
-    for (const { freq, delay, peak } of notes) {
-      const start = t0 + delay;
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.value = freq;
-      g.gain.setValueAtTime(0.0001, start);
-      g.gain.exponentialRampToValueAtTime(peak, start + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, start + noteDuration);
-
-      osc.connect(g);
-      g.connect(master);
-      osc.start(start);
-      osc.stop(start + noteDuration + 0.05);
-      osc.onended = () => {
-        pending -= 1;
-        if (pending <= 0) {
-          try {
-            ctx.close();
-          } catch {
-            // ignore
-          }
-        }
-      };
-    }
+    await playBuiltInChime();
   } catch {
-    // ignore (unsupported / blocked)
+    // ignore (unsupported / blocked / missing file)
   }
 }

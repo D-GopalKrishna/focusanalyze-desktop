@@ -12,10 +12,33 @@
 
 export const ACTIVE_THEME_CACHE_KEY = 'fa-active-custom-theme';
 
+/** Same-tab signal when the cached custom theme changes (storage events only fire cross-tab). */
+export const ACTIVE_THEME_CHANGE_EVENT = 'fa-active-custom-theme-change';
+
 export interface CustomThemeColors {
   background: string;
   primary: string;
   secondary: string;
+}
+
+/** Built-in Soft Kitty color preset (FA-948). Colors only — companions live in UI extensions. */
+export const SOFT_KITTY_COLORS: CustomThemeColors = {
+  background: '#FFF0F5',
+  primary: '#F7A6C4',
+  secondary: '#C8A2DB',
+};
+
+function normalizeHex(hex: string): string {
+  return hex.trim().toLowerCase();
+}
+
+export function isSoftKittyColors(colors: CustomThemeColors | null | undefined): boolean {
+  if (!colors) return false;
+  return (
+    normalizeHex(colors.background) === normalizeHex(SOFT_KITTY_COLORS.background) &&
+    normalizeHex(colors.primary) === normalizeHex(SOFT_KITTY_COLORS.primary) &&
+    normalizeHex(colors.secondary) === normalizeHex(SOFT_KITTY_COLORS.secondary)
+  );
 }
 
 /** Parse `#rgb`/`#rrggbb` into 0–255 channels, or null if malformed. */
@@ -118,11 +141,31 @@ function foregroundFor(base: Hsl): string {
 
 /**
  * Shift a base color's lightness toward the foreground direction by `amount`
- * percentage points — used to derive elevated surfaces, muted fills and borders
- * that read correctly whether the theme is light or dark.
+ * percentage points — used for dark themes (lift surfaces) and shared helpers.
  */
 function shiftToward(base: Hsl, isDark: boolean, amount: number): Hsl {
   return { h: base.h, s: base.s, l: clampL(base.l + (isDark ? amount : -amount)) };
+}
+
+/**
+ * Light custom themes (Soft Kitty, pastels): elevate like paper on a tinted
+ * canvas — slightly lighter + desaturated — instead of darkening the bg hue,
+ * which makes dusty two-tone cards and loud magenta borders.
+ */
+function elevateLightSurface(base: Hsl, desaturateBy: number, lightenBy: number): Hsl {
+  return {
+    h: base.h,
+    s: Math.max(0, base.s - desaturateBy),
+    l: clampL(Math.min(100, base.l + lightenBy)),
+  };
+}
+
+function recessLightSurface(base: Hsl, desaturateBy: number, darkenBy: number): Hsl {
+  return {
+    h: base.h,
+    s: Math.max(0, base.s - desaturateBy),
+    l: clampL(base.l - darkenBy),
+  };
 }
 
 /**
@@ -138,10 +181,17 @@ export function deriveThemeVars(colors: CustomThemeColors): Record<string, strin
   const isDark = bg.l < 50;
   const fg: Hsl = { h: bg.h, s: Math.min(bg.s, 20), l: isDark ? 96 : 10 };
 
-  const card = shiftToward(bg, isDark, 4);
-  const muted = shiftToward(bg, isDark, 8);
-  const border = shiftToward(bg, isDark, 14);
+  // Dark: lift surfaces toward white. Light: paper elevation (not muddy darken).
+  const card = isDark ? shiftToward(bg, true, 4) : elevateLightSurface(bg, 28, 2);
+  const muted = isDark ? shiftToward(bg, true, 8) : recessLightSurface(bg, 16, 3);
+  const border = isDark ? shiftToward(bg, true, 14) : recessLightSurface(bg, 32, 9);
   const mutedFg: Hsl = { h: bg.h, s: Math.min(bg.s, 25), l: isDark ? 65 : 45 };
+  // Keep a soft tinted sidebar on light themes so Soft Kitty doesn't lose its pink rail.
+  const sidebarBg = isDark ? card : recessLightSurface(bg, 6, 3);
+  // Sidebar's own active/selected highlight — must diverge from sidebarBg by more than
+  // muted does, or the active nav item is indistinguishable from the rail (FA bug: Soft
+  // Kitty's near-white bg compresses card/muted/sidebarBg into the same lightness band).
+  const sidebarAccent = isDark ? shiftToward(bg, true, 20) : recessLightSurface(bg, 22, 12);
 
   return {
     '--background': toVar(bg.h, bg.s, bg.l),
@@ -167,9 +217,9 @@ export function deriveThemeVars(colors: CustomThemeColors): Record<string, strin
     // is what keeps the active nav-item highlight legible: it always matches this
     // theme's real background lightness, instead of whatever next-themes' light/dark
     // class happens to be set to.
-    '--sidebar-background': toVar(card.h, card.s, card.l),
+    '--sidebar-background': toVar(sidebarBg.h, sidebarBg.s, sidebarBg.l),
     '--sidebar-foreground': toVar(fg.h, fg.s, fg.l),
-    '--sidebar-accent': toVar(muted.h, muted.s, muted.l),
+    '--sidebar-accent': toVar(sidebarAccent.h, sidebarAccent.s, sidebarAccent.l),
     '--sidebar-accent-foreground': toVar(fg.h, fg.s, fg.l),
     '--sidebar-border': toVar(border.h, border.s, border.l),
     '--sidebar-ring': toVar(primary.h, primary.s, primary.l),
@@ -227,6 +277,40 @@ export function getCachedActiveTheme(): CustomThemeColors | null {
   }
 }
 
+export function subscribeActiveTheme(onChange: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === ACTIVE_THEME_CACHE_KEY || e.key === null) onChange();
+  };
+  window.addEventListener(ACTIVE_THEME_CHANGE_EVENT, onChange);
+  window.addEventListener('storage', onStorage);
+  return () => {
+    window.removeEventListener(ACTIVE_THEME_CHANGE_EVENT, onChange);
+    window.removeEventListener('storage', onStorage);
+  };
+}
+
+/** Resolve a shadcn HSL CSS var (e.g. `--primary`) to an `hsl(...)` color string. */
+export function readCssHslVar(varName: string, fallback: string): string {
+  if (typeof document === 'undefined') return fallback;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  if (!raw) return fallback;
+  return `hsl(${raw})`;
+}
+
+/**
+ * Glow / accent palette derived from the active theme tokens (not hardcoded
+ * rainbow greens). Re-read after custom-theme or light/dark changes.
+ */
+export function getThemeGlowColors(): string[] {
+  return [
+    readCssHslVar('--primary', 'hsl(222 47% 11%)'),
+    readCssHslVar('--secondary', 'hsl(210 40% 96%)'),
+    readCssHslVar('--ring', 'hsl(222 84% 5%)'),
+    readCssHslVar('--accent', 'hsl(210 40% 96%)'),
+  ];
+}
+
 /** Re-apply whatever theme is currently cached (or clear overrides if none). */
 export function reconcileAppearance(): void {
   applyCustomTheme(getCachedActiveTheme());
@@ -244,6 +328,7 @@ export function setCachedActiveTheme(colors: CustomThemeColors | null): void {
     } catch {
       /* storage unavailable — theme just won't survive reload on this device */
     }
+    window.dispatchEvent(new Event(ACTIVE_THEME_CHANGE_EVENT));
   }
   reconcileAppearance();
 }
@@ -253,7 +338,8 @@ export function setCachedActiveTheme(colors: CustomThemeColors | null): void {
  * active custom theme before paint. Self-contained plain JS.
  */
 export function getCustomThemeScript(): string {
-  return `(function(){try{var raw=localStorage.getItem('${ACTIVE_THEME_CACHE_KEY}');if(!raw)return;var c=JSON.parse(raw);if(!c)return;function hx(v){var h=(''+v).trim().replace(/^#/,'');if(h.length===3){h=h.split('').map(function(x){return x+x}).join('')}if(!/^[0-9a-fA-F]{6}$/.test(h))return null;var r=parseInt(h.slice(0,2),16)/255,g=parseInt(h.slice(2,4),16)/255,b=parseInt(h.slice(4,6),16)/255;var mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn,l=(mx+mn)/2,s=0,hu=0;if(d!==0){s=l>0.5?d/(2-mx-mn):d/(mx+mn);if(mx===r){hu=(g-b)/d+(g<b?6:0)}else if(mx===g){hu=(b-r)/d+2}else{hu=(r-g)/d+4}hu/=6}return{h:hu*360,s:s*100,l:l*100}}var bg=hx(c.background),pr=hx(c.primary),se=hx(c.secondary);if(!bg||!pr||!se)return;var dark=bg.l<50;function v(h,s,l){return Math.round(h)+' '+Math.round(s)+'% '+Math.round(Math.max(0,Math.min(100,l)))+'%'}function fgc(x){return x.l>=60?'0 0% 9%':'0 0% 98%'}var fg=v(bg.h,Math.min(bg.s,20),dark?96:10);var card=v(bg.h,bg.s,bg.l+(dark?4:-4));var muted=v(bg.h,bg.s,bg.l+(dark?8:-8));var border=v(bg.h,bg.s,bg.l+(dark?14:-14));var mfg=v(bg.h,Math.min(bg.s,25),dark?65:45);var e=document.documentElement,S=function(k,val){e.style.setProperty(k,val)};S('--background',v(bg.h,bg.s,bg.l));S('--foreground',fg);S('--card',card);S('--card-foreground',fg);S('--popover',card);S('--popover-foreground',fg);S('--primary',v(pr.h,pr.s,pr.l));S('--primary-foreground',fgc(pr));S('--secondary',v(se.h,se.s,se.l));S('--secondary-foreground',fgc(se));S('--muted',muted);S('--muted-foreground',mfg);S('--accent',muted);S('--accent-foreground',fg);S('--border',border);S('--input',border);S('--ring',v(pr.h,pr.s,pr.l));S('--sidebar-background',card);S('--sidebar-foreground',fg);S('--sidebar-accent',muted);S('--sidebar-accent-foreground',fg);S('--sidebar-border',border);S('--sidebar-ring',v(pr.h,pr.s,pr.l));e.classList.toggle('dark',dark)}catch(e){}})();`;
+  // Keep in sync with deriveThemeVars — light themes elevate paper-style (not muddy darken).
+  return `(function(){try{var raw=localStorage.getItem('${ACTIVE_THEME_CACHE_KEY}');if(!raw)return;var c=JSON.parse(raw);if(!c)return;function hx(v){var h=(''+v).trim().replace(/^#/,'');if(h.length===3){h=h.split('').map(function(x){return x+x}).join('')}if(!/^[0-9a-fA-F]{6}$/.test(h))return null;var r=parseInt(h.slice(0,2),16)/255,g=parseInt(h.slice(2,4),16)/255,b=parseInt(h.slice(4,6),16)/255;var mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn,l=(mx+mn)/2,s=0,hu=0;if(d!==0){s=l>0.5?d/(2-mx-mn):d/(mx+mn);if(mx===r){hu=(g-b)/d+(g<b?6:0)}else if(mx===g){hu=(b-r)/d+2}else{hu=(r-g)/d+4}hu/=6}return{h:hu*360,s:s*100,l:l*100}}var bg=hx(c.background),pr=hx(c.primary),se=hx(c.secondary);if(!bg||!pr||!se)return;var dark=bg.l<50;function clamp(x){return Math.max(0,Math.min(100,x))}function v(h,s,l){return Math.round(h)+' '+Math.round(s)+'% '+Math.round(clamp(l))+'%'}function fgc(x){return x.l>=60?'0 0% 9%':'0 0% 98%'}function elev(b,ds,up){return{h:b.h,s:Math.max(0,b.s-ds),l:clamp(Math.min(100,b.l+up))}}function recess(b,ds,dn){return{h:b.h,s:Math.max(0,b.s-ds),l:clamp(b.l-dn)}}var fg=v(bg.h,Math.min(bg.s,20),dark?96:10);var card=dark?{h:bg.h,s:bg.s,l:clamp(bg.l+4)}:elev(bg,28,2);var muted=dark?{h:bg.h,s:bg.s,l:clamp(bg.l+8)}:recess(bg,16,3);var border=dark?{h:bg.h,s:bg.s,l:clamp(bg.l+14)}:recess(bg,32,9);var sidebar=dark?card:recess(bg,6,3);var sidebarAccent=dark?{h:bg.h,s:bg.s,l:clamp(bg.l+20)}:recess(bg,22,12);var mfg=v(bg.h,Math.min(bg.s,25),dark?65:45);var e=document.documentElement,S=function(k,val){e.style.setProperty(k,val)};S('--background',v(bg.h,bg.s,bg.l));S('--foreground',fg);S('--card',v(card.h,card.s,card.l));S('--card-foreground',fg);S('--popover',v(card.h,card.s,card.l));S('--popover-foreground',fg);S('--primary',v(pr.h,pr.s,pr.l));S('--primary-foreground',fgc(pr));S('--secondary',v(se.h,se.s,se.l));S('--secondary-foreground',fgc(se));S('--muted',v(muted.h,muted.s,muted.l));S('--muted-foreground',mfg);S('--accent',v(muted.h,muted.s,muted.l));S('--accent-foreground',fg);S('--border',v(border.h,border.s,border.l));S('--input',v(border.h,border.s,border.l));S('--ring',v(pr.h,pr.s,pr.l));S('--sidebar-background',v(sidebar.h,sidebar.s,sidebar.l));S('--sidebar-foreground',fg);S('--sidebar-accent',v(sidebarAccent.h,sidebarAccent.s,sidebarAccent.l));S('--sidebar-accent-foreground',fg);S('--sidebar-border',v(border.h,border.s,border.l));S('--sidebar-ring',v(pr.h,pr.s,pr.l));e.classList.toggle('dark',dark)}catch(e){}})();`;
 }
 
 function copyResolvedThemeVars(source: HTMLElement, target: HTMLElement): () => void {

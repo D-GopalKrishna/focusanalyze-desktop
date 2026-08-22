@@ -2,6 +2,7 @@ import { EventSourcePolyfill, Event as EventSourcePolyfillEvent } from 'event-so
 import debounce from 'lodash/debounce';
 import { getFreshAccessToken } from '@/lib/middleware/keycloak';
 import { Notification } from "@shared/api-client/api";
+import { getNotificationStreamDedupeKey, getStreamNotificationsSeenKeys, persistStreamNotificationsSeenKeys } from "@shared/utils/notification-stream-dedupe";
 
 // Helper function to convert backend notification to frontend notification
 export function formatNotification(notification: Notification): Notification {
@@ -54,8 +55,7 @@ export const setupNotificationStream = (
   let lastHeartbeat = Date.now();
   let heartbeatTimeout: NodeJS.Timeout;
   let reconnectTimeout: NodeJS.Timeout;
-  const processedNotifications = new Set<string>();
-  let lastTimestamp = 0;
+  const processedNotifications = getStreamNotificationsSeenKeys();
   let isReconnecting = false;
   let cancelled = false;
 
@@ -90,7 +90,6 @@ export const setupNotificationStream = (
   const cleanup = () => {
     cancelled = true;
     teardown();
-    processedNotifications.clear();
     debouncedNotificationHandler.cancel();
   };
 
@@ -188,29 +187,39 @@ export const setupNotificationStream = (
           return;
         }
 
-        // Collect all valid notifications from the array
+        // Collect all valid notifications from the array.
+        // Dedupe by notification id (or backend dedupe_key). Do not skip by created_at
+        // mid-batch — Celery republishes unread newest-first and a timestamp watermark
+        // would drop rows and under-count.
         const validNotifications: Notification[] = [];
         notifications.forEach((notificationData) => {
           try {
-            const notificationId = notificationData.id.toString();
-            const timestamp = new Date(notificationData.created_at).getTime();
-
-            // Skip if we've already processed this notification
-            //  or if it's older than our last timestamp
-            if (processedNotifications.has(notificationId) || timestamp < lastTimestamp) {
+            const dedupeKey = getNotificationStreamDedupeKey({
+              id: notificationData.id,
+              dedupe_key:
+                typeof notificationData.dedupe_key === 'string'
+                  ? notificationData.dedupe_key
+                  : null,
+            });
+            if (!dedupeKey) {
+              console.warn('Skipping stream notification without id or dedupe_key', notificationData);
+              return;
+            }
+            if (processedNotifications.has(dedupeKey)) {
               return;
             }
 
             const converted = formatNotification(notificationData);
-            processedNotifications.add(notificationId);
-            lastTimestamp = Math.max(lastTimestamp, timestamp);
-
-            // Add to valid notifications array
+            processedNotifications.add(dedupeKey);
             validNotifications.push(converted);
           } catch (conversionError) {
             console.error('Error processing notification:', conversionError, notificationData);
           }
         });
+
+        if (validNotifications.length > 0) {
+          persistStreamNotificationsSeenKeys(processedNotifications);
+        }
 
         // Send all valid notifications as a batch
         if (validNotifications.length > 0) {

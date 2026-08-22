@@ -57,7 +57,11 @@ export type MultiDragSourceEvent = {
   is_recurring?: boolean | string | null;
 };
 
-export type EventLink = { task: number | null; life_area: number | null; project_id: number | null };
+export type EventLink = {
+  task: number | null;
+  life_area: number | null;
+  project_id: number | null;
+};
 
 /**
  * Pick EXACTLY ONE of task / life_area / project for a write payload.
@@ -73,7 +77,8 @@ export function resolveSingleEventLink(ev: MultiDragSourceEvent): EventLink {
   const taskId = ev.task_id ?? ev.task?.id ?? null;
   const lifeAreaId = ev.life_area_id ?? ev.life_area?.id ?? null;
   const projectId =
-    ev.project_id ?? (typeof ev.project === 'object' && ev.project ? (ev.project.id ?? null) : null);
+    ev.project_id ??
+    (typeof ev.project === 'object' && ev.project ? (ev.project.id ?? null) : null);
 
   if (taskId != null) return { task: taskId, life_area: null, project_id: null };
   if (lifeAreaId != null) return { task: null, life_area: lifeAreaId, project_id: null };

@@ -2,9 +2,18 @@ import type { EventInput } from '@fullcalendar/core';
 
 import type { DraftPlanBlock } from "@shared/types/dashboard/planning";
 import { DRAFT_PLAN_EVENT_PREFIX } from "@shared/types/dashboard/planning";
-import { FocusGPTProposeToolNameEnum } from "@shared/api-client";
-import type { HitlPendingAction } from "@shared/api-client";
 import { CALENDAR_THEME_FOREGROUND } from "@shared/utils/calendar-event-colors";
+
+/** Avoid `@/lib/rest_client_backend` — its base.ts breaks node --test strip-only mode. */
+export type HitlPendingActionLike = {
+  name: string;
+  tool_call_id: string;
+  arguments?: Record<string, unknown>;
+};
+
+/** String literals — avoid FocusGPTProposeToolNameEnum from rest_client_backend. */
+const PROPOSE_PLAN_BLOCKS_TOOL = 'propose_plan_blocks_tool';
+const PROPOSE_BULK_CREATE_EVENTS_TOOL = 'propose_bulk_create_events_tool';
 
 /**
  * `movedExistingEventIds`: blocks whose `event_id` is in this set already have a real, saved Event
@@ -35,6 +44,12 @@ export function draftBlocksToCalendarEvents(
       extendedProps: {
         isDraftPlan: true,
         draftPlanId: b.id,
+        // Stamped onto the FC tile so CalendarView's contextmenu handler (attached at
+        // eventDidMount, closed over refs) can resolve the underlying live Event without
+        // relying only on draftBlocksRef. Needed because moved/edited planning drafts replace
+        // the live tile — without these, right-click on the dashed tile silently no-ops.
+        draftEventId: b.event_id ?? null,
+        draftOccurrenceStart: b.occurrence_start ?? null,
         source: b.source,
         plannerTaskId: b.task_id,
         taskName: b.name,
@@ -44,12 +59,12 @@ export function draftBlocksToCalendarEvents(
 }
 
 export function hitlActionsToDraftBlocks(
-  actions: HitlPendingAction[],
+  actions: HitlPendingActionLike[],
   source: 'ai' = 'ai',
 ): DraftPlanBlock[] {
   const out: DraftPlanBlock[] = [];
   for (const action of actions) {
-    if (action.name === FocusGPTProposeToolNameEnum.ProposePlanBlocksTool) {
+    if (action.name === PROPOSE_PLAN_BLOCKS_TOOL) {
       const records = Array.isArray(action.arguments?.records) ? action.arguments.records : [];
       for (const r of records as Array<Record<string, unknown>>) {
         if (!r.start_datetime || !r.end_datetime) continue;
@@ -63,7 +78,7 @@ export function hitlActionsToDraftBlocks(
           source,
         });
       }
-    } else if (action.name === 'propose_bulk_create_events_tool') {
+    } else if (action.name === PROPOSE_BULK_CREATE_EVENTS_TOOL) {
       const records = Array.isArray(action.arguments?.records) ? action.arguments.records : [];
       for (const r of records as Array<Record<string, unknown>>) {
         if (!r.start_datetime || !r.end_datetime) continue;

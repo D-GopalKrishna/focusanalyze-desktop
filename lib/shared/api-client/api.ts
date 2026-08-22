@@ -42,13 +42,19 @@ export interface AICreditsLog {
      */
     'provider': string;
     /**
-     * Estimated token count (input + output). Supports up to 99,999,999.99 tokens.
+     * Model id used for this call (e.g. gpt-4o, gemini-2.0-flash).
+     * @type {string}
+     * @memberof AICreditsLog
+     */
+    'model'?: string;
+    /**
+     * Token count (input + output). Prefer provider usage when available.
      * @type {string}
      * @memberof AICreditsLog
      */
     'tokens_used': string;
     /**
-     * Estimated cost in USD. Supports up to $999,999.9999.
+     * Cost in USD from rate card × tokens (not a provider invoice line).
      * @type {string}
      * @memberof AICreditsLog
      */
@@ -77,9 +83,155 @@ export interface AICreditsLog {
      * @memberof AICreditsLog
      */
     'user'?: number | null;
+    /**
+     * Assistant message this usage belongs to, when known.
+     * @type {number}
+     * @memberof AICreditsLog
+     */
+    'message'?: number | null;
 }
 /**
- * Single usage row for settings UI (no prompt/response payload).
+ * Credit-log row inside a request group (includes coarse ``kind`` + purpose).
+ * @export
+ * @interface AIUsageHistoryEntry
+ */
+export interface AIUsageHistoryEntry {
+    /**
+     * 
+     * @type {number}
+     * @memberof AIUsageHistoryEntry
+     */
+    'id': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof AIUsageHistoryEntry
+     */
+    'provider': string;
+    /**
+     * Model id used for this call (e.g. gpt-4o, gemini-2.0-flash).
+     * @type {string}
+     * @memberof AIUsageHistoryEntry
+     */
+    'model': string;
+    /**
+     * Token count (input + output). Prefer provider usage when available.
+     * @type {string}
+     * @memberof AIUsageHistoryEntry
+     */
+    'tokens_used': string;
+    /**
+     * Cost in USD from rate card × tokens (not a provider invoice line).
+     * @type {string}
+     * @memberof AIUsageHistoryEntry
+     */
+    'cost_estimate': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof AIUsageHistoryEntry
+     */
+    'timestamp': string;
+    /**
+     * Assistant message this usage belongs to, when known.
+     * @type {number}
+     * @memberof AIUsageHistoryEntry
+     */
+    'message_id': number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof AIUsageHistoryEntry
+     */
+    'conversation_title': string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof AIUsageHistoryEntry
+     */
+    'context_preview': string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof AIUsageHistoryEntry
+     */
+    'kind': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof AIUsageHistoryEntry
+     */
+    'purpose'?: string;
+}
+/**
+ * One user-facing request that may contain several credit-log turns.
+ * @export
+ * @interface AIUsageHistoryGroup
+ */
+export interface AIUsageHistoryGroup {
+    /**
+     * 
+     * @type {string}
+     * @memberof AIUsageHistoryGroup
+     */
+    'id': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof AIUsageHistoryGroup
+     */
+    'timestamp': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof AIUsageHistoryGroup
+     */
+    'context_preview': string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof AIUsageHistoryGroup
+     */
+    'conversation_title': string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof AIUsageHistoryGroup
+     */
+    'tokens_used': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof AIUsageHistoryGroup
+     */
+    'cost_estimate': string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof AIUsageHistoryGroup
+     */
+    'providers': Array<string>;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof AIUsageHistoryGroup
+     */
+    'models': Array<string>;
+    /**
+     * 
+     * @type {number}
+     * @memberof AIUsageHistoryGroup
+     */
+    'entry_count': number;
+    /**
+     * 
+     * @type {Array<AIUsageHistoryEntry>}
+     * @memberof AIUsageHistoryGroup
+     */
+    'entries': Array<AIUsageHistoryEntry>;
+}
+/**
+ * Single credit-log row (no raw prompt/response payload).
  * @export
  * @interface AIUsageHistoryItem
  */
@@ -97,13 +249,19 @@ export interface AIUsageHistoryItem {
      */
     'provider': string;
     /**
-     * Estimated token count (input + output). Supports up to 99,999,999.99 tokens.
+     * Model id used for this call (e.g. gpt-4o, gemini-2.0-flash).
+     * @type {string}
+     * @memberof AIUsageHistoryItem
+     */
+    'model': string;
+    /**
+     * Token count (input + output). Prefer provider usage when available.
      * @type {string}
      * @memberof AIUsageHistoryItem
      */
     'tokens_used': string;
     /**
-     * Estimated cost in USD. Supports up to $999,999.9999.
+     * Cost in USD from rate card × tokens (not a provider invoice line).
      * @type {string}
      * @memberof AIUsageHistoryItem
      */
@@ -114,6 +272,24 @@ export interface AIUsageHistoryItem {
      * @memberof AIUsageHistoryItem
      */
     'timestamp': string;
+    /**
+     * Assistant message this usage belongs to, when known.
+     * @type {number}
+     * @memberof AIUsageHistoryItem
+     */
+    'message_id': number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof AIUsageHistoryItem
+     */
+    'conversation_title': string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof AIUsageHistoryItem
+     */
+    'context_preview': string | null;
 }
 /**
  * 
@@ -129,10 +305,16 @@ export interface AIUsageHistoryResponse {
     'summary': AIUsageSummary;
     /**
      * 
+     * @type {Array<AIUsageHistoryGroup>}
+     * @memberof AIUsageHistoryResponse
+     */
+    'groups': Array<AIUsageHistoryGroup>;
+    /**
+     * 
      * @type {Array<AIUsageHistoryItem>}
      * @memberof AIUsageHistoryResponse
      */
-    'items': Array<AIUsageHistoryItem>;
+    'items'?: Array<AIUsageHistoryItem>;
     /**
      * 
      * @type {number}
@@ -153,7 +335,7 @@ export interface AIUsageHistoryResponse {
     'offset': number;
 }
 /**
- * Monthly token totals aligned with billing / UserSubscription.remaining_ai_requests.
+ * Monthly token totals aligned with FocusAI per-user entitlement.
  * @export
  * @interface AIUsageSummary
  */
@@ -181,6 +363,12 @@ export interface AIUsageSummary {
      * @type {number}
      * @memberof AIUsageSummary
      */
+    'tokens_topup_remaining': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof AIUsageSummary
+     */
     'period_year': number;
     /**
      * 
@@ -194,7 +382,21 @@ export interface AIUsageSummary {
      * @memberof AIUsageSummary
      */
     'plan': string;
+    /**
+     * 
+     * @type {SubscriptionSourceEnum}
+     * @memberof AIUsageSummary
+     */
+    'subscription_source'?: SubscriptionSourceEnum;
+    /**
+     * 
+     * @type {SeatRoleEnum}
+     * @memberof AIUsageSummary
+     */
+    'seat_role'?: SeatRoleEnum | null;
 }
+
+
 /**
  * * `view` - View * `edit` - Edit * `admin` - Admin
  * @export
@@ -210,6 +412,43 @@ export const AccessLevel092Enum = {
 export type AccessLevel092Enum = typeof AccessLevel092Enum[keyof typeof AccessLevel092Enum];
 
 
+/**
+ * One receipt entry in ``metadata.action_results`` — code-derived truth for a tool call.  Mirrors the dicts built by ``focusgpt.service.agent.action_receipts. extract_action_receipts_from_messages``. ``result`` is the raw tool payload (shape varies per tool) so it stays a free-form dict here; ``ok`` is the single source of truth the FE should render success/failure from.
+ * @export
+ * @interface ActionResult
+ */
+export interface ActionResult {
+    /**
+     * 
+     * @type {string}
+     * @memberof ActionResult
+     */
+    'tool_call_id'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ActionResult
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {{ [key: string]: any; }}
+     * @memberof ActionResult
+     */
+    'result'?: { [key: string]: any; } | null;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ActionResult
+     */
+    'ok'?: boolean;
+    /**
+     * Server-computed typed navigation/refresh hint. Destinations are code-generated from tool results, never parsed from model prose.
+     * @type {ClientHint}
+     * @memberof ActionResult
+     */
+    'client_hint'?: ClientHint | null;
+}
 /**
  * Schema for active track in board/list response.
  * @export
@@ -634,6 +873,12 @@ export interface AgentResume {
      * @memberof AgentResume
      */
     'decisions': Array<HitlDecision>;
+    /**
+     * 
+     * @type {string}
+     * @memberof AgentResume
+     */
+    'timezone'?: string | null;
 }
 /**
  * 
@@ -729,6 +974,19 @@ export interface Announcement {
 /**
  * 
  * @export
+ * @interface ApiJournalDayUploadEditorImageCreate400Response
+ */
+export interface ApiJournalDayUploadEditorImageCreate400Response {
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiJournalDayUploadEditorImageCreate400Response
+     */
+    'detail'?: string;
+}
+/**
+ * 
+ * @export
  * @interface ApiProjectCollaboratorsRetrieve200Response
  */
 export interface ApiProjectCollaboratorsRetrieve200Response {
@@ -744,19 +1002,6 @@ export interface ApiProjectCollaboratorsRetrieve200Response {
      * @memberof ApiProjectCollaboratorsRetrieve200Response
      */
     'groups'?: Array<object>;
-}
-/**
- * 
- * @export
- * @interface ApiProjectInviteCreate201Response
- */
-export interface ApiProjectInviteCreate201Response {
-    /**
-     * 
-     * @type {string}
-     * @memberof ApiProjectInviteCreate201Response
-     */
-    'detail'?: string;
 }
 /**
  * 
@@ -831,6 +1076,19 @@ export interface ApiUserCheckUsernameRetrieve200Response {
     'is_unique'?: boolean;
 }
 /**
+ * Free-text ask from a personal (non-org) user on the billing settings page — identity and current plan come from the authenticated request, not this payload.
+ * @export
+ * @interface BillingContactRequest
+ */
+export interface BillingContactRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof BillingContactRequest
+     */
+    'message': string;
+}
+/**
  * * `monthly` - Monthly * `yearly` - Yearly
  * @export
  * @enum {string}
@@ -883,11 +1141,44 @@ export interface BoardColumnData {
     'color': string;
     /**
      * 
+     * @type {string}
+     * @memberof BoardColumnData
+     */
+    'role'?: string;
+    /**
+     * 
      * @type {Array<Task>}
      * @memberof BoardColumnData
      */
     'tasks': Array<Task>;
 }
+/**
+ * Body for ``POST .../conversation/{uuid}/branch/``.
+ * @export
+ * @interface BranchConversation
+ */
+export interface BranchConversation {
+    /**
+     * Copy messages with id <= this into the new conversation.
+     * @type {number}
+     * @memberof BranchConversation
+     */
+    'anchor_message_id': number;
+}
+/**
+ * * `project` - project * `life_area` - life_area
+ * @export
+ * @enum {string}
+ */
+
+export const BucketTypeEnum = {
+    Project: 'project',
+    LifeArea: 'life_area'
+} as const;
+
+export type BucketTypeEnum = typeof BucketTypeEnum[keyof typeof BucketTypeEnum];
+
+
 /**
  * Bulk create wrapper.
  * @export
@@ -959,6 +1250,44 @@ export interface BulkTaskUpdateResult {
     'results': Array<Task>;
 }
 /**
+ * 
+ * @export
+ * @interface BulkTrackDeleteResult
+ */
+export interface BulkTrackDeleteResult {
+    /**
+     * 
+     * @type {number}
+     * @memberof BulkTrackDeleteResult
+     */
+    'count': number;
+    /**
+     * 
+     * @type {Array<number>}
+     * @memberof BulkTrackDeleteResult
+     */
+    'deleted_ids': Array<number>;
+}
+/**
+ * 
+ * @export
+ * @interface BulkTrackUpdateResult
+ */
+export interface BulkTrackUpdateResult {
+    /**
+     * 
+     * @type {number}
+     * @memberof BulkTrackUpdateResult
+     */
+    'count': number;
+    /**
+     * 
+     * @type {Array<ProjectTrack>}
+     * @memberof BulkTrackUpdateResult
+     */
+    'results': Array<ProjectTrack>;
+}
+/**
  * Bulk full-update (PUT) wrapper.
  * @export
  * @interface BulkUpdateEvent
@@ -984,6 +1313,39 @@ export const BundleKeyEnum = {
 } as const;
 
 export type BundleKeyEnum = typeof BundleKeyEnum[keyof typeof BundleKeyEnum];
+
+
+/**
+ * * `DIRECT` - Direct (period total) * `PER_DAY` - Per day (every day) * `PER_WEEKDAY` - Per weekday (Mon–Fri) * `PER_WEEK` - Per week
+ * @export
+ * @enum {string}
+ */
+
+export const CadenceEnum = {
+    Direct: 'DIRECT',
+    PerDay: 'PER_DAY',
+    PerWeekday: 'PER_WEEKDAY',
+    PerWeek: 'PER_WEEK'
+} as const;
+
+export type CadenceEnum = typeof CadenceEnum[keyof typeof CadenceEnum];
+
+
+/**
+ * * `daily` - Daily * `weekdays` - Weekdays (Mon-Fri) * `weekly_days` - Specific weekdays * `n_per_week` - N times per week * `every_n_days` - Every N days
+ * @export
+ * @enum {string}
+ */
+
+export const CadenceTypeEnum = {
+    Daily: 'daily',
+    Weekdays: 'weekdays',
+    WeeklyDays: 'weekly_days',
+    NPerWeek: 'n_per_week',
+    EveryNDays: 'every_n_days'
+} as const;
+
+export type CadenceTypeEnum = typeof CadenceTypeEnum[keyof typeof CadenceTypeEnum];
 
 
 /**
@@ -1077,6 +1439,18 @@ export interface CalendarHistoryEntry {
      * @memberof CalendarHistoryEntry
      */
     'actor_id'?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof CalendarHistoryEntry
+     */
+    'actor_source'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CalendarHistoryEntry
+     */
+    'change_set_id'?: string | null;
 }
 /**
  * 
@@ -1261,6 +1635,356 @@ export type CalendarTimerWidgetStyleEnum = typeof CalendarTimerWidgetStyleEnum[k
 
 
 /**
+ * 
+ * @export
+ * @interface CapacityBudgetRead
+ */
+export interface CapacityBudgetRead {
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityBudgetRead
+     */
+    'id': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityBudgetRead
+     */
+    'project': number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityBudgetRead
+     */
+    'life_area': number | null;
+    /**
+     * 
+     * @type {Scope700Enum}
+     * @memberof CapacityBudgetRead
+     */
+    'scope': Scope700Enum;
+    /**
+     * Start date of the week/month/year this budget applies to.
+     * @type {string}
+     * @memberof CapacityBudgetRead
+     */
+    'period_start': string;
+    /**
+     * How the hours are expressed; DIRECT uses target_hours, the rest normalise rate to the period.  * `DIRECT` - Direct (period total) * `PER_DAY` - Per day (every day) * `PER_WEEKDAY` - Per weekday (Mon–Fri) * `PER_WEEK` - Per week
+     * @type {CadenceEnum}
+     * @memberof CapacityBudgetRead
+     */
+    'cadence'?: CadenceEnum;
+    /**
+     * Hours per cadence unit (per day/weekday/week). Required when cadence != DIRECT; NULL for DIRECT.
+     * @type {number}
+     * @memberof CapacityBudgetRead
+     */
+    'rate'?: number | null;
+    /**
+     * Whole-period total hours (DIRECT cadence). NULL when the budget is rate-based.
+     * @type {number}
+     * @memberof CapacityBudgetRead
+     */
+    'target_hours'?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof CapacityBudgetRead
+     */
+    'created_at': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CapacityBudgetRead
+     */
+    'last_updated': string;
+}
+
+
+/**
+ * 
+ * @export
+ * @interface CapacityReconcile
+ */
+export interface CapacityReconcile {
+    /**
+     * 
+     * @type {Scope700Enum}
+     * @memberof CapacityReconcile
+     */
+    'scope': Scope700Enum;
+    /**
+     * 
+     * @type {string}
+     * @memberof CapacityReconcile
+     */
+    'period_start': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CapacityReconcile
+     */
+    'period_end': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityReconcile
+     */
+    'supply_hours': number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityReconcile
+     */
+    'total_budgeted_hours': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityReconcile
+     */
+    'total_scheduled_hours': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityReconcile
+     */
+    'remaining_hours': number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityReconcile
+     */
+    'utilization': number | null;
+    /**
+     * 
+     * @type {CapacityReconcileStatusEnum}
+     * @memberof CapacityReconcile
+     */
+    'status': CapacityReconcileStatusEnum;
+    /**
+     * 
+     * @type {Array<CapacityReconcileBucket>}
+     * @memberof CapacityReconcile
+     */
+    'buckets': Array<CapacityReconcileBucket>;
+}
+
+
+/**
+ * 
+ * @export
+ * @interface CapacityReconcileBucket
+ */
+export interface CapacityReconcileBucket {
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityReconcileBucket
+     */
+    'budget_id': number;
+    /**
+     * 
+     * @type {BucketTypeEnum}
+     * @memberof CapacityReconcileBucket
+     */
+    'bucket_type': BucketTypeEnum;
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityReconcileBucket
+     */
+    'bucket_id': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof CapacityReconcileBucket
+     */
+    'bucket_name': string;
+    /**
+     * 
+     * @type {Scope700Enum}
+     * @memberof CapacityReconcileBucket
+     */
+    'scope': Scope700Enum;
+    /**
+     * 
+     * @type {string}
+     * @memberof CapacityReconcileBucket
+     */
+    'period_start': string;
+    /**
+     * 
+     * @type {CadenceEnum}
+     * @memberof CapacityReconcileBucket
+     */
+    'cadence': CadenceEnum;
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityReconcileBucket
+     */
+    'rate': number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityReconcileBucket
+     */
+    'target_hours': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityReconcileBucket
+     */
+    'scheduled_hours': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityReconcileBucket
+     */
+    'project_total_estimate_hours'?: number;
+}
+
+
+/**
+ * * `ok` - ok * `over` - over * `under` - under * `no_supply` - no_supply
+ * @export
+ * @enum {string}
+ */
+
+export const CapacityReconcileStatusEnum = {
+    Ok: 'ok',
+    Over: 'over',
+    Under: 'under',
+    NoSupply: 'no_supply'
+} as const;
+
+export type CapacityReconcileStatusEnum = typeof CapacityReconcileStatusEnum[keyof typeof CapacityReconcileStatusEnum];
+
+
+/**
+ * 
+ * @export
+ * @interface CapacityTimeline
+ */
+export interface CapacityTimeline {
+    /**
+     * 
+     * @type {Scope700Enum}
+     * @memberof CapacityTimeline
+     */
+    'scope': Scope700Enum;
+    /**
+     * 
+     * @type {string}
+     * @memberof CapacityTimeline
+     */
+    'range_start': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CapacityTimeline
+     */
+    'range_end': string;
+    /**
+     * 
+     * @type {GranularityEnum}
+     * @memberof CapacityTimeline
+     */
+    'granularity': GranularityEnum;
+    /**
+     * 
+     * @type {Array<CapacityTimelineRow>}
+     * @memberof CapacityTimeline
+     */
+    'rows': Array<CapacityTimelineRow>;
+}
+
+
+/**
+ * 
+ * @export
+ * @interface CapacityTimelineCell
+ */
+export interface CapacityTimelineCell {
+    /**
+     * 
+     * @type {string}
+     * @memberof CapacityTimelineCell
+     */
+    'start': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CapacityTimelineCell
+     */
+    'end': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityTimelineCell
+     */
+    'scheduled_hours': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityTimelineCell
+     */
+    'target_hours': number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof CapacityTimelineCell
+     */
+    'budget_period_start': string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof CapacityTimelineCell
+     */
+    'budget_period_end': string | null;
+}
+/**
+ * 
+ * @export
+ * @interface CapacityTimelineRow
+ */
+export interface CapacityTimelineRow {
+    /**
+     * 
+     * @type {BucketTypeEnum}
+     * @memberof CapacityTimelineRow
+     */
+    'bucket_type': BucketTypeEnum;
+    /**
+     * 
+     * @type {number}
+     * @memberof CapacityTimelineRow
+     */
+    'bucket_id': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof CapacityTimelineRow
+     */
+    'bucket_name': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CapacityTimelineRow
+     */
+    'bucket_color': string;
+    /**
+     * 
+     * @type {Array<CapacityTimelineCell>}
+     * @memberof CapacityTimelineRow
+     */
+    'cells': Array<CapacityTimelineCell>;
+}
+
+
+/**
  * * `feature` - Feature * `enhancement` - Enhancement * `integration` - Integration * `bug` - Bug
  * @export
  * @enum {string}
@@ -1355,6 +2079,21 @@ export interface ChangelogEntry {
 
 
 /**
+ * * `manual` - Manual * `suggested` - Suggested * `api` - API
+ * @export
+ * @enum {string}
+ */
+
+export const CheckInSourceEnum = {
+    Manual: 'manual',
+    Suggested: 'suggested',
+    Api: 'api'
+} as const;
+
+export type CheckInSourceEnum = typeof CheckInSourceEnum[keyof typeof CheckInSourceEnum];
+
+
+/**
  * 
  * @export
  * @interface ClarificationMetadata
@@ -1408,6 +2147,12 @@ export interface ClarificationMetadata {
      * @memberof ClarificationMetadata
      */
     'answer'?: string | null;
+    /**
+     * 
+     * @type {Array<Destination>}
+     * @memberof ClarificationMetadata
+     */
+    'destinations'?: Array<Destination>;
 }
 
 
@@ -1444,6 +2189,39 @@ export interface ClarificationOption {
      */
     'label': string;
 }
+/**
+ * 
+ * @export
+ * @interface ClientHint
+ */
+export interface ClientHint {
+    /**
+     * 
+     * @type {Destination}
+     * @memberof ClientHint
+     */
+    'navigate_to'?: Destination | null;
+    /**
+     * 
+     * @type {Array<RefreshTarget>}
+     * @memberof ClientHint
+     */
+    'refresh'?: Array<RefreshTarget>;
+}
+/**
+ * * `baseline` - Baseline (original plan) * `latest` - Latest (current plan)
+ * @export
+ * @enum {string}
+ */
+
+export const ComparisonModeEnum = {
+    Baseline: 'baseline',
+    Latest: 'latest'
+} as const;
+
+export type ComparisonModeEnum = typeof ComparisonModeEnum[keyof typeof ComparisonModeEnum];
+
+
 /**
  * ContactedForm
  * @export
@@ -1578,6 +2356,62 @@ export interface Conversation {
      * @memberof Conversation
      */
     'messages': Array<DynamicMessage>;
+    /**
+     * 
+     * @type {ConversationBranchedFrom}
+     * @memberof Conversation
+     */
+    'branched_from': ConversationBranchedFrom | null;
+    /**
+     * 
+     * @type {Array<ConversationBranchLink>}
+     * @memberof Conversation
+     */
+    'branched_to': Array<ConversationBranchLink>;
+}
+/**
+ * One cross-link entry surfaced on the *original* conversation for a branch made from it.
+ * @export
+ * @interface ConversationBranchLink
+ */
+export interface ConversationBranchLink {
+    /**
+     * 
+     * @type {string}
+     * @memberof ConversationBranchLink
+     */
+    'conversation_uuid': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof ConversationBranchLink
+     */
+    'anchor_message_id': number;
+}
+/**
+ * Surfaced on the *new* conversation created by ``.../branch/``.
+ * @export
+ * @interface ConversationBranchedFrom
+ */
+export interface ConversationBranchedFrom {
+    /**
+     * 
+     * @type {string}
+     * @memberof ConversationBranchedFrom
+     */
+    'conversation_uuid': string;
+    /**
+     * Anchor message id in the ORIGINAL conversation (not present as a row here).
+     * @type {number}
+     * @memberof ConversationBranchedFrom
+     */
+    'anchor_message_id': number;
+    /**
+     * id of the anchor message\'s copy within THIS conversation — use this to place the back-link pill.
+     * @type {number}
+     * @memberof ConversationBranchedFrom
+     */
+    'copied_through_message_id': number | null;
 }
 /**
  * 
@@ -1639,6 +2473,12 @@ export interface CreateEvent {
      * @type {string}
      * @memberof CreateEvent
      */
+    'location'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CreateEvent
+     */
     'start_datetime': string;
     /**
      * 
@@ -1652,6 +2492,18 @@ export interface CreateEvent {
      * @memberof CreateEvent
      */
     'is_all_day'?: boolean;
+    /**
+     * Source of truth for all-day events (F1) — send this instead of computing start_datetime as a local-midnight-to-UTC instant, which only round-trips correctly if read back in the same timezone it was authored in. start_datetime/end_datetime are still required (existing range-query code depends on them) but are server-derived from these when both are given.
+     * @type {string}
+     * @memberof CreateEvent
+     */
+    'all_day_start_date'?: string | null;
+    /**
+     * Exclusive end date, matching end_datetime\'s existing convention.
+     * @type {string}
+     * @memberof CreateEvent
+     */
+    'all_day_end_date'?: string | null;
     /**
      * 
      * @type {number}
@@ -1712,6 +2564,18 @@ export interface CreateEvent {
      * @memberof CreateEvent
      */
     'send_invite_emails'?: boolean;
+    /**
+     * When true, the event stays on the calendar but is omitted from performance reports and logged hours. Omit on update to leave the current value unchanged.
+     * @type {boolean}
+     * @memberof CreateEvent
+     */
+    'excluded_from_reports'?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof CreateEvent
+     */
+    'is_completed'?: boolean;
 }
 
 
@@ -1783,6 +2647,12 @@ export interface CreateMessageSeriailzer {
      * @memberof CreateMessageSeriailzer
      */
     'files'?: Array<string>;
+    /**
+     * Composer model pick: `auto` (default) or a plan-gated model id from GET /api/focusgpt/model-options/.
+     * @type {string}
+     * @memberof CreateMessageSeriailzer
+     */
+    'model'?: string;
 }
 
 
@@ -1902,12 +2772,6 @@ export interface DailyReport {
      * @type {string}
      * @memberof DailyReport
      */
-    'date': string;
-    /**
-     * 
-     * @type {string}
-     * @memberof DailyReport
-     */
     'created_at': string;
     /**
      * 
@@ -1987,6 +2851,12 @@ export interface DailyReport {
      * @memberof DailyReport
      */
     'custom_user_note_for_report'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof DailyReport
+     */
+    'date': string;
     /**
      * 
      * @type {number}
@@ -2355,6 +3225,283 @@ export interface DefaultCalendarResponse {
     'integrations': Array<DefaultCalendarIntegrationItem>;
 }
 /**
+ * Closed navigation vocabulary shared with the generated frontend client.  The schema is ``kind`` plus typed ids/dates — never a URL. The frontend rebuilds paths from ``kind``. Fields are optional because each kind uses a different subset; runtime builders in ``focusgpt.utils.destinations`` enforce the kind-specific shape.
+ * @export
+ * @interface Destination
+ */
+export interface Destination {
+    /**
+     * 
+     * @type {DestinationKindEnum}
+     * @memberof Destination
+     */
+    'kind': DestinationKindEnum;
+    /**
+     * 
+     * @type {number}
+     * @memberof Destination
+     */
+    'event_id'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof Destination
+     */
+    'date'?: string;
+    /**
+     * 
+     * @type {DestinationScopeEnum}
+     * @memberof Destination
+     */
+    'scope'?: DestinationScopeEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof Destination
+     */
+    'period_start'?: string;
+    /**
+     * 
+     * @type {PeriodEnum}
+     * @memberof Destination
+     */
+    'period'?: PeriodEnum;
+    /**
+     * 
+     * @type {number}
+     * @memberof Destination
+     */
+    'project_id'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof Destination
+     */
+    'task_id'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof Destination
+     */
+    'acronym'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Destination
+     */
+    'comment_uuid'?: string;
+    /**
+     * 
+     * @type {DestinationViewEnum}
+     * @memberof Destination
+     */
+    'view'?: DestinationViewEnum;
+    /**
+     * 
+     * @type {number}
+     * @memberof Destination
+     */
+    'track_id'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof Destination
+     */
+    'conversation_uuid'?: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Destination
+     */
+    'voice'?: boolean;
+    /**
+     * 
+     * @type {number}
+     * @memberof Destination
+     */
+    'habit_id'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof Destination
+     */
+    'system_id'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof Destination
+     */
+    'life_area_id'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof Destination
+     */
+    'section'?: string;
+}
+
+
+/**
+ * * `calendar_day` - calendar_day * `capacity` - capacity * `event` - event * `focusai` - focusai * `focusai_history` - focusai_history * `habit` - habit * `journal` - journal * `life_area` - life_area * `plan` - plan * `plan_history` - plan_history * `planning` - planning * `plans_hub` - plans_hub * `project` - project * `project_board` - project_board * `project_settings` - project_settings * `report` - report * `report_dialog` - report_dialog * `settings` - settings * `task` - task * `task_comment` - task_comment * `track` - track
+ * @export
+ * @enum {string}
+ */
+
+export const DestinationKindEnum = {
+    CalendarDay: 'calendar_day',
+    Capacity: 'capacity',
+    Event: 'event',
+    Focusai: 'focusai',
+    FocusaiHistory: 'focusai_history',
+    Habit: 'habit',
+    Journal: 'journal',
+    LifeArea: 'life_area',
+    Plan: 'plan',
+    PlanHistory: 'plan_history',
+    Planning: 'planning',
+    PlansHub: 'plans_hub',
+    Project: 'project',
+    ProjectBoard: 'project_board',
+    ProjectSettings: 'project_settings',
+    Report: 'report',
+    ReportDialog: 'report_dialog',
+    Settings: 'settings',
+    Task: 'task',
+    TaskComment: 'task_comment',
+    Track: 'track'
+} as const;
+
+export type DestinationKindEnum = typeof DestinationKindEnum[keyof typeof DestinationKindEnum];
+
+
+/**
+ * * `daily` - daily * `weekly` - weekly * `monthly` - monthly * `yearly` - yearly
+ * @export
+ * @enum {string}
+ */
+
+export const DestinationScopeEnum = {
+    Daily: 'daily',
+    Weekly: 'weekly',
+    Monthly: 'monthly',
+    Yearly: 'yearly'
+} as const;
+
+export type DestinationScopeEnum = typeof DestinationScopeEnum[keyof typeof DestinationScopeEnum];
+
+
+/**
+ * * `board` - board * `list` - list * `tracks` - tracks * `timeline` - timeline * `calendar` - calendar
+ * @export
+ * @enum {string}
+ */
+
+export const DestinationViewEnum = {
+    Board: 'board',
+    List: 'list',
+    Tracks: 'tracks',
+    Timeline: 'timeline',
+    Calendar: 'calendar'
+} as const;
+
+export type DestinationViewEnum = typeof DestinationViewEnum[keyof typeof DestinationViewEnum];
+
+
+/**
+ * 
+ * @export
+ * @interface DevicePushToken
+ */
+export interface DevicePushToken {
+    /**
+     * 
+     * @type {number}
+     * @memberof DevicePushToken
+     */
+    'id': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof DevicePushToken
+     */
+    'token': string;
+    /**
+     * 
+     * @type {PlatformEnum}
+     * @memberof DevicePushToken
+     */
+    'platform': PlatformEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof DevicePushToken
+     */
+    'app_version': string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof DevicePushToken
+     */
+    'is_active': boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof DevicePushToken
+     */
+    'last_seen_at': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof DevicePushToken
+     */
+    'created_at': string;
+}
+
+
+/**
+ * 
+ * @export
+ * @interface DevicePushTokenRegister
+ */
+export interface DevicePushTokenRegister {
+    /**
+     * 
+     * @type {string}
+     * @memberof DevicePushTokenRegister
+     */
+    'token': string;
+    /**
+     * 
+     * @type {PlatformEnum}
+     * @memberof DevicePushTokenRegister
+     */
+    'platform': PlatformEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof DevicePushTokenRegister
+     */
+    'app_version'?: string;
+}
+
+
+/**
+ * * `trivial` - Trivial * `easy` - Easy * `medium` - Medium * `hard` - Hard
+ * @export
+ * @enum {string}
+ */
+
+export const DifficultyEnum = {
+    Trivial: 'trivial',
+    Easy: 'easy',
+    Medium: 'medium',
+    Hard: 'hard'
+} as const;
+
+export type DifficultyEnum = typeof DifficultyEnum[keyof typeof DifficultyEnum];
+
+
+/**
  * * `work` - Work * `life` - Life
  * @export
  * @enum {string}
@@ -2593,6 +3740,24 @@ export interface EffectiveSubscription {
     'organization_name'?: string | null;
 }
 /**
+ * * `capacity` - Capacity * `habits` - Habits * `companion_cat` - Companion: Cat * `companion_dog` - Companion: Dog * `companion_tora` - Companion: Tora * `companion_maia` - Companion: Maia
+ * @export
+ * @enum {string}
+ */
+
+export const EnabledFeaturesEnum = {
+    Capacity: 'capacity',
+    Habits: 'habits',
+    CompanionCat: 'companion_cat',
+    CompanionDog: 'companion_dog',
+    CompanionTora: 'companion_tora',
+    CompanionMaia: 'companion_maia'
+} as const;
+
+export type EnabledFeaturesEnum = typeof EnabledFeaturesEnum[keyof typeof EnabledFeaturesEnum];
+
+
+/**
  * 
  * @export
  * @interface EnterpriseQuote
@@ -2670,6 +3835,20 @@ export type EnterpriseQuoteBillingCycleEnum = typeof EnterpriseQuoteBillingCycle
 
 
 /**
+ * * `task` - task * `track` - track
+ * @export
+ * @enum {string}
+ */
+
+export const EntityTypeEnum = {
+    Task: 'task',
+    Track: 'track'
+} as const;
+
+export type EntityTypeEnum = typeof EntityTypeEnum[keyof typeof EntityTypeEnum];
+
+
+/**
  * Event
  * @export
  * @interface Event
@@ -2716,7 +3895,25 @@ export interface Event {
      * @type {string}
      * @memberof Event
      */
+    'all_day_start_date'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof Event
+     */
+    'all_day_end_date'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof Event
+     */
     'description'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof Event
+     */
+    'location'?: string;
     /**
      * 
      * @type {MinimalTask}
@@ -2772,7 +3969,7 @@ export interface Event {
      */
     'is_recurring': string;
     /**
-     * Get detailed recurrence information
+     * Get detailed recurrence information.  Parses the stored RRULE string\'s key=value parts directly instead of introspecting a `dateutil.rrule.rrule` instance: that class only exposes `_freq`/`_interval`/`_count`/`_until`/`_byweekday` as private attributes, so reading the public names (as this previously did) always raised AttributeError and silently returned None here for every recurring event.
      * @type {{ [key: string]: any; }}
      * @memberof Event
      */
@@ -2802,6 +3999,18 @@ export interface Event {
      */
     'attendees': Array<EventAttendee>;
     /**
+     * The event organiser\'s calendar email, so an invitee (not the organiser) can see who owns the event they were invited to — mirrors Google Calendar\'s own event detail, which always shows the organiser regardless of who\'s viewing.
+     * @type {string}
+     * @memberof Event
+     */
+    'organizer_email': string;
+    /**
+     * The human-friendly organizer label for display (G1/FA-950 follow-up): Google\'s organizer.displayName when the calendar gave us one — e.g. \"Holidays in India\" for an event organized by that subscribed calendar itself rather than a person. When there\'s no displayName, falls back to the raw organizer email UNLESS it\'s a technical identifier no human typed (a calendar resource id or opaque generated hex id — see ``is_synthetic_organizer_email``), in which case this returns None so the UI can simply omit the Organizer line rather than show a meaningless string. A real person\'s organizer email with no displayName set is still shown as before.
+     * @type {string}
+     * @memberof Event
+     */
+    'organizer_display_name': string;
+    /**
      * 
      * @type {boolean}
      * @memberof Event
@@ -2813,6 +4022,18 @@ export interface Event {
      * @memberof Event
      */
     'can_edit': boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof Event
+     */
+    'hangout_link': string | null;
+    /**
+     * Google Meet join-by-phone entries (``conferenceData.entryPoints``): dicts with ``entryPointType``, ``uri``, ``label``, ``pin``, etc. — see Google\'s Calendar API docs.
+     * @type {{ [key: string]: any; }}
+     * @memberof Event
+     */
+    'conference_entry_points': { [key: string]: any; };
     /**
      * JSON array string of materialized child occurrence event ids (edited-in-place instances), or [].
      * @type {string}
@@ -2831,7 +4052,34 @@ export interface Event {
      * @memberof Event
      */
     'series_start_datetime': string;
+    /**
+     * When true, this event is omitted from performance reports but still shown on the calendar.
+     * @type {boolean}
+     * @memberof Event
+     */
+    'excluded_from_reports': boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Event
+     */
+    'is_completed'?: boolean;
 }
+
+
+/**
+ * * `keep` - keep * `end_future` - end_future * `delete_all` - delete_all
+ * @export
+ * @enum {string}
+ */
+
+export const EventActionEnum = {
+    Keep: 'keep',
+    EndFuture: 'end_future',
+    DeleteAll: 'delete_all'
+} as const;
+
+export type EventActionEnum = typeof EventActionEnum[keyof typeof EventActionEnum];
 
 
 /**
@@ -2937,7 +4185,25 @@ export interface EventDetail {
      * @type {string}
      * @memberof EventDetail
      */
+    'all_day_start_date'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof EventDetail
+     */
+    'all_day_end_date'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof EventDetail
+     */
     'description'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof EventDetail
+     */
+    'location'?: string;
     /**
      * 
      * @type {MinimalTask}
@@ -2993,7 +4259,7 @@ export interface EventDetail {
      */
     'is_recurring': string;
     /**
-     * Get detailed recurrence information
+     * Get detailed recurrence information.  Parses the stored RRULE string\'s key=value parts directly instead of introspecting a `dateutil.rrule.rrule` instance: that class only exposes `_freq`/`_interval`/`_count`/`_until`/`_byweekday` as private attributes, so reading the public names (as this previously did) always raised AttributeError and silently returned None here for every recurring event.
      * @type {{ [key: string]: any; }}
      * @memberof EventDetail
      */
@@ -3023,6 +4289,18 @@ export interface EventDetail {
      */
     'attendees': Array<EventAttendee>;
     /**
+     * The event organiser\'s calendar email, so an invitee (not the organiser) can see who owns the event they were invited to — mirrors Google Calendar\'s own event detail, which always shows the organiser regardless of who\'s viewing.
+     * @type {string}
+     * @memberof EventDetail
+     */
+    'organizer_email': string;
+    /**
+     * The human-friendly organizer label for display (G1/FA-950 follow-up): Google\'s organizer.displayName when the calendar gave us one — e.g. \"Holidays in India\" for an event organized by that subscribed calendar itself rather than a person. When there\'s no displayName, falls back to the raw organizer email UNLESS it\'s a technical identifier no human typed (a calendar resource id or opaque generated hex id — see ``is_synthetic_organizer_email``), in which case this returns None so the UI can simply omit the Organizer line rather than show a meaningless string. A real person\'s organizer email with no displayName set is still shown as before.
+     * @type {string}
+     * @memberof EventDetail
+     */
+    'organizer_display_name': string;
+    /**
      * 
      * @type {boolean}
      * @memberof EventDetail
@@ -3034,6 +4312,18 @@ export interface EventDetail {
      * @memberof EventDetail
      */
     'can_edit': boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof EventDetail
+     */
+    'hangout_link': string | null;
+    /**
+     * Google Meet join-by-phone entries (``conferenceData.entryPoints``): dicts with ``entryPointType``, ``uri``, ``label``, ``pin``, etc. — see Google\'s Calendar API docs.
+     * @type {{ [key: string]: any; }}
+     * @memberof EventDetail
+     */
+    'conference_entry_points': { [key: string]: any; };
     /**
      * JSON array string of materialized child occurrence event ids (edited-in-place instances), or [].
      * @type {string}
@@ -3052,6 +4342,18 @@ export interface EventDetail {
      * @memberof EventDetail
      */
     'series_start_datetime': string;
+    /**
+     * When true, this event is omitted from performance reports but still shown on the calendar.
+     * @type {boolean}
+     * @memberof EventDetail
+     */
+    'excluded_from_reports': boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof EventDetail
+     */
+    'is_completed'?: boolean;
     /**
      * 
      * @type {{ [key: string]: any; }}
@@ -3092,6 +4394,111 @@ export interface EventInviteeSearchResult {
      */
     'fa_user_id'?: number | null;
 }
+/**
+ * 
+ * @export
+ * @interface EventLocationResolve
+ */
+export interface EventLocationResolve {
+    /**
+     * 
+     * @type {string}
+     * @memberof EventLocationResolve
+     */
+    'place_id': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof EventLocationResolve
+     */
+    'session_token'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof EventLocationResolve
+     */
+    'fallback_description'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface EventLocationResolveResult
+ */
+export interface EventLocationResolveResult {
+    /**
+     * 
+     * @type {string}
+     * @memberof EventLocationResolveResult
+     */
+    'location': string;
+}
+/**
+ * 
+ * @export
+ * @interface EventLocationSuggestion
+ */
+export interface EventLocationSuggestion {
+    /**
+     * 
+     * @type {string}
+     * @memberof EventLocationSuggestion
+     */
+    'place_id': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof EventLocationSuggestion
+     */
+    'description': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof EventLocationSuggestion
+     */
+    'secondary_text'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof EventLocationSuggestion
+     */
+    'main_text'?: string | null;
+}
+/**
+ * 
+ * @export
+ * @interface EventReportExclusionRequest
+ */
+export interface EventReportExclusionRequest {
+    /**
+     * How to apply report exclusion to a recurring event.  * `single` - single * `this_and_following` - this_and_following * `all` - all
+     * @type {ChangeTypeEnum}
+     * @memberof EventReportExclusionRequest
+     */
+    'change_type'?: ChangeTypeEnum;
+    /**
+     * Start datetime of the specific occurrence being changed.
+     * @type {string}
+     * @memberof EventReportExclusionRequest
+     */
+    'occurrence_start'?: string;
+}
+
+
+/**
+ * 
+ * @export
+ * @interface EventRsvpRequest
+ */
+export interface EventRsvpRequest {
+    /**
+     * 
+     * @type {ResponseStatusEnum}
+     * @memberof EventRsvpRequest
+     */
+    'response_status': ResponseStatusEnum;
+}
+
+
 /**
  * 
  * @export
@@ -3488,7 +4895,44 @@ export interface FocusGPTHitlClientEnums {
 
 
 /**
- * * `propose_create_event_tool` - Create event * `propose_update_event_tool` - Update event * `propose_delete_event_tool` - Delete event * `propose_duplicate_event_tool` - Duplicate event * `propose_bulk_create_events_tool` - Bulk create events * `propose_bulk_update_events_tool` - Bulk update events * `propose_bulk_patch_events_tool` - Bulk patch events * `propose_bulk_delete_events_tool` - Bulk delete events * `propose_plan_blocks_tool` - Propose plan blocks * `propose_commit_plan_tool` - Commit plan * `propose_dismiss_plan_tool` - Dismiss plan * `propose_save_plan_draft_tool` - Save plan draft * `propose_update_day_journal_note_tool` - Update day journal note * `propose_update_week_journal_note_tool` - Update week journal note * `propose_generate_daily_report_tool` - Generate daily report * `propose_create_project_tool` - Create project * `propose_update_track_tool` - Update track * `propose_delete_track_tool` - Delete track * `propose_create_life_area_tool` - Create life area * `propose_partial_update_life_area_tool` - Update life area * `propose_delete_life_area_tool` - Delete life area * `propose_create_task_tool` - Create task * `propose_update_task_tool` - Update task * `propose_delete_task_tool` - Delete task * `propose_add_task_comment_tool` - Add task comment * `propose_bulk_update_tasks_tool` - Bulk update tasks * `propose_bulk_delete_tasks_tool` - Bulk delete tasks * `propose_create_task_priority_tool` - Create task priority * `propose_partial_update_task_priority_tool` - Update task priority * `propose_delete_task_priority_tool` - Delete task priority * `propose_create_task_type_tool` - Create task type * `propose_partial_update_task_type_tool` - Update task type * `propose_delete_task_type_tool` - Delete task type * `propose_create_organization_team_tool` - Create organization team * `propose_add_user_to_organization_tool` - Add user to organization * `propose_remove_organization_member_tool` - Remove organization member * `propose_update_organization_profile_tool` - Update organization profile * `propose_add_user_to_team_tool` - Add user to team * `propose_remove_user_from_team_tool` - Remove user from team * `propose_assign_team_admin_tool` - Assign team admin * `propose_ask_clarification_tool` - Ask clarifying question
+ * One inferred (or user-edited) FocusGPT preference entry. Not model-backed — read/written via UserSettings.focusgpt_preferences, see focusgpt_preferences.py.
+ * @export
+ * @interface FocusGPTPreference
+ */
+export interface FocusGPTPreference {
+    /**
+     * 
+     * @type {string}
+     * @memberof FocusGPTPreference
+     */
+    'key': string;
+    /**
+     * 
+     * @type {any}
+     * @memberof FocusGPTPreference
+     */
+    'value': any;
+    /**
+     * 
+     * @type {string}
+     * @memberof FocusGPTPreference
+     */
+    'summary': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof FocusGPTPreference
+     */
+    'source': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof FocusGPTPreference
+     */
+    'confidence': number;
+}
+/**
+ * * `propose_create_event_tool` - Create event * `propose_update_event_tool` - Update event * `propose_delete_event_tool` - Delete event * `propose_duplicate_event_tool` - Duplicate event * `propose_bulk_create_events_tool` - Bulk create events * `propose_bulk_update_events_tool` - Bulk update events * `propose_bulk_patch_events_tool` - Bulk patch events * `propose_bulk_delete_events_tool` - Bulk delete events * `propose_plan_blocks_tool` - Propose plan blocks * `propose_commit_plan_tool` - Commit plan * `propose_dismiss_plan_tool` - Dismiss plan * `propose_save_plan_draft_tool` - Save plan draft * `propose_update_day_journal_note_tool` - Update day journal note * `propose_update_week_journal_note_tool` - Update week journal note * `propose_generate_daily_report_tool` - Generate daily report * `propose_generate_weekly_report_tool` - Generate weekly report * `propose_generate_monthly_report_tool` - Generate monthly report * `propose_create_project_tool` - Create project * `propose_create_track_tool` - Create track * `propose_update_track_tool` - Update track * `propose_delete_track_tool` - Delete track * `propose_create_life_area_tool` - Create life area * `propose_partial_update_life_area_tool` - Update life area * `propose_delete_life_area_tool` - Delete life area * `propose_set_capacity_budget_tool` - Set capacity budget * `propose_create_habit_tool` - Create habit * `propose_update_habit_tool` - Update habit * `propose_delete_habit_tool` - Delete habit * `propose_schedule_habit_on_calendar_tool` - Schedule habit on calendar * `propose_unlink_habit_from_calendar_tool` - Unlink habit from calendar * `propose_change_habit_cadence_tool` - Change habit recurrence * `propose_check_in_habit_tool` - Check in habit * `propose_undo_habit_check_in_tool` - Undo habit check-in * `propose_create_task_tool` - Create task * `propose_bulk_create_tasks_tool` - Bulk create tasks * `propose_update_task_tool` - Update task * `propose_delete_task_tool` - Delete task * `propose_add_task_comment_tool` - Add task comment * `propose_bulk_update_tasks_tool` - Bulk update tasks * `propose_bulk_delete_tasks_tool` - Bulk delete tasks * `propose_create_task_priority_tool` - Create task priority * `propose_partial_update_task_priority_tool` - Update task priority * `propose_delete_task_priority_tool` - Delete task priority * `propose_create_task_type_tool` - Create task type * `propose_partial_update_task_type_tool` - Update task type * `propose_delete_task_type_tool` - Delete task type * `propose_create_organization_team_tool` - Create organization team * `propose_add_user_to_organization_tool` - Add user to organization * `propose_remove_organization_member_tool` - Remove organization member * `propose_update_organization_profile_tool` - Update organization profile * `propose_add_user_to_team_tool` - Add user to team * `propose_remove_user_from_team_tool` - Remove user from team * `propose_assign_team_admin_tool` - Assign team admin * `propose_ask_clarification_tool` - Ask clarifying question * `propose_update_notification_status_tool` - Update notification status * `propose_bulk_update_notification_status_tool` - Bulk update notification status * `propose_mark_all_notifications_tool` - Mark all notifications
  * @export
  * @enum {string}
  */
@@ -3509,13 +4953,26 @@ export const FocusGPTProposeToolNameEnum = {
     ProposeUpdateDayJournalNoteTool: 'propose_update_day_journal_note_tool',
     ProposeUpdateWeekJournalNoteTool: 'propose_update_week_journal_note_tool',
     ProposeGenerateDailyReportTool: 'propose_generate_daily_report_tool',
+    ProposeGenerateWeeklyReportTool: 'propose_generate_weekly_report_tool',
+    ProposeGenerateMonthlyReportTool: 'propose_generate_monthly_report_tool',
     ProposeCreateProjectTool: 'propose_create_project_tool',
+    ProposeCreateTrackTool: 'propose_create_track_tool',
     ProposeUpdateTrackTool: 'propose_update_track_tool',
     ProposeDeleteTrackTool: 'propose_delete_track_tool',
     ProposeCreateLifeAreaTool: 'propose_create_life_area_tool',
     ProposePartialUpdateLifeAreaTool: 'propose_partial_update_life_area_tool',
     ProposeDeleteLifeAreaTool: 'propose_delete_life_area_tool',
+    ProposeSetCapacityBudgetTool: 'propose_set_capacity_budget_tool',
+    ProposeCreateHabitTool: 'propose_create_habit_tool',
+    ProposeUpdateHabitTool: 'propose_update_habit_tool',
+    ProposeDeleteHabitTool: 'propose_delete_habit_tool',
+    ProposeScheduleHabitOnCalendarTool: 'propose_schedule_habit_on_calendar_tool',
+    ProposeUnlinkHabitFromCalendarTool: 'propose_unlink_habit_from_calendar_tool',
+    ProposeChangeHabitCadenceTool: 'propose_change_habit_cadence_tool',
+    ProposeCheckInHabitTool: 'propose_check_in_habit_tool',
+    ProposeUndoHabitCheckInTool: 'propose_undo_habit_check_in_tool',
     ProposeCreateTaskTool: 'propose_create_task_tool',
+    ProposeBulkCreateTasksTool: 'propose_bulk_create_tasks_tool',
     ProposeUpdateTaskTool: 'propose_update_task_tool',
     ProposeDeleteTaskTool: 'propose_delete_task_tool',
     ProposeAddTaskCommentTool: 'propose_add_task_comment_tool',
@@ -3534,7 +4991,10 @@ export const FocusGPTProposeToolNameEnum = {
     ProposeAddUserToTeamTool: 'propose_add_user_to_team_tool',
     ProposeRemoveUserFromTeamTool: 'propose_remove_user_from_team_tool',
     ProposeAssignTeamAdminTool: 'propose_assign_team_admin_tool',
-    ProposeAskClarificationTool: 'propose_ask_clarification_tool'
+    ProposeAskClarificationTool: 'propose_ask_clarification_tool',
+    ProposeUpdateNotificationStatusTool: 'propose_update_notification_status_tool',
+    ProposeBulkUpdateNotificationStatusTool: 'propose_bulk_update_notification_status_tool',
+    ProposeMarkAllNotificationsTool: 'propose_mark_all_notifications_tool'
 } as const;
 
 export type FocusGPTProposeToolNameEnum = typeof FocusGPTProposeToolNameEnum[keyof typeof FocusGPTProposeToolNameEnum];
@@ -3914,6 +5374,110 @@ export interface GitLabStatusResponse {
 /**
  * 
  * @export
+ * @interface Goal
+ */
+export interface Goal {
+    /**
+     * 
+     * @type {number}
+     * @memberof Goal
+     */
+    'id': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof Goal
+     */
+    'project': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof Goal
+     */
+    'track'?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof Goal
+     */
+    'release'?: number | null;
+    /**
+     * Sequence among goals on this project (lower = earlier).
+     * @type {number}
+     * @memberof Goal
+     */
+    'order'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof Goal
+     */
+    'name': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Goal
+     */
+    'description'?: string;
+    /**
+     * 
+     * @type {GoalStatusEnum}
+     * @memberof Goal
+     */
+    'status'?: GoalStatusEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof Goal
+     */
+    'target_date'?: string | null;
+    /**
+     * 
+     * @type {Array<KeyResult>}
+     * @memberof Goal
+     */
+    'key_results': Array<KeyResult>;
+    /**
+     * 
+     * @type {number}
+     * @memberof Goal
+     */
+    'progress': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof Goal
+     */
+    'task_count': number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Goal
+     */
+    'can_delete': boolean;
+}
+
+
+/**
+ * * `NOT_STARTED` - Not Started * `ON_TRACK` - On Track * `AT_RISK` - At Risk * `ACHIEVED` - Achieved * `MISSED` - Missed
+ * @export
+ * @enum {string}
+ */
+
+export const GoalStatusEnum = {
+    NotStarted: 'NOT_STARTED',
+    OnTrack: 'ON_TRACK',
+    AtRisk: 'AT_RISK',
+    Achieved: 'ACHIEVED',
+    Missed: 'MISSED'
+} as const;
+
+export type GoalStatusEnum = typeof GoalStatusEnum[keyof typeof GoalStatusEnum];
+
+
+/**
+ * 
+ * @export
  * @interface GoogleCalendarIntegrationItem
  */
 export interface GoogleCalendarIntegrationItem {
@@ -3974,6 +5538,21 @@ export interface GoogleCalendarStatusEmbedded {
     'error'?: string | null;
 }
 /**
+ * * `day` - day * `week` - week * `month` - month
+ * @export
+ * @enum {string}
+ */
+
+export const GranularityEnum = {
+    Day: 'day',
+    Week: 'week',
+    Month: 'month'
+} as const;
+
+export type GranularityEnum = typeof GranularityEnum[keyof typeof GranularityEnum];
+
+
+/**
  * Serializer for group access on a project.
  * @export
  * @interface GroupAccess
@@ -4009,6 +5588,298 @@ export interface GroupAccess {
 /**
  * 
  * @export
+ * @interface HabitChangeCadence
+ */
+export interface HabitChangeCadence {
+    /**
+     * 
+     * @type {CadenceTypeEnum}
+     * @memberof HabitChangeCadence
+     */
+    'cadence_type': CadenceTypeEnum;
+    /**
+     * 
+     * @type {Array<number>}
+     * @memberof HabitChangeCadence
+     */
+    'weekdays'?: Array<number>;
+    /**
+     * 
+     * @type {number}
+     * @memberof HabitChangeCadence
+     */
+    'times_per_week'?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof HabitChangeCadence
+     */
+    'interval_days'?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof HabitChangeCadence
+     */
+    'effective_date'?: string;
+}
+
+
+/**
+ * 
+ * @export
+ * @interface HabitCheckInRead
+ */
+export interface HabitCheckInRead {
+    /**
+     * 
+     * @type {number}
+     * @memberof HabitCheckInRead
+     */
+    'id': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof HabitCheckInRead
+     */
+    'habit': number;
+    /**
+     * Date in the user/habit\'s local timezone.
+     * @type {string}
+     * @memberof HabitCheckInRead
+     */
+    'local_date': string;
+    /**
+     * 
+     * @type {Status4d8Enum}
+     * @memberof HabitCheckInRead
+     */
+    'status': Status4d8Enum;
+    /**
+     * When tied to a specific linked-calendar occurrence.
+     * @type {string}
+     * @memberof HabitCheckInRead
+     */
+    'occurrence_start': string | null;
+    /**
+     * 
+     * @type {CheckInSourceEnum}
+     * @memberof HabitCheckInRead
+     */
+    'check_in_source': CheckInSourceEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof HabitCheckInRead
+     */
+    'created_at': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof HabitCheckInRead
+     */
+    'last_updated': string;
+}
+
+
+/**
+ * 
+ * @export
+ * @interface HabitCheckInUndo
+ */
+export interface HabitCheckInUndo {
+    /**
+     * 
+     * @type {string}
+     * @memberof HabitCheckInUndo
+     */
+    'local_date': string;
+}
+/**
+ * 
+ * @export
+ * @interface HabitCheckInWrite
+ */
+export interface HabitCheckInWrite {
+    /**
+     * 
+     * @type {Status4d8Enum}
+     * @memberof HabitCheckInWrite
+     */
+    'status'?: Status4d8Enum;
+    /**
+     * 
+     * @type {string}
+     * @memberof HabitCheckInWrite
+     */
+    'local_date'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof HabitCheckInWrite
+     */
+    'occurrence_start'?: string | null;
+    /**
+     * 
+     * @type {CheckInSourceEnum}
+     * @memberof HabitCheckInWrite
+     */
+    'check_in_source'?: CheckInSourceEnum;
+}
+
+
+/**
+ * Shared by delete-habit and unlink-from-calendar: what to do with the linked calendar Event, mirroring the recurring-Event delete\'s own single/this_and_following/all scope choices.
+ * @export
+ * @interface HabitEventAction
+ */
+export interface HabitEventAction {
+    /**
+     * 
+     * @type {EventActionEnum}
+     * @memberof HabitEventAction
+     */
+    'event_action'?: EventActionEnum;
+}
+
+
+/**
+ * 
+ * @export
+ * @interface HabitRead
+ */
+export interface HabitRead {
+    /**
+     * 
+     * @type {number}
+     * @memberof HabitRead
+     */
+    'id': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof HabitRead
+     */
+    'life_area'?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof HabitRead
+     */
+    'name': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof HabitRead
+     */
+    'color'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof HabitRead
+     */
+    'notes'?: string;
+    /**
+     * 
+     * @type {CadenceTypeEnum}
+     * @memberof HabitRead
+     */
+    'cadence_type'?: CadenceTypeEnum;
+    /**
+     * 0=Mon..6=Sun; used for WEEKLY_DAYS cadence.
+     * @type {any}
+     * @memberof HabitRead
+     */
+    'weekdays'?: any;
+    /**
+     * Used for N_PER_WEEK cadence.
+     * @type {number}
+     * @memberof HabitRead
+     */
+    'times_per_week'?: number | null;
+    /**
+     * Used for EVERY_N_DAYS cadence.
+     * @type {number}
+     * @memberof HabitRead
+     */
+    'interval_days'?: number | null;
+    /**
+     * 
+     * @type {HabitReadDifficulty}
+     * @memberof HabitRead
+     */
+    'difficulty'?: HabitReadDifficulty;
+    /**
+     * Optional recurring Event series this habit is also placed on the calendar as. Master event only.
+     * @type {number}
+     * @memberof HabitRead
+     */
+    'schedule_event'?: number | null;
+    /**
+     * Expected hours per occurrence, set directly by the user.
+     * @type {number}
+     * @memberof HabitRead
+     */
+    'estimated_hours'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof HabitRead
+     */
+    'actual_hours': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof HabitRead
+     */
+    'current_streak': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof HabitRead
+     */
+    'longest_streak': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof HabitRead
+     */
+    'last_check_in_date': string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof HabitRead
+     */
+    'archived_at'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof HabitRead
+     */
+    'paused_at'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof HabitRead
+     */
+    'created_at': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof HabitRead
+     */
+    'last_updated': string;
+}
+
+
+/**
+ * @type HabitReadDifficulty
+ * @export
+ */
+export type HabitReadDifficulty = BlankEnum | DifficultyEnum;
+
+/**
+ * 
+ * @export
  * @interface HealthCheckResponse
  */
 export interface HealthCheckResponse {
@@ -4018,6 +5889,31 @@ export interface HealthCheckResponse {
      * @memberof HealthCheckResponse
      */
     'status': string;
+}
+/**
+ * Body for the Action Revert endpoint (history-restore Phase 1 single-row, Phase 3 group).
+ * @export
+ * @interface HistoryRevertRequest
+ */
+export interface HistoryRevertRequest {
+    /**
+     * 
+     * @type {number}
+     * @memberof HistoryRevertRequest
+     */
+    'history_id'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof HistoryRevertRequest
+     */
+    'change_set_id'?: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof HistoryRevertRequest
+     */
+    'preview'?: boolean;
 }
 /**
  * * `+` - + * `~` - ~ * `-` - -
@@ -4390,6 +6286,112 @@ export interface JiraStatusResponse {
     'error'?: string | null;
 }
 /**
+ * One note version row from a day/week journal\'s history (newest-first).
+ * @export
+ * @interface JournalNoteHistoryEntry
+ */
+export interface JournalNoteHistoryEntry {
+    /**
+     * 
+     * @type {number}
+     * @memberof JournalNoteHistoryEntry
+     */
+    'id': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof JournalNoteHistoryEntry
+     */
+    'note'?: string | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof JournalNoteHistoryEntry
+     */
+    'history_id': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof JournalNoteHistoryEntry
+     */
+    'history_date': string;
+    /**
+     * 
+     * @type {HistoryTypeEnum}
+     * @memberof JournalNoteHistoryEntry
+     */
+    'history_type': HistoryTypeEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof JournalNoteHistoryEntry
+     */
+    'date'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof JournalNoteHistoryEntry
+     */
+    'week_start'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof JournalNoteHistoryEntry
+     */
+    'week_end'?: string;
+}
+
+
+/**
+ * 
+ * @export
+ * @interface KeyResult
+ */
+export interface KeyResult {
+    /**
+     * 
+     * @type {number}
+     * @memberof KeyResult
+     */
+    'id': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof KeyResult
+     */
+    'goal': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof KeyResult
+     */
+    'order'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof KeyResult
+     */
+    'name': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof KeyResult
+     */
+    'target_value': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof KeyResult
+     */
+    'current_value'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof KeyResult
+     */
+    'unit'?: string;
+}
+/**
  * * `new` - New * `improvement` - Improvement * `fix` - Fix
  * @export
  * @enum {string}
@@ -4470,11 +6472,32 @@ export interface LifeAreaRead {
     'sidebar_order'?: number;
     /**
      * 
+     * @type {boolean}
+     * @memberof LifeAreaRead
+     */
+    'counts_toward_productivity'?: boolean;
+    /**
+     * 
      * @type {string}
      * @memberof LifeAreaRead
      */
     'created_at': string;
 }
+/**
+ * * `blocks` - Blocks * `duplicates` - Duplicates * `relates_to` - Relates to
+ * @export
+ * @enum {string}
+ */
+
+export const LinkTypeEnum = {
+    Blocks: 'blocks',
+    Duplicates: 'duplicates',
+    RelatesTo: 'relates_to'
+} as const;
+
+export type LinkTypeEnum = typeof LinkTypeEnum[keyof typeof LinkTypeEnum];
+
+
 /**
  * 
  * @export
@@ -4604,6 +6627,74 @@ export interface McpAccessToken {
 /**
  * 
  * @export
+ * @interface McpTokenGlobalGrant
+ */
+export interface McpTokenGlobalGrant {
+    /**
+     * A global (non-project-scoped) entity type (e.g. \'life_area\', \'habit\', \'journal\', \'plan\', \'organization\', \'notification\') or one of the dual-scope types (\'task_priority\', \'capacity\') appearing in its global form.
+     * @type {string}
+     * @memberof McpTokenGlobalGrant
+     */
+    'entity_type': string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof McpTokenGlobalGrant
+     */
+    'can_write': boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof McpTokenGlobalGrant
+     */
+    'can_delete': boolean;
+}
+/**
+ * 
+ * @export
+ * @interface McpTokenProjectGrant
+ */
+export interface McpTokenProjectGrant {
+    /**
+     * 
+     * @type {number}
+     * @memberof McpTokenProjectGrant
+     */
+    'project_id': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof McpTokenProjectGrant
+     */
+    'project_name': string;
+    /**
+     * A project-scoped entity type (e.g. \'task\', \'event\', \'track\', \'task_type\') or one of the dual-scope types (\'task_priority\', \'capacity\') appearing in its project-scoped form.
+     * @type {string}
+     * @memberof McpTokenProjectGrant
+     */
+    'entity_type': string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof McpTokenProjectGrant
+     */
+    'can_write': boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof McpTokenProjectGrant
+     */
+    'can_delete': boolean;
+    /**
+     * False when the caller lacks edit access to this project themself.
+     * @type {boolean}
+     * @memberof McpTokenProjectGrant
+     */
+    'can_grant_write': boolean;
+}
+/**
+ * 
+ * @export
  * @interface MessageMetadata
  */
 export interface MessageMetadata {
@@ -4637,6 +6728,18 @@ export interface MessageMetadata {
      * @memberof MessageMetadata
      */
     'activity'?: ActivityMetadata | null;
+    /**
+     * 
+     * @type {ToolResultMetadata}
+     * @memberof MessageMetadata
+     */
+    'tool_result'?: ToolResultMetadata | null;
+    /**
+     * 
+     * @type {Array<ActionResult>}
+     * @memberof MessageMetadata
+     */
+    'action_results'?: Array<ActionResult>;
 }
 /**
  * Nested on events (id, name, color only).
@@ -4756,6 +6859,147 @@ export interface MinimalUser {
      */
     'avatar_thumbnail': string;
 }
+/**
+ * MonthlyReport
+ * @export
+ * @interface MonthlyReport
+ */
+export interface MonthlyReport {
+    /**
+     * 
+     * @type {number}
+     * @memberof MonthlyReport
+     */
+    'id': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof MonthlyReport
+     */
+    'created_at': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof MonthlyReport
+     */
+    'updated_at': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof MonthlyReport
+     */
+    'generated_at': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof MonthlyReport
+     */
+    'num_tasks_planned'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof MonthlyReport
+     */
+    'num_tasks_completed'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof MonthlyReport
+     */
+    'num_tasks_in_progress'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof MonthlyReport
+     */
+    'num_tasks_replanned'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof MonthlyReport
+     */
+    'num_tasks_not_started'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof MonthlyReport
+     */
+    'productivity_score'?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof MonthlyReport
+     */
+    'planning_accuracy_score'?: number | null;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof MonthlyReport
+     */
+    'overload_flag'?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof MonthlyReport
+     */
+    'underutilized_flag'?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof MonthlyReport
+     */
+    'insight_summary'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof MonthlyReport
+     */
+    'custom_user_note_for_report'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof MonthlyReport
+     */
+    'month_start': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof MonthlyReport
+     */
+    'month_end': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof MonthlyReport
+     */
+    'user': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof MonthlyReport
+     */
+    'plan_snapshot'?: number | null;
+    /**
+     * 
+     * @type {Array<number>}
+     * @memberof MonthlyReport
+     */
+    'events_worked_on'?: Array<number>;
+}
+/**
+ * * `same_month` - End of same month * `next_month_start` - Start of next month
+ * @export
+ * @enum {string}
+ */
+
+export const MonthlySummaryDeliverOnEnum = {
+    SameMonth: 'same_month',
+    NextMonthStart: 'next_month_start'
+} as const;
+
+export type MonthlySummaryDeliverOnEnum = typeof MonthlySummaryDeliverOnEnum[keyof typeof MonthlySummaryDeliverOnEnum];
+
+
 /**
  * Full billing snapshot: effective plan, org vs personal source, both subscription rows when present.
  * @export
@@ -4892,7 +7136,7 @@ export type NotificationStatusEnum = typeof NotificationStatusEnum[keyof typeof 
 
 
 /**
- * * `calendar_reminder` - Calendar Reminder * `calendar_invite` - Calendar Invite * `task_due` - Task Due Date * `task_overdue` - Task Overdue * `update` - Update * `issue` - Issue * `comment` - Comment * `pr` - Pull Request * `weekly_plan_nudge` - Weekly Plan Nudge * `daily_plan_nudge` - Daily Plan Nudge * `daily_brief` - Daily Brief * `weekly_reflection` - Weekly Reflection * `daily_reflection` - Daily Reflection
+ * * `calendar_reminder` - Calendar Reminder * `calendar_invite` - Calendar Invite * `task_due` - Task Due Date * `task_overdue` - Task Overdue * `update` - Update * `issue` - Issue * `comment` - Comment * `pr` - Pull Request * `weekly_plan_nudge` - Weekly Plan Nudge * `daily_plan_nudge` - Daily Plan Nudge * `daily_brief` - Daily Brief * `weekly_reflection` - Weekly Reflection * `daily_reflection` - Daily Reflection * `monthly_reflection` - Monthly Reflection
  * @export
  * @enum {string}
  */
@@ -4910,7 +7154,8 @@ export const NotificationTypeEnum = {
     DailyPlanNudge: 'daily_plan_nudge',
     DailyBrief: 'daily_brief',
     WeeklyReflection: 'weekly_reflection',
-    DailyReflection: 'daily_reflection'
+    DailyReflection: 'daily_reflection',
+    MonthlyReflection: 'monthly_reflection'
 } as const;
 
 export type NotificationTypeEnum = typeof NotificationTypeEnum[keyof typeof NotificationTypeEnum];
@@ -5040,6 +7285,21 @@ export interface OnboardingTutorial {
      */
     'my_order'?: number;
 }
+/**
+ * * `delete` - delete * `create` - create * `update` - update
+ * @export
+ * @enum {string}
+ */
+
+export const OpEnum = {
+    Delete: 'delete',
+    Create: 'create',
+    Update: 'update'
+} as const;
+
+export type OpEnum = typeof OpEnum[keyof typeof OpEnum];
+
+
 /**
  * 
  * @export
@@ -5189,6 +7449,67 @@ export interface OrganizationInfo {
     'active_member_count': number;
 }
 /**
+ * One org member\'s AI token seat quota/usage — see build_organization_member_quotas.
+ * @export
+ * @interface OrganizationMemberQuota
+ */
+export interface OrganizationMemberQuota {
+    /**
+     * 
+     * @type {number}
+     * @memberof OrganizationMemberQuota
+     */
+    'user_id': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof OrganizationMemberQuota
+     */
+    'email': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof OrganizationMemberQuota
+     */
+    'name': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof OrganizationMemberQuota
+     */
+    'seat_role': string | null;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof OrganizationMemberQuota
+     */
+    'is_organization_admin': boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof OrganizationMemberQuota
+     */
+    'is_group_admin': boolean;
+    /**
+     * 
+     * @type {number}
+     * @memberof OrganizationMemberQuota
+     */
+    'monthly_limit': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof OrganizationMemberQuota
+     */
+    'monthly_used': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof OrganizationMemberQuota
+     */
+    'monthly_remaining': number;
+}
+/**
  * Optional fields for PUT ``/api/organizations/{org_id}/profile/`` (multipart or JSON).
  * @export
  * @interface OrganizationProfileUpdate
@@ -5206,6 +7527,19 @@ export interface OrganizationProfileUpdate {
      * @memberof OrganizationProfileUpdate
      */
     'organization_logo'?: string;
+}
+/**
+ * Free-text ask for an existing org admin requesting more seats/quota — identity and org context come from the authenticated request, not this payload.
+ * @export
+ * @interface OrganizationQuotaIncreaseRequest
+ */
+export interface OrganizationQuotaIncreaseRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof OrganizationQuotaIncreaseRequest
+     */
+    'message': string;
 }
 /**
  * Organization-linked project the user can access.
@@ -5404,6 +7738,37 @@ export interface PaginatedAnnouncementList {
      * @memberof PaginatedAnnouncementList
      */
     'results': Array<Announcement>;
+}
+/**
+ * 
+ * @export
+ * @interface PaginatedCapacityBudgetReadList
+ */
+export interface PaginatedCapacityBudgetReadList {
+    /**
+     * 
+     * @type {number}
+     * @memberof PaginatedCapacityBudgetReadList
+     */
+    'count': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedCapacityBudgetReadList
+     */
+    'next'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedCapacityBudgetReadList
+     */
+    'previous'?: string | null;
+    /**
+     * 
+     * @type {Array<CapacityBudgetRead>}
+     * @memberof PaginatedCapacityBudgetReadList
+     */
+    'results': Array<CapacityBudgetRead>;
 }
 /**
  * 
@@ -5625,6 +7990,37 @@ export interface PaginatedEventList {
 /**
  * 
  * @export
+ * @interface PaginatedEventLocationSuggestionList
+ */
+export interface PaginatedEventLocationSuggestionList {
+    /**
+     * 
+     * @type {number}
+     * @memberof PaginatedEventLocationSuggestionList
+     */
+    'count': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedEventLocationSuggestionList
+     */
+    'next'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedEventLocationSuggestionList
+     */
+    'previous'?: string | null;
+    /**
+     * 
+     * @type {Array<EventLocationSuggestion>}
+     * @memberof PaginatedEventLocationSuggestionList
+     */
+    'results': Array<EventLocationSuggestion>;
+}
+/**
+ * 
+ * @export
  * @interface PaginatedFeedbackBoardList
  */
 export interface PaginatedFeedbackBoardList {
@@ -5714,6 +8110,130 @@ export interface PaginatedFeedbackPostListList {
      * @memberof PaginatedFeedbackPostListList
      */
     'results': Array<FeedbackPostList>;
+}
+/**
+ * 
+ * @export
+ * @interface PaginatedGoalList
+ */
+export interface PaginatedGoalList {
+    /**
+     * 
+     * @type {number}
+     * @memberof PaginatedGoalList
+     */
+    'count': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedGoalList
+     */
+    'next'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedGoalList
+     */
+    'previous'?: string | null;
+    /**
+     * 
+     * @type {Array<Goal>}
+     * @memberof PaginatedGoalList
+     */
+    'results': Array<Goal>;
+}
+/**
+ * 
+ * @export
+ * @interface PaginatedHabitCheckInReadList
+ */
+export interface PaginatedHabitCheckInReadList {
+    /**
+     * 
+     * @type {number}
+     * @memberof PaginatedHabitCheckInReadList
+     */
+    'count': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedHabitCheckInReadList
+     */
+    'next'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedHabitCheckInReadList
+     */
+    'previous'?: string | null;
+    /**
+     * 
+     * @type {Array<HabitCheckInRead>}
+     * @memberof PaginatedHabitCheckInReadList
+     */
+    'results': Array<HabitCheckInRead>;
+}
+/**
+ * 
+ * @export
+ * @interface PaginatedHabitReadList
+ */
+export interface PaginatedHabitReadList {
+    /**
+     * 
+     * @type {number}
+     * @memberof PaginatedHabitReadList
+     */
+    'count': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedHabitReadList
+     */
+    'next'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedHabitReadList
+     */
+    'previous'?: string | null;
+    /**
+     * 
+     * @type {Array<HabitRead>}
+     * @memberof PaginatedHabitReadList
+     */
+    'results': Array<HabitRead>;
+}
+/**
+ * 
+ * @export
+ * @interface PaginatedKeyResultList
+ */
+export interface PaginatedKeyResultList {
+    /**
+     * 
+     * @type {number}
+     * @memberof PaginatedKeyResultList
+     */
+    'count': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedKeyResultList
+     */
+    'next'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedKeyResultList
+     */
+    'previous'?: string | null;
+    /**
+     * 
+     * @type {Array<KeyResult>}
+     * @memberof PaginatedKeyResultList
+     */
+    'results': Array<KeyResult>;
 }
 /**
  * 
@@ -6026,6 +8546,37 @@ export interface PaginatedProjectTrackList {
     'results': Array<ProjectTrack>;
 }
 /**
+ * 
+ * @export
+ * @interface PaginatedReleaseList
+ */
+export interface PaginatedReleaseList {
+    /**
+     * 
+     * @type {number}
+     * @memberof PaginatedReleaseList
+     */
+    'count': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedReleaseList
+     */
+    'next'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedReleaseList
+     */
+    'previous'?: string | null;
+    /**
+     * 
+     * @type {Array<Release>}
+     * @memberof PaginatedReleaseList
+     */
+    'results': Array<Release>;
+}
+/**
  * Serializer for paginated search results
  * @export
  * @interface PaginatedSearchResult
@@ -6226,6 +8777,37 @@ export interface PaginatedTaskTypeList {
 /**
  * 
  * @export
+ * @interface PaginatedUserCapacityReadList
+ */
+export interface PaginatedUserCapacityReadList {
+    /**
+     * 
+     * @type {number}
+     * @memberof PaginatedUserCapacityReadList
+     */
+    'count': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedUserCapacityReadList
+     */
+    'next'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedUserCapacityReadList
+     */
+    'previous'?: string | null;
+    /**
+     * 
+     * @type {Array<UserCapacityRead>}
+     * @memberof PaginatedUserCapacityReadList
+     */
+    'results': Array<UserCapacityRead>;
+}
+/**
+ * 
+ * @export
  * @interface PaginatedUserList
  */
 export interface PaginatedUserList {
@@ -6304,13 +8886,19 @@ export interface PatchedAICreditsLog {
      */
     'provider'?: string;
     /**
-     * Estimated token count (input + output). Supports up to 99,999,999.99 tokens.
+     * Model id used for this call (e.g. gpt-4o, gemini-2.0-flash).
+     * @type {string}
+     * @memberof PatchedAICreditsLog
+     */
+    'model'?: string;
+    /**
+     * Token count (input + output). Prefer provider usage when available.
      * @type {string}
      * @memberof PatchedAICreditsLog
      */
     'tokens_used'?: string;
     /**
-     * Estimated cost in USD. Supports up to $999,999.9999.
+     * Cost in USD from rate card × tokens (not a provider invoice line).
      * @type {string}
      * @memberof PatchedAICreditsLog
      */
@@ -6339,6 +8927,12 @@ export interface PatchedAICreditsLog {
      * @memberof PatchedAICreditsLog
      */
     'user'?: number | null;
+    /**
+     * Assistant message this usage belongs to, when known.
+     * @type {number}
+     * @memberof PatchedAICreditsLog
+     */
+    'message'?: number | null;
 }
 /**
  * Bulk partial update for tasks (max 20).
@@ -6350,6 +8944,19 @@ export interface PatchedBulkTaskUpdate {
      * 
      * @type {Array<{ [key: string]: any; }>}
      * @memberof PatchedBulkTaskUpdate
+     */
+    'records'?: Array<{ [key: string]: any; }>;
+}
+/**
+ * Bulk partial update for project tracks (max 20). PATCH semantics: omitted fields unchanged.
+ * @export
+ * @interface PatchedBulkTrackUpdate
+ */
+export interface PatchedBulkTrackUpdate {
+    /**
+     * 
+     * @type {Array<{ [key: string]: any; }>}
+     * @memberof PatchedBulkTrackUpdate
      */
     'records'?: Array<{ [key: string]: any; }>;
 }
@@ -6366,6 +8973,75 @@ export interface PatchedBulkUpdateEvent {
      */
     'records'?: Array<UpdateEvent>;
 }
+/**
+ * 
+ * @export
+ * @interface PatchedCapacityBudgetRead
+ */
+export interface PatchedCapacityBudgetRead {
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedCapacityBudgetRead
+     */
+    'id'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedCapacityBudgetRead
+     */
+    'project'?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedCapacityBudgetRead
+     */
+    'life_area'?: number | null;
+    /**
+     * 
+     * @type {Scope700Enum}
+     * @memberof PatchedCapacityBudgetRead
+     */
+    'scope'?: Scope700Enum;
+    /**
+     * Start date of the week/month/year this budget applies to.
+     * @type {string}
+     * @memberof PatchedCapacityBudgetRead
+     */
+    'period_start'?: string;
+    /**
+     * How the hours are expressed; DIRECT uses target_hours, the rest normalise rate to the period.  * `DIRECT` - Direct (period total) * `PER_DAY` - Per day (every day) * `PER_WEEKDAY` - Per weekday (Mon–Fri) * `PER_WEEK` - Per week
+     * @type {CadenceEnum}
+     * @memberof PatchedCapacityBudgetRead
+     */
+    'cadence'?: CadenceEnum;
+    /**
+     * Hours per cadence unit (per day/weekday/week). Required when cadence != DIRECT; NULL for DIRECT.
+     * @type {number}
+     * @memberof PatchedCapacityBudgetRead
+     */
+    'rate'?: number | null;
+    /**
+     * Whole-period total hours (DIRECT cadence). NULL when the budget is rate-based.
+     * @type {number}
+     * @memberof PatchedCapacityBudgetRead
+     */
+    'target_hours'?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedCapacityBudgetRead
+     */
+    'created_at'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedCapacityBudgetRead
+     */
+    'last_updated'?: string;
+}
+
+
 /**
  * ContactedForm
  * @export
@@ -6481,6 +9157,18 @@ export interface PatchedConversation {
      * @memberof PatchedConversation
      */
     'messages'?: Array<DynamicMessage>;
+    /**
+     * 
+     * @type {ConversationBranchedFrom}
+     * @memberof PatchedConversation
+     */
+    'branched_from'?: ConversationBranchedFrom | null;
+    /**
+     * 
+     * @type {Array<ConversationBranchLink>}
+     * @memberof PatchedConversation
+     */
+    'branched_to'?: Array<ConversationBranchLink>;
 }
 /**
  * Read + write serializer for a user\'s custom themes (FA-948).
@@ -6543,12 +9231,6 @@ export interface PatchedDailyReport {
      * @memberof PatchedDailyReport
      */
     'id'?: number;
-    /**
-     * 
-     * @type {string}
-     * @memberof PatchedDailyReport
-     */
-    'date'?: string;
     /**
      * 
      * @type {string}
@@ -6635,6 +9317,12 @@ export interface PatchedDailyReport {
     'custom_user_note_for_report'?: string;
     /**
      * 
+     * @type {string}
+     * @memberof PatchedDailyReport
+     */
+    'date'?: string;
+    /**
+     * 
      * @type {number}
      * @memberof PatchedDailyReport
      */
@@ -6699,7 +9387,25 @@ export interface PatchedEvent {
      * @type {string}
      * @memberof PatchedEvent
      */
+    'all_day_start_date'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedEvent
+     */
+    'all_day_end_date'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedEvent
+     */
     'description'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedEvent
+     */
+    'location'?: string;
     /**
      * 
      * @type {MinimalTask}
@@ -6755,7 +9461,7 @@ export interface PatchedEvent {
      */
     'is_recurring'?: string;
     /**
-     * Get detailed recurrence information
+     * Get detailed recurrence information.  Parses the stored RRULE string\'s key=value parts directly instead of introspecting a `dateutil.rrule.rrule` instance: that class only exposes `_freq`/`_interval`/`_count`/`_until`/`_byweekday` as private attributes, so reading the public names (as this previously did) always raised AttributeError and silently returned None here for every recurring event.
      * @type {{ [key: string]: any; }}
      * @memberof PatchedEvent
      */
@@ -6785,6 +9491,18 @@ export interface PatchedEvent {
      */
     'attendees'?: Array<EventAttendee>;
     /**
+     * The event organiser\'s calendar email, so an invitee (not the organiser) can see who owns the event they were invited to — mirrors Google Calendar\'s own event detail, which always shows the organiser regardless of who\'s viewing.
+     * @type {string}
+     * @memberof PatchedEvent
+     */
+    'organizer_email'?: string;
+    /**
+     * The human-friendly organizer label for display (G1/FA-950 follow-up): Google\'s organizer.displayName when the calendar gave us one — e.g. \"Holidays in India\" for an event organized by that subscribed calendar itself rather than a person. When there\'s no displayName, falls back to the raw organizer email UNLESS it\'s a technical identifier no human typed (a calendar resource id or opaque generated hex id — see ``is_synthetic_organizer_email``), in which case this returns None so the UI can simply omit the Organizer line rather than show a meaningless string. A real person\'s organizer email with no displayName set is still shown as before.
+     * @type {string}
+     * @memberof PatchedEvent
+     */
+    'organizer_display_name'?: string;
+    /**
      * 
      * @type {boolean}
      * @memberof PatchedEvent
@@ -6796,6 +9514,18 @@ export interface PatchedEvent {
      * @memberof PatchedEvent
      */
     'can_edit'?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedEvent
+     */
+    'hangout_link'?: string | null;
+    /**
+     * Google Meet join-by-phone entries (``conferenceData.entryPoints``): dicts with ``entryPointType``, ``uri``, ``label``, ``pin``, etc. — see Google\'s Calendar API docs.
+     * @type {{ [key: string]: any; }}
+     * @memberof PatchedEvent
+     */
+    'conference_entry_points'?: { [key: string]: any; };
     /**
      * JSON array string of materialized child occurrence event ids (edited-in-place instances), or [].
      * @type {string}
@@ -6814,6 +9544,18 @@ export interface PatchedEvent {
      * @memberof PatchedEvent
      */
     'series_start_datetime'?: string;
+    /**
+     * When true, this event is omitted from performance reports but still shown on the calendar.
+     * @type {boolean}
+     * @memberof PatchedEvent
+     */
+    'excluded_from_reports'?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof PatchedEvent
+     */
+    'is_completed'?: boolean;
 }
 
 
@@ -6832,6 +9574,271 @@ export interface PatchedFeedbackPostStatus {
 }
 
 
+/**
+ * 
+ * @export
+ * @interface PatchedGoal
+ */
+export interface PatchedGoal {
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedGoal
+     */
+    'id'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedGoal
+     */
+    'project'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedGoal
+     */
+    'track'?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedGoal
+     */
+    'release'?: number | null;
+    /**
+     * Sequence among goals on this project (lower = earlier).
+     * @type {number}
+     * @memberof PatchedGoal
+     */
+    'order'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedGoal
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedGoal
+     */
+    'description'?: string;
+    /**
+     * 
+     * @type {GoalStatusEnum}
+     * @memberof PatchedGoal
+     */
+    'status'?: GoalStatusEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedGoal
+     */
+    'target_date'?: string | null;
+    /**
+     * 
+     * @type {Array<KeyResult>}
+     * @memberof PatchedGoal
+     */
+    'key_results'?: Array<KeyResult>;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedGoal
+     */
+    'progress'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedGoal
+     */
+    'task_count'?: number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof PatchedGoal
+     */
+    'can_delete'?: boolean;
+}
+
+
+/**
+ * 
+ * @export
+ * @interface PatchedHabitRead
+ */
+export interface PatchedHabitRead {
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedHabitRead
+     */
+    'id'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedHabitRead
+     */
+    'life_area'?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedHabitRead
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedHabitRead
+     */
+    'color'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedHabitRead
+     */
+    'notes'?: string;
+    /**
+     * 
+     * @type {CadenceTypeEnum}
+     * @memberof PatchedHabitRead
+     */
+    'cadence_type'?: CadenceTypeEnum;
+    /**
+     * 0=Mon..6=Sun; used for WEEKLY_DAYS cadence.
+     * @type {any}
+     * @memberof PatchedHabitRead
+     */
+    'weekdays'?: any;
+    /**
+     * Used for N_PER_WEEK cadence.
+     * @type {number}
+     * @memberof PatchedHabitRead
+     */
+    'times_per_week'?: number | null;
+    /**
+     * Used for EVERY_N_DAYS cadence.
+     * @type {number}
+     * @memberof PatchedHabitRead
+     */
+    'interval_days'?: number | null;
+    /**
+     * 
+     * @type {HabitReadDifficulty}
+     * @memberof PatchedHabitRead
+     */
+    'difficulty'?: HabitReadDifficulty;
+    /**
+     * Optional recurring Event series this habit is also placed on the calendar as. Master event only.
+     * @type {number}
+     * @memberof PatchedHabitRead
+     */
+    'schedule_event'?: number | null;
+    /**
+     * Expected hours per occurrence, set directly by the user.
+     * @type {number}
+     * @memberof PatchedHabitRead
+     */
+    'estimated_hours'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedHabitRead
+     */
+    'actual_hours'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedHabitRead
+     */
+    'current_streak'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedHabitRead
+     */
+    'longest_streak'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedHabitRead
+     */
+    'last_check_in_date'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedHabitRead
+     */
+    'archived_at'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedHabitRead
+     */
+    'paused_at'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedHabitRead
+     */
+    'created_at'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedHabitRead
+     */
+    'last_updated'?: string;
+}
+
+
+/**
+ * 
+ * @export
+ * @interface PatchedKeyResult
+ */
+export interface PatchedKeyResult {
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedKeyResult
+     */
+    'id'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedKeyResult
+     */
+    'goal'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedKeyResult
+     */
+    'order'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedKeyResult
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedKeyResult
+     */
+    'target_value'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedKeyResult
+     */
+    'current_value'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedKeyResult
+     */
+    'unit'?: string;
+}
 /**
  * List, retrieve, and successful create/update response bodies.
  * @export
@@ -6862,6 +9869,12 @@ export interface PatchedLifeAreaRead {
      * @memberof PatchedLifeAreaRead
      */
     'sidebar_order'?: number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof PatchedLifeAreaRead
+     */
+    'counts_toward_productivity'?: boolean;
     /**
      * 
      * @type {string}
@@ -7006,6 +10019,21 @@ export interface PatchedOnboardingTutorial {
     'my_order'?: number;
 }
 /**
+ * Request body for PATCH /plan-sessions/snapshot/ — persists which adherence number (baseline/latest) THIS specific snapshot shows as primary. scope/date come from the same query params GET/DELETE already use, not this body.
+ * @export
+ * @interface PatchedPlanSnapshotComparisonMode
+ */
+export interface PatchedPlanSnapshotComparisonMode {
+    /**
+     * 
+     * @type {ComparisonModeEnum}
+     * @memberof PatchedPlanSnapshotComparisonMode
+     */
+    'comparison_mode'?: ComparisonModeEnum;
+}
+
+
+/**
  * Project
  * @export
  * @interface PatchedProject
@@ -7143,6 +10171,30 @@ export interface PatchedProject {
      * @memberof PatchedProject
      */
     'is_finished'?: boolean;
+    /**
+     * Show the Timeline (Gantt) tab for this project.
+     * @type {boolean}
+     * @memberof PatchedProject
+     */
+    'enable_timeline_view'?: boolean;
+    /**
+     * Show the project-scoped Calendar tab for this project.
+     * @type {boolean}
+     * @memberof PatchedProject
+     */
+    'enable_calendar_view'?: boolean;
+    /**
+     * Show the Releases tab for this project.
+     * @type {boolean}
+     * @memberof PatchedProject
+     */
+    'enable_release_view'?: boolean;
+    /**
+     * Show the Goals tab for this project.
+     * @type {boolean}
+     * @memberof PatchedProject
+     */
+    'enable_goal_view'?: boolean;
     /**
      * 
      * @type {Array<UserAccess>}
@@ -7387,6 +10439,75 @@ export interface PatchedProjectTrack {
     'can_delete'?: boolean;
 }
 /**
+ * 
+ * @export
+ * @interface PatchedRelease
+ */
+export interface PatchedRelease {
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedRelease
+     */
+    'id'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedRelease
+     */
+    'project'?: number;
+    /**
+     * Sequence among releases on this project (lower = earlier).
+     * @type {number}
+     * @memberof PatchedRelease
+     */
+    'order'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedRelease
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedRelease
+     */
+    'description'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedRelease
+     */
+    'target_date'?: string | null;
+    /**
+     * 
+     * @type {ReleaseStatusEnum}
+     * @memberof PatchedRelease
+     */
+    'status'?: ReleaseStatusEnum;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedRelease
+     */
+    'task_count'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedRelease
+     */
+    'done_task_count'?: number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof PatchedRelease
+     */
+    'can_delete'?: boolean;
+}
+
+
+/**
  * Request body for setting or clearing the default calendar.
  * @export
  * @interface PatchedSetDefaultCalendarRequest
@@ -7480,6 +10601,24 @@ export interface PatchedTaskCreate {
     'project_track'?: number;
     /**
      * 
+     * @type {number}
+     * @memberof PatchedTaskCreate
+     */
+    'release'?: number | null;
+    /**
+     * 
+     * @type {Array<number>}
+     * @memberof PatchedTaskCreate
+     */
+    'goals'?: Array<number>;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedTaskCreate
+     */
+    'start_date'?: string | null;
+    /**
+     * 
      * @type {string}
      * @memberof PatchedTaskCreate
      */
@@ -7502,6 +10641,18 @@ export interface PatchedTaskCreate {
      * @memberof PatchedTaskCreate
      */
     'pending_description_image_ids'?: Array<number>;
+    /**
+     * FocusAI MessageAttachment IDs to copy onto this task as durable file attachments (owner + not expired).
+     * @type {Array<number>}
+     * @memberof PatchedTaskCreate
+     */
+    'message_attachment_ids'?: Array<number>;
+    /**
+     * TaskFileAttachment IDs from upload-file-attachment-draft; linked to this task after create (same user, same project, not yet attached).
+     * @type {Array<number>}
+     * @memberof PatchedTaskCreate
+     */
+    'pending_file_attachment_ids'?: Array<number>;
 }
 /**
  * 
@@ -7577,6 +10728,19 @@ export interface PatchedTaskTypeUpsert {
      * @memberof PatchedTaskTypeUpsert
      */
     'order'?: number;
+}
+/**
+ * Body for editing a preference\'s human-readable summary. Editing here always flips source to user_edited — an AI-inferred entry shouldn\'t look AI-authored once a user has corrected it.
+ * @export
+ * @interface PatchedUpdateFocusGPTPreference
+ */
+export interface PatchedUpdateFocusGPTPreference {
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedUpdateFocusGPTPreference
+     */
+    'summary'?: string;
 }
 /**
  * 
@@ -7695,6 +10859,161 @@ export interface PatchedUserAgentPolicyPatch {
     'default_injection'?: { [key: string]: any; };
 }
 /**
+ * 
+ * @export
+ * @interface PatchedUserCapacityRead
+ */
+export interface PatchedUserCapacityRead {
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedUserCapacityRead
+     */
+    'id'?: number;
+    /**
+     * 
+     * @type {Scope700Enum}
+     * @memberof PatchedUserCapacityRead
+     */
+    'scope'?: Scope700Enum;
+    /**
+     * Start date of the specific period this overrides; NULL = standing default for the scope.
+     * @type {string}
+     * @memberof PatchedUserCapacityRead
+     */
+    'period_start'?: string | null;
+    /**
+     * Hours the user has available in this period.
+     * @type {number}
+     * @memberof PatchedUserCapacityRead
+     */
+    'available_hours'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedUserCapacityRead
+     */
+    'created_at'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedUserCapacityRead
+     */
+    'last_updated'?: string;
+}
+
+
+/**
+ * 
+ * @export
+ * @interface PatchedUserRule
+ */
+export interface PatchedUserRule {
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedUserRule
+     */
+    'id'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedUserRule
+     */
+    'title'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedUserRule
+     */
+    'body'?: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof PatchedUserRule
+     */
+    'enabled'?: boolean;
+    /**
+     * Lower sorts first when multiple rules are enabled.
+     * @type {number}
+     * @memberof PatchedUserRule
+     */
+    'priority'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedUserRule
+     */
+    'created_at'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedUserRule
+     */
+    'updated_at'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface PatchedUserSkill
+ */
+export interface PatchedUserSkill {
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedUserSkill
+     */
+    'id'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedUserSkill
+     */
+    'name'?: string;
+    /**
+     * Optional /slug trigger, e.g. \'demo-seed\'.
+     * @type {string}
+     * @memberof PatchedUserSkill
+     */
+    'slug'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedUserSkill
+     */
+    'instructions'?: string;
+    /**
+     * NL phrases that match this skill.
+     * @type {any}
+     * @memberof PatchedUserSkill
+     */
+    'triggers'?: any;
+    /**
+     * Advisory tool-name hints (see docstring).
+     * @type {any}
+     * @memberof PatchedUserSkill
+     */
+    'tool_scope'?: any;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof PatchedUserSkill
+     */
+    'enabled'?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedUserSkill
+     */
+    'created_at'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedUserSkill
+     */
+    'updated_at'?: string;
+}
+/**
  * UserSystemActivity
  * @export
  * @interface PatchedUserSystemActivity
@@ -7749,6 +11068,51 @@ export interface PatchedUserSystemActivity {
      */
     'updated_at'?: string;
 }
+/**
+ * * `monthly` - Monthly * `yearly` - Yearly
+ * @export
+ * @enum {string}
+ */
+
+export const PendingBillingCycleEnum = {
+    Monthly: 'monthly',
+    Yearly: 'yearly'
+} as const;
+
+export type PendingBillingCycleEnum = typeof PendingBillingCycleEnum[keyof typeof PendingBillingCycleEnum];
+
+
+/**
+ * * `free` - Free * `pro` - Pro * `plus` - Plus * `enterprise` - Enterprise
+ * @export
+ * @enum {string}
+ */
+
+export const PendingPlanEnum = {
+    Free: 'free',
+    Pro: 'pro',
+    Plus: 'plus',
+    Enterprise: 'enterprise'
+} as const;
+
+export type PendingPlanEnum = typeof PendingPlanEnum[keyof typeof PendingPlanEnum];
+
+
+/**
+ * * `day` - day * `week` - week * `month` - month
+ * @export
+ * @enum {string}
+ */
+
+export const PeriodEnum = {
+    Day: 'day',
+    Week: 'week',
+    Month: 'month'
+} as const;
+
+export type PeriodEnum = typeof PeriodEnum[keyof typeof PeriodEnum];
+
+
 /**
  * 
  * @export
@@ -7809,6 +11173,12 @@ export interface PlanBlockInput {
      * @memberof PlanBlockInput
      */
     'event_id'?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlanBlockInput
+     */
+    'occurrence_start'?: string | null;
 }
 /**
  * 
@@ -7873,10 +11243,10 @@ export interface PlanComparisonRow {
 export interface PlanDraftUpsert {
     /**
      * 
-     * @type {ScopeEnum}
+     * @type {ScopeA43Enum}
      * @memberof PlanDraftUpsert
      */
-    'scope': ScopeEnum;
+    'scope': ScopeA43Enum;
     /**
      * 
      * @type {string}
@@ -8113,10 +11483,10 @@ export interface PlanIndexList {
 export interface PlanSessionCommit {
     /**
      * 
-     * @type {ScopeEnum}
+     * @type {ScopeA43Enum}
      * @memberof PlanSessionCommit
      */
-    'scope': ScopeEnum;
+    'scope': ScopeA43Enum;
     /**
      * 
      * @type {string}
@@ -8140,10 +11510,10 @@ export interface PlanSessionCommit {
 export interface PlanSessionDismiss {
     /**
      * 
-     * @type {ScopeEnum}
+     * @type {ScopeA43Enum}
      * @memberof PlanSessionDismiss
      */
-    'scope': ScopeEnum;
+    'scope': ScopeA43Enum;
     /**
      * 
      * @type {string}
@@ -8167,10 +11537,10 @@ export interface PlanSnapshot {
     'id': number;
     /**
      * 
-     * @type {ScopeEnum}
+     * @type {ScopeA43Enum}
      * @memberof PlanSnapshot
      */
-    'scope': ScopeEnum;
+    'scope': ScopeA43Enum;
     /**
      * 
      * @type {string}
@@ -8225,8 +11595,20 @@ export interface PlanSnapshot {
      * @memberof PlanSnapshot
      */
     'dismissed_at'?: string | null;
+    /**
+     * 
+     * @type {PlanSnapshotComparisonMode}
+     * @memberof PlanSnapshot
+     */
+    'comparison_mode'?: PlanSnapshotComparisonMode;
 }
 
+
+/**
+ * @type PlanSnapshotComparisonMode
+ * @export
+ */
+export type PlanSnapshotComparisonMode = BlankEnum | ComparisonModeEnum;
 
 /**
  * One version row from a plan snapshot\'s history (newest-first). Mirrors the shape returned by ``get_plan_snapshot_history`` so the generated client keeps its ``PlanSnapshotHistoryEntry`` type.
@@ -8242,10 +11624,10 @@ export interface PlanSnapshotHistoryEntry {
     'id': number;
     /**
      * 
-     * @type {ScopeEnum}
+     * @type {ScopeA43Enum}
      * @memberof PlanSnapshotHistoryEntry
      */
-    'scope': ScopeEnum;
+    'scope': ScopeA43Enum;
     /**
      * 
      * @type {string}
@@ -8305,10 +11687,10 @@ export interface PlanSnapshotHistoryEntry {
 export interface PlanSnapshotLive {
     /**
      * 
-     * @type {ScopeEnum}
+     * @type {ScopeA43Enum}
      * @memberof PlanSnapshotLive
      */
-    'scope': ScopeEnum;
+    'scope': ScopeA43Enum;
     /**
      * 
      * @type {string}
@@ -8516,6 +11898,12 @@ export interface PlanVsActual {
     'adherence_baseline_pct'?: number | null;
     /**
      * 
+     * @type {string}
+     * @memberof PlanVsActual
+     */
+    'comparison_mode'?: string;
+    /**
+     * 
      * @type {number}
      * @memberof PlanVsActual
      */
@@ -8695,6 +12083,20 @@ export type PlanningViewTypeEnum = typeof PlanningViewTypeEnum[keyof typeof Plan
 
 
 /**
+ * * `android` - Android * `ios` - iOS
+ * @export
+ * @enum {string}
+ */
+
+export const PlatformEnum = {
+    Android: 'android',
+    Ios: 'ios'
+} as const;
+
+export type PlatformEnum = typeof PlatformEnum[keyof typeof PlatformEnum];
+
+
+/**
  * Project
  * @export
  * @interface Project
@@ -8832,6 +12234,30 @@ export interface Project {
      * @memberof Project
      */
     'is_finished'?: boolean;
+    /**
+     * Show the Timeline (Gantt) tab for this project.
+     * @type {boolean}
+     * @memberof Project
+     */
+    'enable_timeline_view'?: boolean;
+    /**
+     * Show the project-scoped Calendar tab for this project.
+     * @type {boolean}
+     * @memberof Project
+     */
+    'enable_calendar_view'?: boolean;
+    /**
+     * Show the Releases tab for this project.
+     * @type {boolean}
+     * @memberof Project
+     */
+    'enable_release_view'?: boolean;
+    /**
+     * Show the Goals tab for this project.
+     * @type {boolean}
+     * @memberof Project
+     */
+    'enable_goal_view'?: boolean;
     /**
      * 
      * @type {Array<UserAccess>}
@@ -8991,6 +12417,30 @@ export interface ProjectAllTracks {
      * @memberof ProjectAllTracks
      */
     'is_finished'?: boolean;
+    /**
+     * Show the Timeline (Gantt) tab for this project.
+     * @type {boolean}
+     * @memberof ProjectAllTracks
+     */
+    'enable_timeline_view'?: boolean;
+    /**
+     * Show the project-scoped Calendar tab for this project.
+     * @type {boolean}
+     * @memberof ProjectAllTracks
+     */
+    'enable_calendar_view'?: boolean;
+    /**
+     * Show the Releases tab for this project.
+     * @type {boolean}
+     * @memberof ProjectAllTracks
+     */
+    'enable_release_view'?: boolean;
+    /**
+     * Show the Goals tab for this project.
+     * @type {boolean}
+     * @memberof ProjectAllTracks
+     */
+    'enable_goal_view'?: boolean;
     /**
      * 
      * @type {Array<UserAccess>}
@@ -9163,6 +12613,30 @@ export interface ProjectBoard {
      */
     'is_finished'?: boolean;
     /**
+     * Show the Timeline (Gantt) tab for this project.
+     * @type {boolean}
+     * @memberof ProjectBoard
+     */
+    'enable_timeline_view'?: boolean;
+    /**
+     * Show the project-scoped Calendar tab for this project.
+     * @type {boolean}
+     * @memberof ProjectBoard
+     */
+    'enable_calendar_view'?: boolean;
+    /**
+     * Show the Releases tab for this project.
+     * @type {boolean}
+     * @memberof ProjectBoard
+     */
+    'enable_release_view'?: boolean;
+    /**
+     * Show the Goals tab for this project.
+     * @type {boolean}
+     * @memberof ProjectBoard
+     */
+    'enable_goal_view'?: boolean;
+    /**
      * 
      * @type {Array<UserAccess>}
      * @memberof ProjectBoard
@@ -9332,7 +12806,7 @@ export interface ProjectCustomFieldDefinition {
 
 
 /**
- * 
+ * One row in the project history timeline. ``entity`` discriminates which id/name pair is populated: \"task\" (default, back-compat) -> task_id/task_name, \"track\" -> track_id/track_name, \"project\" -> project_id/project_name (not revertible).
  * @export
  * @interface ProjectHistoryEntry
  */
@@ -9345,16 +12819,46 @@ export interface ProjectHistoryEntry {
     'at': string;
     /**
      * 
+     * @type {string}
+     * @memberof ProjectHistoryEntry
+     */
+    'entity'?: string;
+    /**
+     * 
      * @type {number}
      * @memberof ProjectHistoryEntry
      */
-    'task_id': number;
+    'task_id'?: number | null;
     /**
      * 
      * @type {string}
      * @memberof ProjectHistoryEntry
      */
-    'task_name': string;
+    'task_name'?: string | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectHistoryEntry
+     */
+    'track_id'?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectHistoryEntry
+     */
+    'track_name'?: string | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectHistoryEntry
+     */
+    'project_id'?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectHistoryEntry
+     */
+    'project_name'?: string | null;
     /**
      * 
      * @type {string}
@@ -9397,7 +12901,46 @@ export interface ProjectHistoryEntry {
      * @memberof ProjectHistoryEntry
      */
     'actor_id'?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectHistoryEntry
+     */
+    'actor_source'?: string;
 }
+/**
+ * Body for the Action Revert endpoint on a project (history-restore Phase 1 single-row, Phase 3 group).
+ * @export
+ * @interface ProjectHistoryRevertRequest
+ */
+export interface ProjectHistoryRevertRequest {
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectHistoryRevertRequest
+     */
+    'history_id'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectHistoryRevertRequest
+     */
+    'change_set_id'?: string;
+    /**
+     * 
+     * @type {EntityTypeEnum}
+     * @memberof ProjectHistoryRevertRequest
+     */
+    'entity_type': EntityTypeEnum;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ProjectHistoryRevertRequest
+     */
+    'preview'?: boolean;
+}
+
+
 /**
  * 
  * @export
@@ -9587,6 +13130,30 @@ export interface ProjectList {
      */
     'is_finished'?: boolean;
     /**
+     * Show the Timeline (Gantt) tab for this project.
+     * @type {boolean}
+     * @memberof ProjectList
+     */
+    'enable_timeline_view'?: boolean;
+    /**
+     * Show the project-scoped Calendar tab for this project.
+     * @type {boolean}
+     * @memberof ProjectList
+     */
+    'enable_calendar_view'?: boolean;
+    /**
+     * Show the Releases tab for this project.
+     * @type {boolean}
+     * @memberof ProjectList
+     */
+    'enable_release_view'?: boolean;
+    /**
+     * Show the Goals tab for this project.
+     * @type {boolean}
+     * @memberof ProjectList
+     */
+    'enable_goal_view'?: boolean;
+    /**
      * 
      * @type {Array<UserAccess>}
      * @memberof ProjectList
@@ -9620,13 +13187,14 @@ export interface ProjectList {
 
 
 /**
- * * `propose_create_project_tool` - Create project * `propose_delete_track_tool` - Delete track * `propose_update_track_tool` - Update track
+ * * `propose_create_project_tool` - Create project * `propose_create_track_tool` - Create track * `propose_delete_track_tool` - Delete track * `propose_update_track_tool` - Update track
  * @export
  * @enum {string}
  */
 
 export const ProjectProposeToolNameEnum = {
     ProposeCreateProjectTool: 'propose_create_project_tool',
+    ProposeCreateTrackTool: 'propose_create_track_tool',
     ProposeDeleteTrackTool: 'propose_delete_track_tool',
     ProposeUpdateTrackTool: 'propose_update_track_tool'
 } as const;
@@ -10037,6 +13605,85 @@ export interface ProjectTrackCompleteResponse {
     'moved_tasks_to_track_name': string | null;
 }
 /**
+ * ``ProjectTrackSerializer`` minus the ``tasks`` field, for nesting under ``track_details`` in sprint-view (``ProjectAllTracksSerializer.get_tracks_with_tasks``).  That response already carries each track\'s tasks once under the sibling top-level ``tasks`` key (``TrackWithTasksSerializer``) — nesting them a second time under ``track_details.tasks`` via the base serializer\'s own ``tasks`` field cost a full, duplicate `TaskSerializer` pass (queries *and* payload) for every task, confirmed unused by any frontend (web/mobile/desktop all read the top-level key only). Measured ~3.7x sprint-view speedup from this alone at 500 tasks/4 tracks (4.26s -> 1.16s locally on SQLite, no network latency) — this is the dominant cost at that scale, well past the N+1 fix in `apis/services/task_view_filters.optimize_task_list_queryset`.
+ * @export
+ * @interface ProjectTrackDetails
+ */
+export interface ProjectTrackDetails {
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectTrackDetails
+     */
+    'id': number;
+    /**
+     * Sequence among tracks on this project (lower = earlier). Used when moving tasks to the next open track.
+     * @type {number}
+     * @memberof ProjectTrackDetails
+     */
+    'order'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectTrackDetails
+     */
+    'name': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectTrackDetails
+     */
+    'description'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectTrackDetails
+     */
+    'start_datetime'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectTrackDetails
+     */
+    'end_datetime'?: string | null;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ProjectTrackDetails
+     */
+    'is_active'?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ProjectTrackDetails
+     */
+    'is_finished'?: boolean;
+    /**
+     * AI output when the track is completed: {\"overview\": str, \"suggestions\": [str, ...]}.
+     * @type {any}
+     * @memberof ProjectTrackDetails
+     */
+    'ai_track_analysis'?: any;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ProjectTrackDetails
+     */
+    'is_backlog': boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ProjectTrackDetails
+     */
+    'can_activate': boolean;
+    /**
+     * Non-backlog tracks may be deleted only when the viewer may manage structure (owner or edit-tier collaborator), matching ProjectTrackViewSet.destroy.
+     * @type {boolean}
+     * @memberof ProjectTrackDetails
+     */
+    'can_delete': boolean;
+}
+/**
  * * `WITH_TRACK` - With Track * `WITHOUT_TRACK` - Without Track
  * @export
  * @enum {string}
@@ -10085,6 +13732,127 @@ export type RazorpaySubscriptionStatusEnum = typeof RazorpaySubscriptionStatusEn
 
 
 /**
+ * 
+ * @export
+ * @interface RefreshTarget
+ */
+export interface RefreshTarget {
+    /**
+     * 
+     * @type {RefreshTargetKindEnum}
+     * @memberof RefreshTarget
+     */
+    'kind': RefreshTargetKindEnum;
+    /**
+     * 
+     * @type {number}
+     * @memberof RefreshTarget
+     */
+    'project_id'?: number;
+}
+
+
+/**
+ * * `calendar` - calendar * `project` - project * `tasks` - tasks
+ * @export
+ * @enum {string}
+ */
+
+export const RefreshTargetKindEnum = {
+    Calendar: 'calendar',
+    Project: 'project',
+    Tasks: 'tasks'
+} as const;
+
+export type RefreshTargetKindEnum = typeof RefreshTargetKindEnum[keyof typeof RefreshTargetKindEnum];
+
+
+/**
+ * 
+ * @export
+ * @interface Release
+ */
+export interface Release {
+    /**
+     * 
+     * @type {number}
+     * @memberof Release
+     */
+    'id': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof Release
+     */
+    'project': number;
+    /**
+     * Sequence among releases on this project (lower = earlier).
+     * @type {number}
+     * @memberof Release
+     */
+    'order'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof Release
+     */
+    'name': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Release
+     */
+    'description'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Release
+     */
+    'target_date'?: string | null;
+    /**
+     * 
+     * @type {ReleaseStatusEnum}
+     * @memberof Release
+     */
+    'status'?: ReleaseStatusEnum;
+    /**
+     * 
+     * @type {number}
+     * @memberof Release
+     */
+    'task_count': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof Release
+     */
+    'done_task_count': number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Release
+     */
+    'can_delete': boolean;
+}
+
+
+/**
+ * * `PLANNED` - Planned * `IN_PROGRESS` - In Progress * `SHIPPED` - Shipped * `DEFERRED` - Deferred
+ * @export
+ * @enum {string}
+ */
+
+export const ReleaseStatusEnum = {
+    Planned: 'PLANNED',
+    InProgress: 'IN_PROGRESS',
+    Shipped: 'SHIPPED',
+    Deferred: 'DEFERRED'
+} as const;
+
+export type ReleaseStatusEnum = typeof ReleaseStatusEnum[keyof typeof ReleaseStatusEnum];
+
+
+/**
  * * `general` - General * `get` - Get * `summarize` - Summarize * `plan` - Plan * `analyze` - Analyze
  * @export
  * @enum {string}
@@ -10118,6 +13886,157 @@ export const ResponseScopeEnum = {
 } as const;
 
 export type ResponseScopeEnum = typeof ResponseScopeEnum[keyof typeof ResponseScopeEnum];
+
+
+/**
+ * * `accepted` - accepted * `declined` - declined * `tentative` - tentative
+ * @export
+ * @enum {string}
+ */
+
+export const ResponseStatusEnum = {
+    Accepted: 'accepted',
+    Declined: 'declined',
+    Tentative: 'tentative'
+} as const;
+
+export type ResponseStatusEnum = typeof ResponseStatusEnum[keyof typeof ResponseStatusEnum];
+
+
+/**
+ * * `events_list` - events_list * `tasks_list` - tasks_list * `plan_card` - plan_card * `plans_list` - plans_list * `performance_card` - performance_card * `journal_card` - journal_card * `capabilities` - capabilities
+ * @export
+ * @enum {string}
+ */
+
+export const ResultTypeEnum = {
+    EventsList: 'events_list',
+    TasksList: 'tasks_list',
+    PlanCard: 'plan_card',
+    PlansList: 'plans_list',
+    PerformanceCard: 'performance_card',
+    JournalCard: 'journal_card',
+    Capabilities: 'capabilities'
+} as const;
+
+export type ResultTypeEnum = typeof ResultTypeEnum[keyof typeof ResultTypeEnum];
+
+
+/**
+ * 
+ * @export
+ * @interface RevertOperation
+ */
+export interface RevertOperation {
+    /**
+     * 
+     * @type {string}
+     * @memberof RevertOperation
+     */
+    'entity_type': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof RevertOperation
+     */
+    'entity_id': number;
+    /**
+     * 
+     * @type {OpEnum}
+     * @memberof RevertOperation
+     */
+    'op': OpEnum;
+    /**
+     * 
+     * @type {{ [key: string]: any; }}
+     * @memberof RevertOperation
+     */
+    'fields'?: { [key: string]: any; } | null;
+}
+
+
+/**
+ * Single envelope for both preview (``preview=true``) and applied revert responses.
+ * @export
+ * @interface RevertResponse
+ */
+export interface RevertResponse {
+    /**
+     * 
+     * @type {boolean}
+     * @memberof RevertResponse
+     */
+    'preview': boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof RevertResponse
+     */
+    'entity_type'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof RevertResponse
+     */
+    'entity_id'?: number | null;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof RevertResponse
+     */
+    'can_revert'?: boolean | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof RevertResponse
+     */
+    'blocked_reason'?: string | null;
+    /**
+     * 
+     * @type {Array<RevertOperation>}
+     * @memberof RevertResponse
+     */
+    'operations'?: Array<RevertOperation>;
+    /**
+     * 
+     * @type {Array<{ [key: string]: any; }>}
+     * @memberof RevertResponse
+     */
+    'reverted'?: Array<{ [key: string]: any; }>;
+    /**
+     * 
+     * @type {Array<{ [key: string]: any; }>}
+     * @memberof RevertResponse
+     */
+    'failed'?: Array<{ [key: string]: any; }>;
+    /**
+     * 
+     * @type {Array<{ [key: string]: any; }>}
+     * @memberof RevertResponse
+     */
+    'warnings'?: Array<{ [key: string]: any; }>;
+    /**
+     * 
+     * @type {RevertResponseStatusEnum}
+     * @memberof RevertResponse
+     */
+    'status'?: RevertResponseStatusEnum;
+}
+
+
+/**
+ * * `OK` - OK * `PARTIAL` - PARTIAL * `FAILED` - FAILED
+ * @export
+ * @enum {string}
+ */
+
+export const RevertResponseStatusEnum = {
+    Ok: 'OK',
+    Partial: 'PARTIAL',
+    Failed: 'FAILED'
+} as const;
+
+export type RevertResponseStatusEnum = typeof RevertResponseStatusEnum[keyof typeof RevertResponseStatusEnum];
 
 
 /**
@@ -10167,17 +14086,33 @@ export type RoleF81Enum = typeof RoleF81Enum[keyof typeof RoleF81Enum];
 
 
 /**
- * * `daily` - Daily * `weekly` - Weekly
+ * * `WEEKLY` - Weekly * `MONTHLY` - Monthly * `YEARLY` - Yearly
  * @export
  * @enum {string}
  */
 
-export const ScopeEnum = {
-    Daily: 'daily',
-    Weekly: 'weekly'
+export const Scope700Enum = {
+    Weekly: 'WEEKLY',
+    Monthly: 'MONTHLY',
+    Yearly: 'YEARLY'
 } as const;
 
-export type ScopeEnum = typeof ScopeEnum[keyof typeof ScopeEnum];
+export type Scope700Enum = typeof Scope700Enum[keyof typeof Scope700Enum];
+
+
+/**
+ * * `daily` - Daily * `weekly` - Weekly * `monthly` - Monthly
+ * @export
+ * @enum {string}
+ */
+
+export const ScopeA43Enum = {
+    Daily: 'daily',
+    Weekly: 'weekly',
+    Monthly: 'monthly'
+} as const;
+
+export type ScopeA43Enum = typeof ScopeA43Enum[keyof typeof ScopeA43Enum];
 
 
 /**
@@ -10221,19 +14156,67 @@ export interface SearchResult {
      * @type {number}
      * @memberof SearchResult
      */
-    'project_id'?: number;
+    'project_id'?: number | null;
     /**
      * 
      * @type {number}
      * @memberof SearchResult
      */
-    'track_id'?: number;
+    'track_id'?: number | null;
     /**
      * 
      * @type {string}
      * @memberof SearchResult
      */
     'task_acronym'?: string | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof SearchResult
+     */
+    'task_id'?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof SearchResult
+     */
+    'life_area_id'?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof SearchResult
+     */
+    'path'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof SearchResult
+     */
+    'scope'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof SearchResult
+     */
+    'period_start'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof SearchResult
+     */
+    'journal_kind'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof SearchResult
+     */
+    'report_kind'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof SearchResult
+     */
+    'comment_uuid'?: string | null;
     /**
      * 
      * @type {{ [key: string]: any; }}
@@ -10251,20 +14234,34 @@ export interface SearchResult {
      * @type {string}
      * @memberof SearchResult
      */
-    'created_at': string;
+    'created_at'?: string | null;
     /**
      * 
      * @type {string}
      * @memberof SearchResult
      */
-    'last_updated': string;
+    'last_updated'?: string | null;
     /**
      * 
      * @type {string}
      * @memberof SearchResult
      */
-    'status'?: string;
+    'status'?: string | null;
 }
+/**
+ * * `admin` - admin * `member` - member
+ * @export
+ * @enum {string}
+ */
+
+export const SeatRoleEnum = {
+    Admin: 'admin',
+    Member: 'member'
+} as const;
+
+export type SeatRoleEnum = typeof SeatRoleEnum[keyof typeof SeatRoleEnum];
+
+
 /**
  * * `project` - project * `life_area` - life_area * `uncategorized` - uncategorized
  * @export
@@ -10280,6 +14277,25 @@ export const SegmentTypeEnum = {
 export type SegmentTypeEnum = typeof SegmentTypeEnum[keyof typeof SegmentTypeEnum];
 
 
+/**
+ * Request body for toggling one calendar\'s selected (synced/watched) state.
+ * @export
+ * @interface SelectCalendarRequest
+ */
+export interface SelectCalendarRequest {
+    /**
+     * UserGoogleCalendar pk (not Google\'s calendarId string).
+     * @type {number}
+     * @memberof SelectCalendarRequest
+     */
+    'calendar_id': number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof SelectCalendarRequest
+     */
+    'selected': boolean;
+}
 /**
  * Request body for setting or clearing the default calendar.
  * @export
@@ -10515,6 +14531,20 @@ export interface SprintOverviewTask {
     'is_done'?: boolean;
 }
 /**
+ * * `completed` - Completed * `skipped` - Skipped
+ * @export
+ * @enum {string}
+ */
+
+export const Status4d8Enum = {
+    Completed: 'completed',
+    Skipped: 'skipped'
+} as const;
+
+export type Status4d8Enum = typeof Status4d8Enum[keyof typeof Status4d8Enum];
+
+
+/**
  * * `under_review` - Under Review * `planned` - Planned * `in_progress` - In Progress * `shipped` - Shipped * `closed` - Closed
  * @export
  * @enum {string}
@@ -10542,13 +14572,13 @@ export interface SubscriptionResponse {
      * @type {string}
      * @memberof SubscriptionResponse
      */
-    'subscription_id': string;
+    'subscription_id'?: string | null;
     /**
      * 
      * @type {string}
      * @memberof SubscriptionResponse
      */
-    'razorpay_key_id': string;
+    'razorpay_key_id'?: string | null;
     /**
      * 
      * @type {string}
@@ -10561,7 +14591,34 @@ export interface SubscriptionResponse {
      * @memberof SubscriptionResponse
      */
     'billing_cycle': string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof SubscriptionResponse
+     */
+    'scheduled'?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof SubscriptionResponse
+     */
+    'effective_at'?: string | null;
 }
+/**
+ * * `organization` - organization * `personal` - personal * `none` - none
+ * @export
+ * @enum {string}
+ */
+
+export const SubscriptionSourceEnum = {
+    Organization: 'organization',
+    Personal: 'personal',
+    None: 'none'
+} as const;
+
+export type SubscriptionSourceEnum = typeof SubscriptionSourceEnum[keyof typeof SubscriptionSourceEnum];
+
+
 /**
  * 
  * @export
@@ -10611,7 +14668,7 @@ export interface Task {
      */
     'workflow_done': boolean;
     /**
-     * Mirrors TaskViewSet.destroy: owner or edit-tier collaborator may delete. Without an authenticated ``request`` in context, defaults to True (legacy payloads).
+     * Mirrors TaskViewSet.destroy: owner or edit-tier collaborator may delete. Without an authenticated ``request`` in context, defaults to True (legacy payloads).  The permission check is the same for every task on the same project, so the result is memoized on ``self.context`` per project id — without this, listing N tasks on one project re-derives the identical answer via 2-3 queries N times.
      * @type {boolean}
      * @memberof Task
      */
@@ -10640,6 +14697,12 @@ export interface Task {
      * @memberof Task
      */
     'labels': Array<ProjectLabel>;
+    /**
+     * Planned start; positions the task on the timeline. Defaults to today at creation time (UI).
+     * @type {string}
+     * @memberof Task
+     */
+    'start_date'?: string | null;
     /**
      * 
      * @type {string}
@@ -10670,6 +14733,18 @@ export interface Task {
      * @memberof Task
      */
     'project_track': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof Task
+     */
+    'release'?: number | null;
+    /**
+     * 
+     * @type {Array<number>}
+     * @memberof Task
+     */
+    'goals'?: Array<number>;
     /**
      * 
      * @type {MinimalUser}
@@ -10766,6 +14841,48 @@ export interface Task {
      * @memberof Task
      */
     'custom_fields': Array<TaskCustomField>;
+    /**
+     * Tasks this task blocks.
+     * @type {{ [key: string]: any; }}
+     * @memberof Task
+     */
+    'blocks': { [key: string]: any; };
+    /**
+     * Tasks that block this task.
+     * @type {{ [key: string]: any; }}
+     * @memberof Task
+     */
+    'blocked_by': { [key: string]: any; };
+    /**
+     * Tasks this task duplicates.
+     * @type {{ [key: string]: any; }}
+     * @memberof Task
+     */
+    'duplicates': { [key: string]: any; };
+    /**
+     * Tasks that duplicate this task.
+     * @type {{ [key: string]: any; }}
+     * @memberof Task
+     */
+    'duplicated_by': { [key: string]: any; };
+    /**
+     * Tasks related to this task (symmetric).
+     * @type {{ [key: string]: any; }}
+     * @memberof Task
+     */
+    'related_to': { [key: string]: any; };
+    /**
+     * Tree depth, root=1. Subtasks can be created up to Task.MAX_DEPTH.
+     * @type {number}
+     * @memberof Task
+     */
+    'depth': number;
+    /**
+     * 
+     * @type {Array<TaskFileAttachment>}
+     * @memberof Task
+     */
+    'file_attachments': Array<TaskFileAttachment>;
 }
 
 
@@ -10777,10 +14894,10 @@ export interface Task {
 export interface TaskBatchReorder {
     /**
      * 
-     * @type {ViewEnum}
+     * @type {TaskBatchReorderViewEnum}
      * @memberof TaskBatchReorder
      */
-    'view': ViewEnum;
+    'view': TaskBatchReorderViewEnum;
     /**
      * 
      * @type {number}
@@ -10818,6 +14935,21 @@ export interface TaskBatchReorder {
      */
     'track_moves'?: Array<TaskTrackMove>;
 }
+
+
+/**
+ * * `board` - board * `list` - list * `all_tracks` - all_tracks
+ * @export
+ * @enum {string}
+ */
+
+export const TaskBatchReorderViewEnum = {
+    Board: 'board',
+    List: 'list',
+    AllTracks: 'all_tracks'
+} as const;
+
+export type TaskBatchReorderViewEnum = typeof TaskBatchReorderViewEnum[keyof typeof TaskBatchReorderViewEnum];
 
 
 /**
@@ -11037,6 +15169,24 @@ export interface TaskCreate {
     'project_track': number;
     /**
      * 
+     * @type {number}
+     * @memberof TaskCreate
+     */
+    'release'?: number | null;
+    /**
+     * 
+     * @type {Array<number>}
+     * @memberof TaskCreate
+     */
+    'goals'?: Array<number>;
+    /**
+     * 
+     * @type {string}
+     * @memberof TaskCreate
+     */
+    'start_date'?: string | null;
+    /**
+     * 
      * @type {string}
      * @memberof TaskCreate
      */
@@ -11059,6 +15209,18 @@ export interface TaskCreate {
      * @memberof TaskCreate
      */
     'pending_description_image_ids'?: Array<number>;
+    /**
+     * FocusAI MessageAttachment IDs to copy onto this task as durable file attachments (owner + not expired).
+     * @type {Array<number>}
+     * @memberof TaskCreate
+     */
+    'message_attachment_ids'?: Array<number>;
+    /**
+     * TaskFileAttachment IDs from upload-file-attachment-draft; linked to this task after create (same user, same project, not yet attached).
+     * @type {Array<number>}
+     * @memberof TaskCreate
+     */
+    'pending_file_attachment_ids'?: Array<number>;
 }
 /**
  * Merged project field definition + per-task value.
@@ -11156,6 +15318,151 @@ export interface TaskCustomFieldReorder {
      * @memberof TaskCustomFieldReorder
      */
     'ordered_ids': Array<number>;
+}
+/**
+ * 
+ * @export
+ * @interface TaskDependencyCreate
+ */
+export interface TaskDependencyCreate {
+    /**
+     * The source task of the link.
+     * @type {number}
+     * @memberof TaskDependencyCreate
+     */
+    'from_task': number;
+    /**
+     * The target task of the link.
+     * @type {number}
+     * @memberof TaskDependencyCreate
+     */
+    'to_task': number;
+    /**
+     * blocks: from_task must be done before to_task. duplicates: from_task duplicates to_task. relates_to: symmetric, non-blocking relation.  * `blocks` - Blocks * `duplicates` - Duplicates * `relates_to` - Relates to
+     * @type {LinkTypeEnum}
+     * @memberof TaskDependencyCreate
+     */
+    'link_type'?: LinkTypeEnum;
+}
+
+
+/**
+ * 
+ * @export
+ * @interface TaskDependencyRead
+ */
+export interface TaskDependencyRead {
+    /**
+     * 
+     * @type {number}
+     * @memberof TaskDependencyRead
+     */
+    'id': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof TaskDependencyRead
+     */
+    'from_task': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof TaskDependencyRead
+     */
+    'to_task': number;
+    /**
+     * 
+     * @type {LinkTypeEnum}
+     * @memberof TaskDependencyRead
+     */
+    'link_type': LinkTypeEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof TaskDependencyRead
+     */
+    'from_task_name': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TaskDependencyRead
+     */
+    'to_task_name': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TaskDependencyRead
+     */
+    'from_task_acronym': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TaskDependencyRead
+     */
+    'to_task_acronym': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TaskDependencyRead
+     */
+    'created_at': string;
+}
+
+
+/**
+ * 
+ * @export
+ * @interface TaskFileAttachment
+ */
+export interface TaskFileAttachment {
+    /**
+     * 
+     * @type {number}
+     * @memberof TaskFileAttachment
+     */
+    'id': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof TaskFileAttachment
+     */
+    'file_name': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TaskFileAttachment
+     */
+    'file_type': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof TaskFileAttachment
+     */
+    'file_size': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof TaskFileAttachment
+     */
+    'uploaded_at': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TaskFileAttachment
+     */
+    'kind': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TaskFileAttachment
+     */
+    'download_url': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TaskFileAttachment
+     */
+    'source_message_attachment_id': string;
 }
 /**
  * Body for ``POST /api/task/search/nl/`` (FocusGPT natural-language task search).
@@ -11314,13 +15621,14 @@ export interface TaskProjectColumn {
 
 
 /**
- * * `propose_add_task_comment_tool` - Add task comment * `propose_bulk_delete_tasks_tool` - Bulk delete tasks * `propose_bulk_update_tasks_tool` - Bulk update tasks * `propose_create_task_priority_tool` - Create task priority * `propose_create_task_tool` - Create task * `propose_create_task_type_tool` - Create task type * `propose_delete_task_priority_tool` - Delete task priority * `propose_delete_task_tool` - Delete task * `propose_delete_task_type_tool` - Delete task type * `propose_partial_update_task_priority_tool` - Update task priority * `propose_partial_update_task_type_tool` - Update task type * `propose_update_task_tool` - Update task
+ * * `propose_add_task_comment_tool` - Add task comment * `propose_bulk_create_tasks_tool` - Bulk create tasks * `propose_bulk_delete_tasks_tool` - Bulk delete tasks * `propose_bulk_update_tasks_tool` - Bulk update tasks * `propose_create_task_priority_tool` - Create task priority * `propose_create_task_tool` - Create task * `propose_create_task_type_tool` - Create task type * `propose_delete_task_priority_tool` - Delete task priority * `propose_delete_task_tool` - Delete task * `propose_delete_task_type_tool` - Delete task type * `propose_partial_update_task_priority_tool` - Update task priority * `propose_partial_update_task_type_tool` - Update task type * `propose_update_task_tool` - Update task
  * @export
  * @enum {string}
  */
 
 export const TaskProposeToolNameEnum = {
     ProposeAddTaskCommentTool: 'propose_add_task_comment_tool',
+    ProposeBulkCreateTasksTool: 'propose_bulk_create_tasks_tool',
     ProposeBulkDeleteTasksTool: 'propose_bulk_delete_tasks_tool',
     ProposeBulkUpdateTasksTool: 'propose_bulk_update_tasks_tool',
     ProposeCreateTaskPriorityTool: 'propose_create_task_priority_tool',
@@ -11386,7 +15694,7 @@ export interface TaskSearch {
      */
     'workflow_done': boolean;
     /**
-     * Mirrors TaskViewSet.destroy: owner or edit-tier collaborator may delete. Without an authenticated ``request`` in context, defaults to True (legacy payloads).
+     * Mirrors TaskViewSet.destroy: owner or edit-tier collaborator may delete. Without an authenticated ``request`` in context, defaults to True (legacy payloads).  The permission check is the same for every task on the same project, so the result is memoized on ``self.context`` per project id — without this, listing N tasks on one project re-derives the identical answer via 2-3 queries N times.
      * @type {boolean}
      * @memberof TaskSearch
      */
@@ -11415,6 +15723,12 @@ export interface TaskSearch {
      * @memberof TaskSearch
      */
     'labels': Array<ProjectLabel>;
+    /**
+     * Planned start; positions the task on the timeline. Defaults to today at creation time (UI).
+     * @type {string}
+     * @memberof TaskSearch
+     */
+    'start_date'?: string | null;
     /**
      * 
      * @type {string}
@@ -11445,6 +15759,18 @@ export interface TaskSearch {
      * @memberof TaskSearch
      */
     'project_track': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof TaskSearch
+     */
+    'release'?: number | null;
+    /**
+     * 
+     * @type {Array<number>}
+     * @memberof TaskSearch
+     */
+    'goals'?: Array<number>;
     /**
      * 
      * @type {MinimalUser}
@@ -11541,6 +15867,48 @@ export interface TaskSearch {
      * @memberof TaskSearch
      */
     'custom_fields': Array<TaskCustomField>;
+    /**
+     * Tasks this task blocks.
+     * @type {{ [key: string]: any; }}
+     * @memberof TaskSearch
+     */
+    'blocks': { [key: string]: any; };
+    /**
+     * Tasks that block this task.
+     * @type {{ [key: string]: any; }}
+     * @memberof TaskSearch
+     */
+    'blocked_by': { [key: string]: any; };
+    /**
+     * Tasks this task duplicates.
+     * @type {{ [key: string]: any; }}
+     * @memberof TaskSearch
+     */
+    'duplicates': { [key: string]: any; };
+    /**
+     * Tasks that duplicate this task.
+     * @type {{ [key: string]: any; }}
+     * @memberof TaskSearch
+     */
+    'duplicated_by': { [key: string]: any; };
+    /**
+     * Tasks related to this task (symmetric).
+     * @type {{ [key: string]: any; }}
+     * @memberof TaskSearch
+     */
+    'related_to': { [key: string]: any; };
+    /**
+     * Tree depth, root=1. Subtasks can be created up to Task.MAX_DEPTH.
+     * @type {number}
+     * @memberof TaskSearch
+     */
+    'depth': number;
+    /**
+     * 
+     * @type {Array<TaskFileAttachment>}
+     * @memberof TaskSearch
+     */
+    'file_attachments': Array<TaskFileAttachment>;
     /**
      * Elasticsearch highlight snippets (field -> list of HTML strings with <mark>) when the query matches indexed fields.
      * @type {{ [key: string]: Array<string>; }}
@@ -11863,6 +16231,76 @@ export interface TokenTopUpPurchase {
     'purchased_at': string;
 }
 /**
+ * 
+ * @export
+ * @interface ToolResultLink
+ */
+export interface ToolResultLink {
+    /**
+     * 
+     * @type {number}
+     * @memberof ToolResultLink
+     */
+    'entity_id': number;
+    /**
+     * 
+     * @type {Destination}
+     * @memberof ToolResultLink
+     */
+    'destination': Destination;
+}
+/**
+ * 
+ * @export
+ * @interface ToolResultMetadata
+ */
+export interface ToolResultMetadata {
+    /**
+     * 
+     * @type {ResultTypeEnum}
+     * @memberof ToolResultMetadata
+     */
+    'result_type': ResultTypeEnum;
+    /**
+     * 
+     * @type {Array<{ [key: string]: any; }>}
+     * @memberof ToolResultMetadata
+     */
+    'data'?: Array<{ [key: string]: any; }>;
+    /**
+     * 
+     * @type {string}
+     * @memberof ToolResultMetadata
+     */
+    'intent'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ToolResultMetadata
+     */
+    'scope'?: string;
+    /**
+     * 
+     * @type {Array<ToolResultLink>}
+     * @memberof ToolResultMetadata
+     */
+    'links'?: Array<ToolResultLink>;
+    /**
+     * 
+     * @type {Destination}
+     * @memberof ToolResultMetadata
+     */
+    'hub_destination'?: Destination | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof ToolResultMetadata
+     */
+    'summary'?: string;
+}
+
+
+/**
  * Shape stored in ``ProjectTrack.ai_track_analysis``.
  * @export
  * @interface TrackAiAnalysisPayload
@@ -11889,10 +16327,10 @@ export interface TrackAiAnalysisPayload {
 export interface TrackWithTasks {
     /**
      * 
-     * @type {ProjectTrack}
+     * @type {ProjectTrackDetails}
      * @memberof TrackWithTasks
      */
-    'track_details': ProjectTrack;
+    'track_details': ProjectTrackDetails;
     /**
      * 
      * @type {Array<Task>}
@@ -11972,11 +16410,29 @@ export interface UpdateEvent {
      */
     'is_all_day'?: boolean;
     /**
+     * Source of truth for all-day events (F1) — send this instead of computing start_datetime as a local-midnight-to-UTC instant, which only round-trips correctly if read back in the same timezone it was authored in. start_datetime/end_datetime are still required (existing range-query code depends on them) but are server-derived from these when both are given.
+     * @type {string}
+     * @memberof UpdateEvent
+     */
+    'all_day_start_date'?: string | null;
+    /**
+     * Exclusive end date, matching end_datetime\'s existing convention.
+     * @type {string}
+     * @memberof UpdateEvent
+     */
+    'all_day_end_date'?: string | null;
+    /**
      * 
      * @type {string}
      * @memberof UpdateEvent
      */
     'description'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof UpdateEvent
+     */
+    'location'?: string;
     /**
      * 
      * @type {number}
@@ -12001,6 +16457,18 @@ export interface UpdateEvent {
      * @memberof UpdateEvent
      */
     'recurrence_rule'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof UpdateEvent
+     */
+    'customRecurrenceEndsOn'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof UpdateEvent
+     */
+    'customRecurrenceCountEndsAfter'?: number;
     /**
      * How to apply changes to a recurring event.  * `single` - single * `this_and_following` - this_and_following * `all` - all
      * @type {ChangeTypeEnum}
@@ -12031,6 +16499,18 @@ export interface UpdateEvent {
      * @memberof UpdateEvent
      */
     'send_invite_emails'?: boolean;
+    /**
+     * When true, the event stays on the calendar but is omitted from performance reports and logged hours. Omit on update to leave the current value unchanged.
+     * @type {boolean}
+     * @memberof UpdateEvent
+     */
+    'excluded_from_reports'?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof UpdateEvent
+     */
+    'is_completed'?: boolean;
 }
 
 
@@ -12046,6 +16526,25 @@ export interface UpdateLastSeenAnnouncement {
      * @memberof UpdateLastSeenAnnouncement
      */
     'announcement_id': number;
+}
+/**
+ * 
+ * @export
+ * @interface UpdateMcpTokenProjectGrant
+ */
+export interface UpdateMcpTokenProjectGrant {
+    /**
+     * 
+     * @type {boolean}
+     * @memberof UpdateMcpTokenProjectGrant
+     */
+    'can_write'?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof UpdateMcpTokenProjectGrant
+     */
+    'can_delete'?: boolean;
 }
 /**
  * 
@@ -12225,6 +16724,18 @@ export interface UpdateUserSetting {
      */
     'weekly_summary_deliver_on'?: WeeklySummaryDeliverOnEnum;
     /**
+     * Monthly review time.
+     * @type {string}
+     * @memberof UpdateUserSetting
+     */
+    'monthly_reflection_time'?: string;
+    /**
+     * Review at month end, or the previous month at the start of the next month.  * `same_month` - End of same month * `next_month_start` - Start of next month
+     * @type {MonthlySummaryDeliverOnEnum}
+     * @memberof UpdateUserSetting
+     */
+    'monthly_summary_deliver_on'?: MonthlySummaryDeliverOnEnum;
+    /**
      * Legacy report generation time (prefer daily_reflection_time).
      * @type {string}
      * @memberof UpdateUserSetting
@@ -12272,6 +16783,18 @@ export interface UpdateUserSetting {
      * @memberof UpdateUserSetting
      */
     'favorite_theme_entries'?: any;
+    /**
+     * List of EnabledFeature keys enabled for this user.
+     * @type {Array<EnabledFeaturesEnum>}
+     * @memberof UpdateUserSetting
+     */
+    'enabled_features'?: Array<EnabledFeaturesEnum>;
+    /**
+     * Whether the user has completed or dismissed the first-time guided product tour.
+     * @type {boolean}
+     * @memberof UpdateUserSetting
+     */
+    'has_completed_product_tour'?: boolean;
 }
 
 
@@ -12437,6 +16960,106 @@ export interface UserAgentPolicy {
     'updated_at'?: string | null;
 }
 /**
+ * 
+ * @export
+ * @interface UserCapacityRead
+ */
+export interface UserCapacityRead {
+    /**
+     * 
+     * @type {number}
+     * @memberof UserCapacityRead
+     */
+    'id': number;
+    /**
+     * 
+     * @type {Scope700Enum}
+     * @memberof UserCapacityRead
+     */
+    'scope': Scope700Enum;
+    /**
+     * Start date of the specific period this overrides; NULL = standing default for the scope.
+     * @type {string}
+     * @memberof UserCapacityRead
+     */
+    'period_start'?: string | null;
+    /**
+     * Hours the user has available in this period.
+     * @type {number}
+     * @memberof UserCapacityRead
+     */
+    'available_hours': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof UserCapacityRead
+     */
+    'created_at': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof UserCapacityRead
+     */
+    'last_updated': string;
+}
+
+
+/**
+ * One calendar within a connected Google account (G1/FA-950) — what the calendar selection UI lists and toggles.
+ * @export
+ * @interface UserGoogleCalendar
+ */
+export interface UserGoogleCalendar {
+    /**
+     * 
+     * @type {number}
+     * @memberof UserGoogleCalendar
+     */
+    'id': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof UserGoogleCalendar
+     */
+    'integration_id': number;
+    /**
+     * Google calendarId — \'primary\'/the account email for the primary calendar, or a \'...@group.calendar.google.com\' id for others.
+     * @type {string}
+     * @memberof UserGoogleCalendar
+     */
+    'calendar_id': string;
+    /**
+     * Calendar display name.
+     * @type {string}
+     * @memberof UserGoogleCalendar
+     */
+    'summary': string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof UserGoogleCalendar
+     */
+    'is_primary': boolean;
+    /**
+     * Google accessRole: owner/writer/reader/freeBusyReader — writes need owner/writer.
+     * @type {string}
+     * @memberof UserGoogleCalendar
+     */
+    'access_role': string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof UserGoogleCalendar
+     */
+    'can_write': boolean;
+    /**
+     * Whether the user opted this calendar in for sync + as a create target.
+     * @type {boolean}
+     * @memberof UserGoogleCalendar
+     */
+    'selected'?: boolean;
+}
+/**
  * Serializer for UserIntegration management
  * @export
  * @interface UserIntegration
@@ -12488,6 +17111,99 @@ export interface UserIntegration {
 
 
 /**
+ * 
+ * @export
+ * @interface UserMemory
+ */
+export interface UserMemory {
+    /**
+     * 
+     * @type {string}
+     * @memberof UserMemory
+     */
+    'id': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof UserMemory
+     */
+    'text': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof UserMemory
+     */
+    'created_at'?: string | null;
+}
+/**
+ * 
+ * @export
+ * @interface UserMemoryListResponse
+ */
+export interface UserMemoryListResponse {
+    /**
+     * 
+     * @type {Array<UserMemory>}
+     * @memberof UserMemoryListResponse
+     */
+    'results': Array<UserMemory>;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof UserMemoryListResponse
+     */
+    'has_more': boolean;
+}
+/**
+ * 
+ * @export
+ * @interface UserRule
+ */
+export interface UserRule {
+    /**
+     * 
+     * @type {number}
+     * @memberof UserRule
+     */
+    'id': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof UserRule
+     */
+    'title': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof UserRule
+     */
+    'body': string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof UserRule
+     */
+    'enabled'?: boolean;
+    /**
+     * Lower sorts first when multiple rules are enabled.
+     * @type {number}
+     * @memberof UserRule
+     */
+    'priority'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof UserRule
+     */
+    'created_at': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof UserRule
+     */
+    'updated_at': string;
+}
+/**
  * UserSettings read/response - includes all fields.
  * @export
  * @interface UserSetting
@@ -12505,6 +17221,12 @@ export interface UserSetting {
      * @memberof UserSetting
      */
     'favorite_theme_entries_resolved': Array<UserSettingFavoriteThemeEntriesResolvedInner>;
+    /**
+     * List of EnabledFeature keys enabled for this user.
+     * @type {Array<EnabledFeaturesEnum>}
+     * @memberof UserSetting
+     */
+    'enabled_features'?: Array<EnabledFeaturesEnum>;
     /**
      * 
      * @type {any}
@@ -12644,6 +17366,18 @@ export interface UserSetting {
      */
     'weekly_summary_deliver_on'?: WeeklySummaryDeliverOnEnum;
     /**
+     * Monthly review time.
+     * @type {string}
+     * @memberof UserSetting
+     */
+    'monthly_reflection_time'?: string;
+    /**
+     * Review at month end, or the previous month at the start of the next month.  * `same_month` - End of same month * `next_month_start` - Start of next month
+     * @type {MonthlySummaryDeliverOnEnum}
+     * @memberof UserSetting
+     */
+    'monthly_summary_deliver_on'?: MonthlySummaryDeliverOnEnum;
+    /**
      * Legacy report generation time (prefer daily_reflection_time).
      * @type {string}
      * @memberof UserSetting
@@ -12697,6 +17431,12 @@ export interface UserSetting {
      * @memberof UserSetting
      */
     'last_seen_announcement_id'?: number | null;
+    /**
+     * Whether the user has completed or dismissed the first-time guided product tour.
+     * @type {boolean}
+     * @memberof UserSetting
+     */
+    'has_completed_product_tour'?: boolean;
     /**
      * 
      * @type {number}
@@ -12775,6 +17515,67 @@ export const UserSettingFavoriteThemeEntriesResolvedInnerKindEnum = {
 
 export type UserSettingFavoriteThemeEntriesResolvedInnerKindEnum = typeof UserSettingFavoriteThemeEntriesResolvedInnerKindEnum[keyof typeof UserSettingFavoriteThemeEntriesResolvedInnerKindEnum];
 
+/**
+ * 
+ * @export
+ * @interface UserSkill
+ */
+export interface UserSkill {
+    /**
+     * 
+     * @type {number}
+     * @memberof UserSkill
+     */
+    'id': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof UserSkill
+     */
+    'name': string;
+    /**
+     * Optional /slug trigger, e.g. \'demo-seed\'.
+     * @type {string}
+     * @memberof UserSkill
+     */
+    'slug'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof UserSkill
+     */
+    'instructions': string;
+    /**
+     * NL phrases that match this skill.
+     * @type {any}
+     * @memberof UserSkill
+     */
+    'triggers'?: any;
+    /**
+     * Advisory tool-name hints (see docstring).
+     * @type {any}
+     * @memberof UserSkill
+     */
+    'tool_scope'?: any;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof UserSkill
+     */
+    'enabled'?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof UserSkill
+     */
+    'created_at': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof UserSkill
+     */
+    'updated_at': string;
+}
 /**
  * User Subscription
  * @export
@@ -12865,6 +17666,18 @@ export interface UserSubscription {
      * @memberof UserSubscription
      */
     'razorpay_subscription_status': RazorpaySubscriptionStatusEnum;
+    /**
+     * 
+     * @type {PendingPlanEnum}
+     * @memberof UserSubscription
+     */
+    'pending_plan': PendingPlanEnum | null;
+    /**
+     * 
+     * @type {PendingBillingCycleEnum}
+     * @memberof UserSubscription
+     */
+    'pending_billing_cycle': PendingBillingCycleEnum | null;
 }
 
 
@@ -13062,21 +17875,6 @@ export interface VerifyTopUpPayment {
 
 
 /**
- * * `board` - board * `list` - list * `all_tracks` - all_tracks
- * @export
- * @enum {string}
- */
-
-export const ViewEnum = {
-    Board: 'board',
-    List: 'list',
-    AllTracks: 'all_tracks'
-} as const;
-
-export type ViewEnum = typeof ViewEnum[keyof typeof ViewEnum];
-
-
-/**
  * 
  * @export
  * @interface WebResearchMetadata
@@ -13256,18 +18054,6 @@ export interface WeeklyReport {
      * @type {string}
      * @memberof WeeklyReport
      */
-    'week_start': string;
-    /**
-     * 
-     * @type {string}
-     * @memberof WeeklyReport
-     */
-    'week_end': string;
-    /**
-     * 
-     * @type {string}
-     * @memberof WeeklyReport
-     */
     'created_at': string;
     /**
      * 
@@ -13347,6 +18133,18 @@ export interface WeeklyReport {
      * @memberof WeeklyReport
      */
     'custom_user_note_for_report'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof WeeklyReport
+     */
+    'week_start': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof WeeklyReport
+     */
+    'week_end': string;
     /**
      * 
      * @type {number}
@@ -14009,7 +18807,7 @@ export class AnnouncementApi extends BaseAPI {
 export const ApiApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * Returns the authenticated user\'s monthly token summary (same basis as subscription limits) and a paginated list of recent AICreditsLog rows (provider, tokens, cost, time).
+         * Returns the authenticated user\'s monthly token summary (same basis as FocusAI limits) and a paginated list of request groups. Each group clusters credit-log rows from one user-facing turn (chat, memory extract, etc.); expand ``entries`` for per-call detail.
          * @summary AI usage history
          * @param {number} [limit] Page size (1–100, default 30).
          * @param {number} [offset] Number of rows to skip (default 0).
@@ -14056,15 +18854,63 @@ export const ApiApiAxiosParamCreator = function (configuration?: Configuration) 
          * Resume the LangGraph agent after a HITL interrupt (same ``thread_id`` as conversation UUID).
          * @param {number} id A unique integer value identifying this conversation.
          * @param {AgentResume} agentResume 
+         * @param {boolean} [stream] If true, response is Server-Sent Events (text/event-stream) driving the same agent graph resume as the JSON response, culminating in a final &#x60;conversation&#x60; frame carrying &#x60;metadata.action_results&#x60; for the resolved HITL message.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiFocusgptConversationAgentResumeCreate: async (id: number, agentResume: AgentResume, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        apiFocusgptConversationAgentResumeCreate: async (id: number, agentResume: AgentResume, stream?: boolean, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('apiFocusgptConversationAgentResumeCreate', 'id', id)
             // verify required parameter 'agentResume' is not null or undefined
             assertParamExists('apiFocusgptConversationAgentResumeCreate', 'agentResume', agentResume)
             const localVarPath = `/api/focusgpt/conversation/{id}/agent-resume/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (stream !== undefined) {
+                localVarQueryParameter['stream'] = stream;
+            }
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(agentResume, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * \"Continue from here\": fork a new conversation containing messages 1..anchor, with a fresh LangGraph thread (``thread_id`` = new conversation UUID).  The original conversation is never hidden or modified beyond recording the cross-link in ``metadata.branched_to`` — its messages after the anchor stay exactly where they are; the FE renders them at reduced opacity.
+         * @param {number} id A unique integer value identifying this conversation.
+         * @param {BranchConversation} branchConversation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptConversationBranchCreate: async (id: number, branchConversation: BranchConversation, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiFocusgptConversationBranchCreate', 'id', id)
+            // verify required parameter 'branchConversation' is not null or undefined
+            assertParamExists('apiFocusgptConversationBranchCreate', 'branchConversation', branchConversation)
+            const localVarPath = `/api/focusgpt/conversation/{id}/branch/`
                 .replace(`{${"id"}}`, encodeURIComponent(String(id)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -14088,7 +18934,7 @@ export const ApiApiAxiosParamCreator = function (configuration?: Configuration) 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(agentResume, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(branchConversation, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -14536,6 +19382,90 @@ export const ApiApiAxiosParamCreator = function (configuration?: Configuration) 
             };
         },
         /**
+         * Today just Life Area — it has no project concept, so its grant covers a token\'s access to all of the user\'s life areas at once.
+         * @summary List a token\'s global (non-project-scoped) write/delete grants
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptMcpAccessTokensGlobalGrantsList: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiFocusgptMcpAccessTokensGlobalGrantsList', 'id', id)
+            const localVarPath = `/api/focusgpt/mcp-access-tokens/{id}/global-grants/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Set (or clear) one global entity type\'s grant on one token.
+         * @summary Set (or clear) one global entity type\'s write/delete grant on a token
+         * @param {string} entityType 
+         * @param {number} id 
+         * @param {UpdateMcpTokenProjectGrant} [updateMcpTokenProjectGrant] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptMcpAccessTokensGlobalGrantsUpdate: async (entityType: string, id: number, updateMcpTokenProjectGrant?: UpdateMcpTokenProjectGrant, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'entityType' is not null or undefined
+            assertParamExists('apiFocusgptMcpAccessTokensGlobalGrantsUpdate', 'entityType', entityType)
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiFocusgptMcpAccessTokensGlobalGrantsUpdate', 'id', id)
+            const localVarPath = `/api/focusgpt/mcp-access-tokens/{id}/global-grants/{entity_type}/`
+                .replace(`{${"entity_type"}}`, encodeURIComponent(String(entityType)))
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(updateMcpTokenProjectGrant, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * List the authenticated user\'s MCP access tokens (masked). Pro+ required.
          * @summary List MCP access tokens
          * @param {*} [options] Override http request option.
@@ -14543,6 +19473,218 @@ export const ApiApiAxiosParamCreator = function (configuration?: Configuration) 
          */
         apiFocusgptMcpAccessTokensList: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/focusgpt/mcp-access-tokens/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Every project the caller can see, crossed with the project-scoped entity types (Task, Event), merged with this token\'s write/delete grant state. Read is unconditional and not represented here — every visible project is already MCP-readable via this token.
+         * @summary List a token\'s per-project, per-entity-type write/delete grants
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptMcpAccessTokensProjectGrantsList: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiFocusgptMcpAccessTokensProjectGrantsList', 'id', id)
+            const localVarPath = `/api/focusgpt/mcp-access-tokens/{id}/project-grants/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Upserts the grant for the given project + entity type (task or event); sending both flags false clears it. ``can_delete`` requires ``can_write``.
+         * @summary Set (or clear) one project\'s write/delete grant for one entity type on a token
+         * @param {string} entityType 
+         * @param {number} id 
+         * @param {number} projectId 
+         * @param {UpdateMcpTokenProjectGrant} [updateMcpTokenProjectGrant] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptMcpAccessTokensProjectGrantsUpdate: async (entityType: string, id: number, projectId: number, updateMcpTokenProjectGrant?: UpdateMcpTokenProjectGrant, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'entityType' is not null or undefined
+            assertParamExists('apiFocusgptMcpAccessTokensProjectGrantsUpdate', 'entityType', entityType)
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiFocusgptMcpAccessTokensProjectGrantsUpdate', 'id', id)
+            // verify required parameter 'projectId' is not null or undefined
+            assertParamExists('apiFocusgptMcpAccessTokensProjectGrantsUpdate', 'projectId', projectId)
+            const localVarPath = `/api/focusgpt/mcp-access-tokens/{id}/project-grants/{project_id}/{entity_type}/`
+                .replace(`{${"entity_type"}}`, encodeURIComponent(String(entityType)))
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)))
+                .replace(`{${"project_id"}}`, encodeURIComponent(String(projectId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(updateMcpTokenProjectGrant, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Delete a single saved long-term memory by id.
+         * @summary Delete a FocusGPT memory
+         * @param {string} memoryId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptMemoriesDestroy: async (memoryId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'memoryId' is not null or undefined
+            assertParamExists('apiFocusgptMemoriesDestroy', 'memoryId', memoryId)
+            const localVarPath = `/api/focusgpt/memories/{memory_id}/`
+                .replace(`{${"memory_id"}}`, encodeURIComponent(String(memoryId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * List the authenticated user\'s saved long-term memories (Weaviate), paginated. Pass `q` to semantically search instead of paginating (search results aren\'t paginated further — capped at `limit`). Empty if personalization is disabled or Weaviate isn\'t configured.
+         * @summary List FocusGPT long-term memories
+         * @param {number} [limit] Page size, default 20, max 100.
+         * @param {number} [offset] Offset for the unfiltered list (ignored when &#x60;q&#x60; is set).
+         * @param {string} [q] Search query — switches to semantic/BM25 search.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptMemoriesRetrieve: async (limit?: number, offset?: number, q?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/focusgpt/memories/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+            if (q !== undefined) {
+                localVarQueryParameter['q'] = q;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * GET /api/focusgpt/message-attachments/<id>/  Returns the original upload bytes if the requester owns the conversation and the attachment has not exceeded the TTL. Expired / foreign → 404.
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptMessageAttachmentsRetrieve: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiFocusgptMessageAttachmentsRetrieve', 'id', id)
+            const localVarPath = `/api/focusgpt/message-attachments/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -14834,6 +19976,153 @@ export const ApiApiAxiosParamCreator = function (configuration?: Configuration) 
             };
         },
         /**
+         * GET /api/focusgpt/model-options/ — Auto + plan-gated allowlist for the composer.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptModelOptionsRetrieve: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/focusgpt/model-options/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Remove a single inferred/edited preference.
+         * @summary Delete a FocusGPT preference
+         * @param {string} key 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptPreferencesDestroy: async (key: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'key' is not null or undefined
+            assertParamExists('apiFocusgptPreferencesDestroy', 'key', key)
+            const localVarPath = `/api/focusgpt/preferences/{key}/`
+                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * List what FocusGPT has inferred (or the user has confirmed/edited) about the authenticated user. Empty if personalization consent isn\'t enabled.
+         * @summary List FocusGPT preferences
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptPreferencesList: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/focusgpt/preferences/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Edit the human-readable summary of a preference. Marks it source=user_edited.
+         * @summary Edit a FocusGPT preference\'s summary
+         * @param {string} key 
+         * @param {PatchedUpdateFocusGPTPreference} [patchedUpdateFocusGPTPreference] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptPreferencesPartialUpdate: async (key: string, patchedUpdateFocusGPTPreference?: PatchedUpdateFocusGPTPreference, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'key' is not null or undefined
+            assertParamExists('apiFocusgptPreferencesPartialUpdate', 'key', key)
+            const localVarPath = `/api/focusgpt/preferences/{key}/`
+                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchedUpdateFocusGPTPreference, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Accepts a board column + task snapshot (same shape as the project board view). Returns an AI-generated overview and suggestions.
          * @summary Sprint overview (AI summary from board snapshot)
          * @param {SprintOverviewRequest} sprintOverviewRequest 
@@ -14913,6 +20202,43 @@ export const ApiApiAxiosParamCreator = function (configuration?: Configuration) 
          */
         apiJsonschemasRetrieve: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/jsonschemas/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Key Result ViewSet — a single measurable line item under a Goal.
+         * @param {number} id A unique integer value identifying this key result.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiKeyResultRetrieve: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiKeyResultRetrieve', 'id', id)
+            const localVarPath = `/api/key_result/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -15381,6 +20707,43 @@ export const ApiApiAxiosParamCreator = function (configuration?: Configuration) 
             };
         },
         /**
+         * Per-member AI token quota/usage for every active member of an org.  Organization admins only (billing-adjacent data — see can_view_organization_member_quotas for why group-admins are excluded).
+         * @param {number} orgId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiOrganizationsMemberQuotasList: async (orgId: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'orgId' is not null or undefined
+            assertParamExists('apiOrganizationsMemberQuotasList', 'orgId', orgId)
+            const localVarPath = `/api/organizations/{org_id}/member-quotas/`
+                .replace(`{${"org_id"}}`, encodeURIComponent(String(orgId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Update organization display name and/or logo (multipart file or base64 ``data:image`` string).  Same upload pattern as ``UserViewSet.update_me`` / ``handle_user_profile_upload``. Only organization admins who are active members of the org may update.
          * @param {number} orgId 
          * @param {OrganizationProfileUpdate} [organizationProfileUpdate] 
@@ -15415,6 +20778,49 @@ export const ApiApiAxiosParamCreator = function (configuration?: Configuration) 
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(organizationProfileUpdate, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * An org admin asks for more seats/quota. Emails sales with the requester\'s identity and org context (pulled from the authenticated request, not the payload) plus a free-text message — no DB persistence, mirrors EnterpriseQuoteView\'s pattern but for an already-authenticated existing customer instead of a from-scratch prospect.
+         * @param {number} orgId 
+         * @param {OrganizationQuotaIncreaseRequest} organizationQuotaIncreaseRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiOrganizationsRequestQuotaIncreaseCreate: async (orgId: number, organizationQuotaIncreaseRequest: OrganizationQuotaIncreaseRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'orgId' is not null or undefined
+            assertParamExists('apiOrganizationsRequestQuotaIncreaseCreate', 'orgId', orgId)
+            // verify required parameter 'organizationQuotaIncreaseRequest' is not null or undefined
+            assertParamExists('apiOrganizationsRequestQuotaIncreaseCreate', 'organizationQuotaIncreaseRequest', organizationQuotaIncreaseRequest)
+            const localVarPath = `/api/organizations/{org_id}/request-quota-increase/`
+                .replace(`{${"org_id"}}`, encodeURIComponent(String(orgId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(organizationQuotaIncreaseRequest, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -16642,13 +22048,13 @@ export const ApiApiAxiosParamCreator = function (configuration?: Configuration) 
             };
         },
         /**
-         * Search for tasks, projects, events, and project tracks. Supports type filter and sort.
+         * Search for tasks, projects, events, project tracks, habits, life areas, notifications, journals, reports, plans, and task comments via Elasticsearch. Supports type filter and sort.
          * @summary Global search across all document types
          * @param {string} q Search query
          * @param {number} [page] Page number
          * @param {number} [pageSize] Results per page
          * @param {string} [sort] Sort: title_asc, title_desc, created_asc, created_desc, updated_asc, updated_desc
-         * @param {string} [type] Filter by type: task, project, project-track, event (comma-separated)
+         * @param {string} [type] Filter by type (comma-separated): task, project, project-track, event, habit, life_area, notification, journal, report, plan, task_comment
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -18022,7 +23428,7 @@ export const ApiApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = ApiApiAxiosParamCreator(configuration)
     return {
         /**
-         * Returns the authenticated user\'s monthly token summary (same basis as subscription limits) and a paginated list of recent AICreditsLog rows (provider, tokens, cost, time).
+         * Returns the authenticated user\'s monthly token summary (same basis as FocusAI limits) and a paginated list of request groups. Each group clusters credit-log rows from one user-facing turn (chat, memory extract, etc.); expand ``entries`` for per-call detail.
          * @summary AI usage history
          * @param {number} [limit] Page size (1–100, default 30).
          * @param {number} [offset] Number of rows to skip (default 0).
@@ -18039,13 +23445,27 @@ export const ApiApiFp = function(configuration?: Configuration) {
          * Resume the LangGraph agent after a HITL interrupt (same ``thread_id`` as conversation UUID).
          * @param {number} id A unique integer value identifying this conversation.
          * @param {AgentResume} agentResume 
+         * @param {boolean} [stream] If true, response is Server-Sent Events (text/event-stream) driving the same agent graph resume as the JSON response, culminating in a final &#x60;conversation&#x60; frame carrying &#x60;metadata.action_results&#x60; for the resolved HITL message.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiFocusgptConversationAgentResumeCreate(id: number, agentResume: AgentResume, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Conversation>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptConversationAgentResumeCreate(id, agentResume, options);
+        async apiFocusgptConversationAgentResumeCreate(id: number, agentResume: AgentResume, stream?: boolean, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Conversation>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptConversationAgentResumeCreate(id, agentResume, stream, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ApiApi.apiFocusgptConversationAgentResumeCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * \"Continue from here\": fork a new conversation containing messages 1..anchor, with a fresh LangGraph thread (``thread_id`` = new conversation UUID).  The original conversation is never hidden or modified beyond recording the cross-link in ``metadata.branched_to`` — its messages after the anchor stay exactly where they are; the FE renders them at reduced opacity.
+         * @param {number} id A unique integer value identifying this conversation.
+         * @param {BranchConversation} branchConversation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptConversationBranchCreate(id: number, branchConversation: BranchConversation, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Conversation>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptConversationBranchCreate(id, branchConversation, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiFocusgptConversationBranchCreate']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -18189,6 +23609,34 @@ export const ApiApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Today just Life Area — it has no project concept, so its grant covers a token\'s access to all of the user\'s life areas at once.
+         * @summary List a token\'s global (non-project-scoped) write/delete grants
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptMcpAccessTokensGlobalGrantsList(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<McpTokenGlobalGrant>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptMcpAccessTokensGlobalGrantsList(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiFocusgptMcpAccessTokensGlobalGrantsList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Set (or clear) one global entity type\'s grant on one token.
+         * @summary Set (or clear) one global entity type\'s write/delete grant on a token
+         * @param {string} entityType 
+         * @param {number} id 
+         * @param {UpdateMcpTokenProjectGrant} [updateMcpTokenProjectGrant] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptMcpAccessTokensGlobalGrantsUpdate(entityType: string, id: number, updateMcpTokenProjectGrant?: UpdateMcpTokenProjectGrant, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<McpTokenGlobalGrant>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptMcpAccessTokensGlobalGrantsUpdate(entityType, id, updateMcpTokenProjectGrant, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiFocusgptMcpAccessTokensGlobalGrantsUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * List the authenticated user\'s MCP access tokens (masked). Pro+ required.
          * @summary List MCP access tokens
          * @param {*} [options] Override http request option.
@@ -18198,6 +23646,75 @@ export const ApiApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptMcpAccessTokensList(options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ApiApi.apiFocusgptMcpAccessTokensList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Every project the caller can see, crossed with the project-scoped entity types (Task, Event), merged with this token\'s write/delete grant state. Read is unconditional and not represented here — every visible project is already MCP-readable via this token.
+         * @summary List a token\'s per-project, per-entity-type write/delete grants
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptMcpAccessTokensProjectGrantsList(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<McpTokenProjectGrant>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptMcpAccessTokensProjectGrantsList(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiFocusgptMcpAccessTokensProjectGrantsList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Upserts the grant for the given project + entity type (task or event); sending both flags false clears it. ``can_delete`` requires ``can_write``.
+         * @summary Set (or clear) one project\'s write/delete grant for one entity type on a token
+         * @param {string} entityType 
+         * @param {number} id 
+         * @param {number} projectId 
+         * @param {UpdateMcpTokenProjectGrant} [updateMcpTokenProjectGrant] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptMcpAccessTokensProjectGrantsUpdate(entityType: string, id: number, projectId: number, updateMcpTokenProjectGrant?: UpdateMcpTokenProjectGrant, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<McpTokenProjectGrant>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptMcpAccessTokensProjectGrantsUpdate(entityType, id, projectId, updateMcpTokenProjectGrant, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiFocusgptMcpAccessTokensProjectGrantsUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Delete a single saved long-term memory by id.
+         * @summary Delete a FocusGPT memory
+         * @param {string} memoryId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptMemoriesDestroy(memoryId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptMemoriesDestroy(memoryId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiFocusgptMemoriesDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * List the authenticated user\'s saved long-term memories (Weaviate), paginated. Pass `q` to semantically search instead of paginating (search results aren\'t paginated further — capped at `limit`). Empty if personalization is disabled or Weaviate isn\'t configured.
+         * @summary List FocusGPT long-term memories
+         * @param {number} [limit] Page size, default 20, max 100.
+         * @param {number} [offset] Offset for the unfiltered list (ignored when &#x60;q&#x60; is set).
+         * @param {string} [q] Search query — switches to semantic/BM25 search.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptMemoriesRetrieve(limit?: number, offset?: number, q?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserMemoryListResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptMemoriesRetrieve(limit, offset, q, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiFocusgptMemoriesRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * GET /api/focusgpt/message-attachments/<id>/  Returns the original upload bytes if the requester owns the conversation and the attachment has not exceeded the TTL. Expired / foreign → 404.
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptMessageAttachmentsRetrieve(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptMessageAttachmentsRetrieve(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiFocusgptMessageAttachmentsRetrieve']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -18281,6 +23798,56 @@ export const ApiApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * GET /api/focusgpt/model-options/ — Auto + plan-gated allowlist for the composer.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptModelOptionsRetrieve(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptModelOptionsRetrieve(options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiFocusgptModelOptionsRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Remove a single inferred/edited preference.
+         * @summary Delete a FocusGPT preference
+         * @param {string} key 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptPreferencesDestroy(key: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptPreferencesDestroy(key, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiFocusgptPreferencesDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * List what FocusGPT has inferred (or the user has confirmed/edited) about the authenticated user. Empty if personalization consent isn\'t enabled.
+         * @summary List FocusGPT preferences
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptPreferencesList(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<FocusGPTPreference>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptPreferencesList(options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiFocusgptPreferencesList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Edit the human-readable summary of a preference. Marks it source=user_edited.
+         * @summary Edit a FocusGPT preference\'s summary
+         * @param {string} key 
+         * @param {PatchedUpdateFocusGPTPreference} [patchedUpdateFocusGPTPreference] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptPreferencesPartialUpdate(key: string, patchedUpdateFocusGPTPreference?: PatchedUpdateFocusGPTPreference, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FocusGPTPreference>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptPreferencesPartialUpdate(key, patchedUpdateFocusGPTPreference, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiFocusgptPreferencesPartialUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Accepts a board column + task snapshot (same shape as the project board view). Returns an AI-generated overview and suggestions.
          * @summary Sprint overview (AI summary from board snapshot)
          * @param {SprintOverviewRequest} sprintOverviewRequest 
@@ -18313,6 +23880,18 @@ export const ApiApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.apiJsonschemasRetrieve(options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ApiApi.apiJsonschemasRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Key Result ViewSet — a single measurable line item under a Goal.
+         * @param {number} id A unique integer value identifying this key result.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiKeyResultRetrieve(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<KeyResult>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiKeyResultRetrieve(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiKeyResultRetrieve']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -18455,6 +24034,18 @@ export const ApiApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Per-member AI token quota/usage for every active member of an org.  Organization admins only (billing-adjacent data — see can_view_organization_member_quotas for why group-admins are excluded).
+         * @param {number} orgId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiOrganizationsMemberQuotasList(orgId: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<OrganizationMemberQuota>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiOrganizationsMemberQuotasList(orgId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiOrganizationsMemberQuotasList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Update organization display name and/or logo (multipart file or base64 ``data:image`` string).  Same upload pattern as ``UserViewSet.update_me`` / ``handle_user_profile_upload``. Only organization admins who are active members of the org may update.
          * @param {number} orgId 
          * @param {OrganizationProfileUpdate} [organizationProfileUpdate] 
@@ -18465,6 +24056,19 @@ export const ApiApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.apiOrganizationsProfileUpdate(orgId, organizationProfileUpdate, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ApiApi.apiOrganizationsProfileUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * An org admin asks for more seats/quota. Emails sales with the requester\'s identity and org context (pulled from the authenticated request, not the payload) plus a free-text message — no DB persistence, mirrors EnterpriseQuoteView\'s pattern but for an already-authenticated existing customer instead of a from-scratch prospect.
+         * @param {number} orgId 
+         * @param {OrganizationQuotaIncreaseRequest} organizationQuotaIncreaseRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiOrganizationsRequestQuotaIncreaseCreate(orgId: number, organizationQuotaIncreaseRequest: OrganizationQuotaIncreaseRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiOrganizationsRequestQuotaIncreaseCreate(orgId, organizationQuotaIncreaseRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiOrganizationsRequestQuotaIncreaseCreate']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -18848,13 +24452,13 @@ export const ApiApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Search for tasks, projects, events, and project tracks. Supports type filter and sort.
+         * Search for tasks, projects, events, project tracks, habits, life areas, notifications, journals, reports, plans, and task comments via Elasticsearch. Supports type filter and sort.
          * @summary Global search across all document types
          * @param {string} q Search query
          * @param {number} [page] Page number
          * @param {number} [pageSize] Results per page
          * @param {string} [sort] Sort: title_asc, title_desc, created_asc, created_desc, updated_asc, updated_desc
-         * @param {string} [type] Filter by type: task, project, project-track, event (comma-separated)
+         * @param {string} [type] Filter by type (comma-separated): task, project, project-track, event, habit, life_area, notification, journal, report, plan, task_comment
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -19287,7 +24891,7 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
     const localVarFp = ApiApiFp(configuration)
     return {
         /**
-         * Returns the authenticated user\'s monthly token summary (same basis as subscription limits) and a paginated list of recent AICreditsLog rows (provider, tokens, cost, time).
+         * Returns the authenticated user\'s monthly token summary (same basis as FocusAI limits) and a paginated list of request groups. Each group clusters credit-log rows from one user-facing turn (chat, memory extract, etc.); expand ``entries`` for per-call detail.
          * @summary AI usage history
          * @param {number} [limit] Page size (1–100, default 30).
          * @param {number} [offset] Number of rows to skip (default 0).
@@ -19301,11 +24905,22 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
          * Resume the LangGraph agent after a HITL interrupt (same ``thread_id`` as conversation UUID).
          * @param {number} id A unique integer value identifying this conversation.
          * @param {AgentResume} agentResume 
+         * @param {boolean} [stream] If true, response is Server-Sent Events (text/event-stream) driving the same agent graph resume as the JSON response, culminating in a final &#x60;conversation&#x60; frame carrying &#x60;metadata.action_results&#x60; for the resolved HITL message.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiFocusgptConversationAgentResumeCreate(id: number, agentResume: AgentResume, options?: RawAxiosRequestConfig): AxiosPromise<Conversation> {
-            return localVarFp.apiFocusgptConversationAgentResumeCreate(id, agentResume, options).then((request) => request(axios, basePath));
+        apiFocusgptConversationAgentResumeCreate(id: number, agentResume: AgentResume, stream?: boolean, options?: RawAxiosRequestConfig): AxiosPromise<Conversation> {
+            return localVarFp.apiFocusgptConversationAgentResumeCreate(id, agentResume, stream, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * \"Continue from here\": fork a new conversation containing messages 1..anchor, with a fresh LangGraph thread (``thread_id`` = new conversation UUID).  The original conversation is never hidden or modified beyond recording the cross-link in ``metadata.branched_to`` — its messages after the anchor stay exactly where they are; the FE renders them at reduced opacity.
+         * @param {number} id A unique integer value identifying this conversation.
+         * @param {BranchConversation} branchConversation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptConversationBranchCreate(id: number, branchConversation: BranchConversation, options?: RawAxiosRequestConfig): AxiosPromise<Conversation> {
+            return localVarFp.apiFocusgptConversationBranchCreate(id, branchConversation, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a new conversation: not allowed - instead create using a new message
@@ -19415,6 +25030,28 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
             return localVarFp.apiFocusgptMcpAccessTokensDestroy(id, options).then((request) => request(axios, basePath));
         },
         /**
+         * Today just Life Area — it has no project concept, so its grant covers a token\'s access to all of the user\'s life areas at once.
+         * @summary List a token\'s global (non-project-scoped) write/delete grants
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptMcpAccessTokensGlobalGrantsList(id: number, options?: RawAxiosRequestConfig): AxiosPromise<Array<McpTokenGlobalGrant>> {
+            return localVarFp.apiFocusgptMcpAccessTokensGlobalGrantsList(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Set (or clear) one global entity type\'s grant on one token.
+         * @summary Set (or clear) one global entity type\'s write/delete grant on a token
+         * @param {string} entityType 
+         * @param {number} id 
+         * @param {UpdateMcpTokenProjectGrant} [updateMcpTokenProjectGrant] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptMcpAccessTokensGlobalGrantsUpdate(entityType: string, id: number, updateMcpTokenProjectGrant?: UpdateMcpTokenProjectGrant, options?: RawAxiosRequestConfig): AxiosPromise<McpTokenGlobalGrant> {
+            return localVarFp.apiFocusgptMcpAccessTokensGlobalGrantsUpdate(entityType, id, updateMcpTokenProjectGrant, options).then((request) => request(axios, basePath));
+        },
+        /**
          * List the authenticated user\'s MCP access tokens (masked). Pro+ required.
          * @summary List MCP access tokens
          * @param {*} [options] Override http request option.
@@ -19422,6 +25059,60 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
          */
         apiFocusgptMcpAccessTokensList(options?: RawAxiosRequestConfig): AxiosPromise<Array<McpAccessToken>> {
             return localVarFp.apiFocusgptMcpAccessTokensList(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Every project the caller can see, crossed with the project-scoped entity types (Task, Event), merged with this token\'s write/delete grant state. Read is unconditional and not represented here — every visible project is already MCP-readable via this token.
+         * @summary List a token\'s per-project, per-entity-type write/delete grants
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptMcpAccessTokensProjectGrantsList(id: number, options?: RawAxiosRequestConfig): AxiosPromise<Array<McpTokenProjectGrant>> {
+            return localVarFp.apiFocusgptMcpAccessTokensProjectGrantsList(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Upserts the grant for the given project + entity type (task or event); sending both flags false clears it. ``can_delete`` requires ``can_write``.
+         * @summary Set (or clear) one project\'s write/delete grant for one entity type on a token
+         * @param {string} entityType 
+         * @param {number} id 
+         * @param {number} projectId 
+         * @param {UpdateMcpTokenProjectGrant} [updateMcpTokenProjectGrant] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptMcpAccessTokensProjectGrantsUpdate(entityType: string, id: number, projectId: number, updateMcpTokenProjectGrant?: UpdateMcpTokenProjectGrant, options?: RawAxiosRequestConfig): AxiosPromise<McpTokenProjectGrant> {
+            return localVarFp.apiFocusgptMcpAccessTokensProjectGrantsUpdate(entityType, id, projectId, updateMcpTokenProjectGrant, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Delete a single saved long-term memory by id.
+         * @summary Delete a FocusGPT memory
+         * @param {string} memoryId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptMemoriesDestroy(memoryId: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiFocusgptMemoriesDestroy(memoryId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * List the authenticated user\'s saved long-term memories (Weaviate), paginated. Pass `q` to semantically search instead of paginating (search results aren\'t paginated further — capped at `limit`). Empty if personalization is disabled or Weaviate isn\'t configured.
+         * @summary List FocusGPT long-term memories
+         * @param {number} [limit] Page size, default 20, max 100.
+         * @param {number} [offset] Offset for the unfiltered list (ignored when &#x60;q&#x60; is set).
+         * @param {string} [q] Search query — switches to semantic/BM25 search.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptMemoriesRetrieve(limit?: number, offset?: number, q?: string, options?: RawAxiosRequestConfig): AxiosPromise<UserMemoryListResponse> {
+            return localVarFp.apiFocusgptMemoriesRetrieve(limit, offset, q, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * GET /api/focusgpt/message-attachments/<id>/  Returns the original upload bytes if the requester owns the conversation and the attachment has not exceeded the TTL. Expired / foreign → 404.
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptMessageAttachmentsRetrieve(id: number, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiFocusgptMessageAttachmentsRetrieve(id, options).then((request) => request(axios, basePath));
         },
         /**
          * Message actions scoped to a conversation (delete, update, add).
@@ -19486,6 +25177,44 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
             return localVarFp.apiFocusgptMessageUpdate(id, updateMessage, planDate, planScope, stream, zone, options).then((request) => request(axios, basePath));
         },
         /**
+         * GET /api/focusgpt/model-options/ — Auto + plan-gated allowlist for the composer.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptModelOptionsRetrieve(options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiFocusgptModelOptionsRetrieve(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Remove a single inferred/edited preference.
+         * @summary Delete a FocusGPT preference
+         * @param {string} key 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptPreferencesDestroy(key: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiFocusgptPreferencesDestroy(key, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * List what FocusGPT has inferred (or the user has confirmed/edited) about the authenticated user. Empty if personalization consent isn\'t enabled.
+         * @summary List FocusGPT preferences
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptPreferencesList(options?: RawAxiosRequestConfig): AxiosPromise<Array<FocusGPTPreference>> {
+            return localVarFp.apiFocusgptPreferencesList(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Edit the human-readable summary of a preference. Marks it source=user_edited.
+         * @summary Edit a FocusGPT preference\'s summary
+         * @param {string} key 
+         * @param {PatchedUpdateFocusGPTPreference} [patchedUpdateFocusGPTPreference] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptPreferencesPartialUpdate(key: string, patchedUpdateFocusGPTPreference?: PatchedUpdateFocusGPTPreference, options?: RawAxiosRequestConfig): AxiosPromise<FocusGPTPreference> {
+            return localVarFp.apiFocusgptPreferencesPartialUpdate(key, patchedUpdateFocusGPTPreference, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Accepts a board column + task snapshot (same shape as the project board view). Returns an AI-generated overview and suggestions.
          * @summary Sprint overview (AI summary from board snapshot)
          * @param {SprintOverviewRequest} sprintOverviewRequest 
@@ -19510,6 +25239,15 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
          */
         apiJsonschemasRetrieve(options?: RawAxiosRequestConfig): AxiosPromise<{ [key: string]: any; }> {
             return localVarFp.apiJsonschemasRetrieve(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Key Result ViewSet — a single measurable line item under a Goal.
+         * @param {number} id A unique integer value identifying this key result.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiKeyResultRetrieve(id: number, options?: RawAxiosRequestConfig): AxiosPromise<KeyResult> {
+            return localVarFp.apiKeyResultRetrieve(id, options).then((request) => request(axios, basePath));
         },
         /**
          * Onboarding Tutorial ViewSet
@@ -19618,6 +25356,15 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
             return localVarFp.apiOrganizationsGroupsUsersRetrieve(groupId, orgId, options).then((request) => request(axios, basePath));
         },
         /**
+         * Per-member AI token quota/usage for every active member of an org.  Organization admins only (billing-adjacent data — see can_view_organization_member_quotas for why group-admins are excluded).
+         * @param {number} orgId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiOrganizationsMemberQuotasList(orgId: number, options?: RawAxiosRequestConfig): AxiosPromise<Array<OrganizationMemberQuota>> {
+            return localVarFp.apiOrganizationsMemberQuotasList(orgId, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Update organization display name and/or logo (multipart file or base64 ``data:image`` string).  Same upload pattern as ``UserViewSet.update_me`` / ``handle_user_profile_upload``. Only organization admins who are active members of the org may update.
          * @param {number} orgId 
          * @param {OrganizationProfileUpdate} [organizationProfileUpdate] 
@@ -19626,6 +25373,16 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
          */
         apiOrganizationsProfileUpdate(orgId: number, organizationProfileUpdate?: OrganizationProfileUpdate, options?: RawAxiosRequestConfig): AxiosPromise<OrganizationInfo> {
             return localVarFp.apiOrganizationsProfileUpdate(orgId, organizationProfileUpdate, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * An org admin asks for more seats/quota. Emails sales with the requester\'s identity and org context (pulled from the authenticated request, not the payload) plus a free-text message — no DB persistence, mirrors EnterpriseQuoteView\'s pattern but for an already-authenticated existing customer instead of a from-scratch prospect.
+         * @param {number} orgId 
+         * @param {OrganizationQuotaIncreaseRequest} organizationQuotaIncreaseRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiOrganizationsRequestQuotaIncreaseCreate(orgId: number, organizationQuotaIncreaseRequest: OrganizationQuotaIncreaseRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiOrganizationsRequestQuotaIncreaseCreate(orgId, organizationQuotaIncreaseRequest, options).then((request) => request(axios, basePath));
         },
         /**
          * Add (or invite) a user to an organization.  Permissions: - Only organization admins can add users to organizations.
@@ -19918,13 +25675,13 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
             return localVarFp.apiProjectsTaskTypesUpdate(id, projectPk, taskTypeUpsert, options).then((request) => request(axios, basePath));
         },
         /**
-         * Search for tasks, projects, events, and project tracks. Supports type filter and sort.
+         * Search for tasks, projects, events, project tracks, habits, life areas, notifications, journals, reports, plans, and task comments via Elasticsearch. Supports type filter and sort.
          * @summary Global search across all document types
          * @param {string} q Search query
          * @param {number} [page] Page number
          * @param {number} [pageSize] Results per page
          * @param {string} [sort] Sort: title_asc, title_desc, created_asc, created_desc, updated_asc, updated_desc
-         * @param {string} [type] Filter by type: task, project, project-track, event (comma-separated)
+         * @param {string} [type] Filter by type (comma-separated): task, project, project-track, event, habit, life_area, notification, journal, report, plan, task_comment
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -20255,7 +26012,7 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
  */
 export class ApiApi extends BaseAPI {
     /**
-     * Returns the authenticated user\'s monthly token summary (same basis as subscription limits) and a paginated list of recent AICreditsLog rows (provider, tokens, cost, time).
+     * Returns the authenticated user\'s monthly token summary (same basis as FocusAI limits) and a paginated list of request groups. Each group clusters credit-log rows from one user-facing turn (chat, memory extract, etc.); expand ``entries`` for per-call detail.
      * @summary AI usage history
      * @param {number} [limit] Page size (1–100, default 30).
      * @param {number} [offset] Number of rows to skip (default 0).
@@ -20271,12 +26028,25 @@ export class ApiApi extends BaseAPI {
      * Resume the LangGraph agent after a HITL interrupt (same ``thread_id`` as conversation UUID).
      * @param {number} id A unique integer value identifying this conversation.
      * @param {AgentResume} agentResume 
+     * @param {boolean} [stream] If true, response is Server-Sent Events (text/event-stream) driving the same agent graph resume as the JSON response, culminating in a final &#x60;conversation&#x60; frame carrying &#x60;metadata.action_results&#x60; for the resolved HITL message.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ApiApi
      */
-    public apiFocusgptConversationAgentResumeCreate(id: number, agentResume: AgentResume, options?: RawAxiosRequestConfig) {
-        return ApiApiFp(this.configuration).apiFocusgptConversationAgentResumeCreate(id, agentResume, options).then((request) => request(this.axios, this.basePath));
+    public apiFocusgptConversationAgentResumeCreate(id: number, agentResume: AgentResume, stream?: boolean, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiFocusgptConversationAgentResumeCreate(id, agentResume, stream, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * \"Continue from here\": fork a new conversation containing messages 1..anchor, with a fresh LangGraph thread (``thread_id`` = new conversation UUID).  The original conversation is never hidden or modified beyond recording the cross-link in ``metadata.branched_to`` — its messages after the anchor stay exactly where they are; the FE renders them at reduced opacity.
+     * @param {number} id A unique integer value identifying this conversation.
+     * @param {BranchConversation} branchConversation 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiFocusgptConversationBranchCreate(id: number, branchConversation: BranchConversation, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiFocusgptConversationBranchCreate(id, branchConversation, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -20409,6 +26179,32 @@ export class ApiApi extends BaseAPI {
     }
 
     /**
+     * Today just Life Area — it has no project concept, so its grant covers a token\'s access to all of the user\'s life areas at once.
+     * @summary List a token\'s global (non-project-scoped) write/delete grants
+     * @param {number} id 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiFocusgptMcpAccessTokensGlobalGrantsList(id: number, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiFocusgptMcpAccessTokensGlobalGrantsList(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Set (or clear) one global entity type\'s grant on one token.
+     * @summary Set (or clear) one global entity type\'s write/delete grant on a token
+     * @param {string} entityType 
+     * @param {number} id 
+     * @param {UpdateMcpTokenProjectGrant} [updateMcpTokenProjectGrant] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiFocusgptMcpAccessTokensGlobalGrantsUpdate(entityType: string, id: number, updateMcpTokenProjectGrant?: UpdateMcpTokenProjectGrant, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiFocusgptMcpAccessTokensGlobalGrantsUpdate(entityType, id, updateMcpTokenProjectGrant, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * List the authenticated user\'s MCP access tokens (masked). Pro+ required.
      * @summary List MCP access tokens
      * @param {*} [options] Override http request option.
@@ -20417,6 +26213,70 @@ export class ApiApi extends BaseAPI {
      */
     public apiFocusgptMcpAccessTokensList(options?: RawAxiosRequestConfig) {
         return ApiApiFp(this.configuration).apiFocusgptMcpAccessTokensList(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Every project the caller can see, crossed with the project-scoped entity types (Task, Event), merged with this token\'s write/delete grant state. Read is unconditional and not represented here — every visible project is already MCP-readable via this token.
+     * @summary List a token\'s per-project, per-entity-type write/delete grants
+     * @param {number} id 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiFocusgptMcpAccessTokensProjectGrantsList(id: number, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiFocusgptMcpAccessTokensProjectGrantsList(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Upserts the grant for the given project + entity type (task or event); sending both flags false clears it. ``can_delete`` requires ``can_write``.
+     * @summary Set (or clear) one project\'s write/delete grant for one entity type on a token
+     * @param {string} entityType 
+     * @param {number} id 
+     * @param {number} projectId 
+     * @param {UpdateMcpTokenProjectGrant} [updateMcpTokenProjectGrant] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiFocusgptMcpAccessTokensProjectGrantsUpdate(entityType: string, id: number, projectId: number, updateMcpTokenProjectGrant?: UpdateMcpTokenProjectGrant, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiFocusgptMcpAccessTokensProjectGrantsUpdate(entityType, id, projectId, updateMcpTokenProjectGrant, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Delete a single saved long-term memory by id.
+     * @summary Delete a FocusGPT memory
+     * @param {string} memoryId 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiFocusgptMemoriesDestroy(memoryId: string, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiFocusgptMemoriesDestroy(memoryId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * List the authenticated user\'s saved long-term memories (Weaviate), paginated. Pass `q` to semantically search instead of paginating (search results aren\'t paginated further — capped at `limit`). Empty if personalization is disabled or Weaviate isn\'t configured.
+     * @summary List FocusGPT long-term memories
+     * @param {number} [limit] Page size, default 20, max 100.
+     * @param {number} [offset] Offset for the unfiltered list (ignored when &#x60;q&#x60; is set).
+     * @param {string} [q] Search query — switches to semantic/BM25 search.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiFocusgptMemoriesRetrieve(limit?: number, offset?: number, q?: string, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiFocusgptMemoriesRetrieve(limit, offset, q, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * GET /api/focusgpt/message-attachments/<id>/  Returns the original upload bytes if the requester owns the conversation and the attachment has not exceeded the TTL. Expired / foreign → 404.
+     * @param {number} id 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiFocusgptMessageAttachmentsRetrieve(id: number, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiFocusgptMessageAttachmentsRetrieve(id, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -20494,6 +26354,52 @@ export class ApiApi extends BaseAPI {
     }
 
     /**
+     * GET /api/focusgpt/model-options/ — Auto + plan-gated allowlist for the composer.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiFocusgptModelOptionsRetrieve(options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiFocusgptModelOptionsRetrieve(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Remove a single inferred/edited preference.
+     * @summary Delete a FocusGPT preference
+     * @param {string} key 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiFocusgptPreferencesDestroy(key: string, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiFocusgptPreferencesDestroy(key, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * List what FocusGPT has inferred (or the user has confirmed/edited) about the authenticated user. Empty if personalization consent isn\'t enabled.
+     * @summary List FocusGPT preferences
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiFocusgptPreferencesList(options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiFocusgptPreferencesList(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Edit the human-readable summary of a preference. Marks it source=user_edited.
+     * @summary Edit a FocusGPT preference\'s summary
+     * @param {string} key 
+     * @param {PatchedUpdateFocusGPTPreference} [patchedUpdateFocusGPTPreference] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiFocusgptPreferencesPartialUpdate(key: string, patchedUpdateFocusGPTPreference?: PatchedUpdateFocusGPTPreference, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiFocusgptPreferencesPartialUpdate(key, patchedUpdateFocusGPTPreference, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Accepts a board column + task snapshot (same shape as the project board view). Returns an AI-generated overview and suggestions.
      * @summary Sprint overview (AI summary from board snapshot)
      * @param {SprintOverviewRequest} sprintOverviewRequest 
@@ -20523,6 +26429,17 @@ export class ApiApi extends BaseAPI {
      */
     public apiJsonschemasRetrieve(options?: RawAxiosRequestConfig) {
         return ApiApiFp(this.configuration).apiJsonschemasRetrieve(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Key Result ViewSet — a single measurable line item under a Goal.
+     * @param {number} id A unique integer value identifying this key result.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiKeyResultRetrieve(id: number, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiKeyResultRetrieve(id, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -20654,6 +26571,17 @@ export class ApiApi extends BaseAPI {
     }
 
     /**
+     * Per-member AI token quota/usage for every active member of an org.  Organization admins only (billing-adjacent data — see can_view_organization_member_quotas for why group-admins are excluded).
+     * @param {number} orgId 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiOrganizationsMemberQuotasList(orgId: number, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiOrganizationsMemberQuotasList(orgId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Update organization display name and/or logo (multipart file or base64 ``data:image`` string).  Same upload pattern as ``UserViewSet.update_me`` / ``handle_user_profile_upload``. Only organization admins who are active members of the org may update.
      * @param {number} orgId 
      * @param {OrganizationProfileUpdate} [organizationProfileUpdate] 
@@ -20663,6 +26591,18 @@ export class ApiApi extends BaseAPI {
      */
     public apiOrganizationsProfileUpdate(orgId: number, organizationProfileUpdate?: OrganizationProfileUpdate, options?: RawAxiosRequestConfig) {
         return ApiApiFp(this.configuration).apiOrganizationsProfileUpdate(orgId, organizationProfileUpdate, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * An org admin asks for more seats/quota. Emails sales with the requester\'s identity and org context (pulled from the authenticated request, not the payload) plus a free-text message — no DB persistence, mirrors EnterpriseQuoteView\'s pattern but for an already-authenticated existing customer instead of a from-scratch prospect.
+     * @param {number} orgId 
+     * @param {OrganizationQuotaIncreaseRequest} organizationQuotaIncreaseRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiOrganizationsRequestQuotaIncreaseCreate(orgId: number, organizationQuotaIncreaseRequest: OrganizationQuotaIncreaseRequest, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiOrganizationsRequestQuotaIncreaseCreate(orgId, organizationQuotaIncreaseRequest, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -21016,13 +26956,13 @@ export class ApiApi extends BaseAPI {
     }
 
     /**
-     * Search for tasks, projects, events, and project tracks. Supports type filter and sort.
+     * Search for tasks, projects, events, project tracks, habits, life areas, notifications, journals, reports, plans, and task comments via Elasticsearch. Supports type filter and sort.
      * @summary Global search across all document types
      * @param {string} q Search query
      * @param {number} [page] Page number
      * @param {number} [pageSize] Results per page
      * @param {string} [sort] Sort: title_asc, title_desc, created_asc, created_desc, updated_asc, updated_desc
-     * @param {string} [type] Filter by type: task, project, project-track, event (comma-separated)
+     * @param {string} [type] Filter by type (comma-separated): task, project, project-track, event, habit, life_area, notification, journal, report, plan, task_comment
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ApiApi
@@ -21427,6 +27367,1144 @@ export const ApiFocusgptMessageUpdatePlanScopeEnum = {
     Weekly: 'weekly'
 } as const;
 export type ApiFocusgptMessageUpdatePlanScopeEnum = typeof ApiFocusgptMessageUpdatePlanScopeEnum[keyof typeof ApiFocusgptMessageUpdatePlanScopeEnum];
+
+
+/**
+ * CapacityApi - axios parameter creator
+ * @export
+ */
+export const CapacityApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {CapacityBudgetRead} capacityBudgetRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiCapacityBudgetCreate: async (capacityBudgetRead: CapacityBudgetRead, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'capacityBudgetRead' is not null or undefined
+            assertParamExists('apiCapacityBudgetCreate', 'capacityBudgetRead', capacityBudgetRead)
+            const localVarPath = `/api/capacity_budget/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(capacityBudgetRead, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {number} id A unique integer value identifying this capacity budget.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiCapacityBudgetDestroy: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiCapacityBudgetDestroy', 'id', id)
+            const localVarPath = `/api/capacity_budget/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiCapacityBudgetList: async (limit?: number, offset?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/capacity_budget/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {number} id A unique integer value identifying this capacity budget.
+         * @param {PatchedCapacityBudgetRead} [patchedCapacityBudgetRead] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiCapacityBudgetPartialUpdate: async (id: number, patchedCapacityBudgetRead?: PatchedCapacityBudgetRead, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiCapacityBudgetPartialUpdate', 'id', id)
+            const localVarPath = `/api/capacity_budget/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchedCapacityBudgetRead, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {number} id A unique integer value identifying this capacity budget.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiCapacityBudgetRetrieve: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiCapacityBudgetRetrieve', 'id', id)
+            const localVarPath = `/api/capacity_budget/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {number} id A unique integer value identifying this capacity budget.
+         * @param {CapacityBudgetRead} capacityBudgetRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiCapacityBudgetUpdate: async (id: number, capacityBudgetRead: CapacityBudgetRead, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiCapacityBudgetUpdate', 'id', id)
+            // verify required parameter 'capacityBudgetRead' is not null or undefined
+            assertParamExists('apiCapacityBudgetUpdate', 'capacityBudgetRead', capacityBudgetRead)
+            const localVarPath = `/api/capacity_budget/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(capacityBudgetRead, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Supply vs. Σ demand for a (scope, period_start): remaining hours + over/under flag.
+         * @param {string} periodStart 
+         * @param {ApiCapacityReconcileRetrieveScopeEnum} scope * &#x60;WEEKLY&#x60; - Weekly * &#x60;MONTHLY&#x60; - Monthly * &#x60;YEARLY&#x60; - Yearly
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiCapacityReconcileRetrieve: async (periodStart: string, scope: ApiCapacityReconcileRetrieveScopeEnum, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'periodStart' is not null or undefined
+            assertParamExists('apiCapacityReconcileRetrieve', 'periodStart', periodStart)
+            // verify required parameter 'scope' is not null or undefined
+            assertParamExists('apiCapacityReconcileRetrieve', 'scope', scope)
+            const localVarPath = `/api/capacity_reconcile/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (periodStart !== undefined) {
+                localVarQueryParameter['period_start'] = (periodStart as any instanceof Date) ?
+                    (periodStart as any).toISOString().substring(0,10) :
+                    periodStart;
+            }
+
+            if (scope !== undefined) {
+                localVarQueryParameter['scope'] = scope;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Dated scheduled-work heatmap for all capacity buckets in a visible range.
+         * @param {ApiCapacityTimelineRetrieveGranularityEnum} granularity * &#x60;day&#x60; - day * &#x60;week&#x60; - week * &#x60;month&#x60; - month
+         * @param {string} rangeEnd 
+         * @param {string} rangeStart 
+         * @param {ApiCapacityTimelineRetrieveScopeEnum} scope * &#x60;WEEKLY&#x60; - Weekly * &#x60;MONTHLY&#x60; - Monthly * &#x60;YEARLY&#x60; - Yearly
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiCapacityTimelineRetrieve: async (granularity: ApiCapacityTimelineRetrieveGranularityEnum, rangeEnd: string, rangeStart: string, scope: ApiCapacityTimelineRetrieveScopeEnum, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'granularity' is not null or undefined
+            assertParamExists('apiCapacityTimelineRetrieve', 'granularity', granularity)
+            // verify required parameter 'rangeEnd' is not null or undefined
+            assertParamExists('apiCapacityTimelineRetrieve', 'rangeEnd', rangeEnd)
+            // verify required parameter 'rangeStart' is not null or undefined
+            assertParamExists('apiCapacityTimelineRetrieve', 'rangeStart', rangeStart)
+            // verify required parameter 'scope' is not null or undefined
+            assertParamExists('apiCapacityTimelineRetrieve', 'scope', scope)
+            const localVarPath = `/api/capacity_timeline/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (granularity !== undefined) {
+                localVarQueryParameter['granularity'] = granularity;
+            }
+
+            if (rangeEnd !== undefined) {
+                localVarQueryParameter['range_end'] = (rangeEnd as any instanceof Date) ?
+                    (rangeEnd as any).toISOString().substring(0,10) :
+                    rangeEnd;
+            }
+
+            if (rangeStart !== undefined) {
+                localVarQueryParameter['range_start'] = (rangeStart as any instanceof Date) ?
+                    (rangeStart as any).toISOString().substring(0,10) :
+                    rangeStart;
+            }
+
+            if (scope !== undefined) {
+                localVarQueryParameter['scope'] = scope;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {UserCapacityRead} userCapacityRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiUserCapacityCreate: async (userCapacityRead: UserCapacityRead, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'userCapacityRead' is not null or undefined
+            assertParamExists('apiUserCapacityCreate', 'userCapacityRead', userCapacityRead)
+            const localVarPath = `/api/user_capacity/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(userCapacityRead, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {number} id A unique integer value identifying this user capacity.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiUserCapacityDestroy: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiUserCapacityDestroy', 'id', id)
+            const localVarPath = `/api/user_capacity/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiUserCapacityList: async (limit?: number, offset?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/user_capacity/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {number} id A unique integer value identifying this user capacity.
+         * @param {PatchedUserCapacityRead} [patchedUserCapacityRead] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiUserCapacityPartialUpdate: async (id: number, patchedUserCapacityRead?: PatchedUserCapacityRead, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiUserCapacityPartialUpdate', 'id', id)
+            const localVarPath = `/api/user_capacity/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchedUserCapacityRead, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {number} id A unique integer value identifying this user capacity.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiUserCapacityRetrieve: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiUserCapacityRetrieve', 'id', id)
+            const localVarPath = `/api/user_capacity/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {number} id A unique integer value identifying this user capacity.
+         * @param {UserCapacityRead} userCapacityRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiUserCapacityUpdate: async (id: number, userCapacityRead: UserCapacityRead, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiUserCapacityUpdate', 'id', id)
+            // verify required parameter 'userCapacityRead' is not null or undefined
+            assertParamExists('apiUserCapacityUpdate', 'userCapacityRead', userCapacityRead)
+            const localVarPath = `/api/user_capacity/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(userCapacityRead, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * CapacityApi - functional programming interface
+ * @export
+ */
+export const CapacityApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = CapacityApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {CapacityBudgetRead} capacityBudgetRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiCapacityBudgetCreate(capacityBudgetRead: CapacityBudgetRead, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CapacityBudgetRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiCapacityBudgetCreate(capacityBudgetRead, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['CapacityApi.apiCapacityBudgetCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {number} id A unique integer value identifying this capacity budget.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiCapacityBudgetDestroy(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiCapacityBudgetDestroy(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['CapacityApi.apiCapacityBudgetDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiCapacityBudgetList(limit?: number, offset?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedCapacityBudgetReadList>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiCapacityBudgetList(limit, offset, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['CapacityApi.apiCapacityBudgetList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {number} id A unique integer value identifying this capacity budget.
+         * @param {PatchedCapacityBudgetRead} [patchedCapacityBudgetRead] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiCapacityBudgetPartialUpdate(id: number, patchedCapacityBudgetRead?: PatchedCapacityBudgetRead, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CapacityBudgetRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiCapacityBudgetPartialUpdate(id, patchedCapacityBudgetRead, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['CapacityApi.apiCapacityBudgetPartialUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {number} id A unique integer value identifying this capacity budget.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiCapacityBudgetRetrieve(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CapacityBudgetRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiCapacityBudgetRetrieve(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['CapacityApi.apiCapacityBudgetRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {number} id A unique integer value identifying this capacity budget.
+         * @param {CapacityBudgetRead} capacityBudgetRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiCapacityBudgetUpdate(id: number, capacityBudgetRead: CapacityBudgetRead, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CapacityBudgetRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiCapacityBudgetUpdate(id, capacityBudgetRead, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['CapacityApi.apiCapacityBudgetUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Supply vs. Σ demand for a (scope, period_start): remaining hours + over/under flag.
+         * @param {string} periodStart 
+         * @param {ApiCapacityReconcileRetrieveScopeEnum} scope * &#x60;WEEKLY&#x60; - Weekly * &#x60;MONTHLY&#x60; - Monthly * &#x60;YEARLY&#x60; - Yearly
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiCapacityReconcileRetrieve(periodStart: string, scope: ApiCapacityReconcileRetrieveScopeEnum, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CapacityReconcile>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiCapacityReconcileRetrieve(periodStart, scope, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['CapacityApi.apiCapacityReconcileRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Dated scheduled-work heatmap for all capacity buckets in a visible range.
+         * @param {ApiCapacityTimelineRetrieveGranularityEnum} granularity * &#x60;day&#x60; - day * &#x60;week&#x60; - week * &#x60;month&#x60; - month
+         * @param {string} rangeEnd 
+         * @param {string} rangeStart 
+         * @param {ApiCapacityTimelineRetrieveScopeEnum} scope * &#x60;WEEKLY&#x60; - Weekly * &#x60;MONTHLY&#x60; - Monthly * &#x60;YEARLY&#x60; - Yearly
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiCapacityTimelineRetrieve(granularity: ApiCapacityTimelineRetrieveGranularityEnum, rangeEnd: string, rangeStart: string, scope: ApiCapacityTimelineRetrieveScopeEnum, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CapacityTimeline>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiCapacityTimelineRetrieve(granularity, rangeEnd, rangeStart, scope, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['CapacityApi.apiCapacityTimelineRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {UserCapacityRead} userCapacityRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiUserCapacityCreate(userCapacityRead: UserCapacityRead, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserCapacityRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiUserCapacityCreate(userCapacityRead, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['CapacityApi.apiUserCapacityCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {number} id A unique integer value identifying this user capacity.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiUserCapacityDestroy(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiUserCapacityDestroy(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['CapacityApi.apiUserCapacityDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiUserCapacityList(limit?: number, offset?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedUserCapacityReadList>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiUserCapacityList(limit, offset, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['CapacityApi.apiUserCapacityList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {number} id A unique integer value identifying this user capacity.
+         * @param {PatchedUserCapacityRead} [patchedUserCapacityRead] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiUserCapacityPartialUpdate(id: number, patchedUserCapacityRead?: PatchedUserCapacityRead, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserCapacityRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiUserCapacityPartialUpdate(id, patchedUserCapacityRead, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['CapacityApi.apiUserCapacityPartialUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {number} id A unique integer value identifying this user capacity.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiUserCapacityRetrieve(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserCapacityRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiUserCapacityRetrieve(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['CapacityApi.apiUserCapacityRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {number} id A unique integer value identifying this user capacity.
+         * @param {UserCapacityRead} userCapacityRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiUserCapacityUpdate(id: number, userCapacityRead: UserCapacityRead, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserCapacityRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiUserCapacityUpdate(id, userCapacityRead, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['CapacityApi.apiUserCapacityUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * CapacityApi - factory interface
+ * @export
+ */
+export const CapacityApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = CapacityApiFp(configuration)
+    return {
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {CapacityBudgetRead} capacityBudgetRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiCapacityBudgetCreate(capacityBudgetRead: CapacityBudgetRead, options?: RawAxiosRequestConfig): AxiosPromise<CapacityBudgetRead> {
+            return localVarFp.apiCapacityBudgetCreate(capacityBudgetRead, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {number} id A unique integer value identifying this capacity budget.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiCapacityBudgetDestroy(id: number, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiCapacityBudgetDestroy(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiCapacityBudgetList(limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedCapacityBudgetReadList> {
+            return localVarFp.apiCapacityBudgetList(limit, offset, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {number} id A unique integer value identifying this capacity budget.
+         * @param {PatchedCapacityBudgetRead} [patchedCapacityBudgetRead] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiCapacityBudgetPartialUpdate(id: number, patchedCapacityBudgetRead?: PatchedCapacityBudgetRead, options?: RawAxiosRequestConfig): AxiosPromise<CapacityBudgetRead> {
+            return localVarFp.apiCapacityBudgetPartialUpdate(id, patchedCapacityBudgetRead, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {number} id A unique integer value identifying this capacity budget.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiCapacityBudgetRetrieve(id: number, options?: RawAxiosRequestConfig): AxiosPromise<CapacityBudgetRead> {
+            return localVarFp.apiCapacityBudgetRetrieve(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Per-bucket (project or life area) hour budgets for the current user.
+         * @param {number} id A unique integer value identifying this capacity budget.
+         * @param {CapacityBudgetRead} capacityBudgetRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiCapacityBudgetUpdate(id: number, capacityBudgetRead: CapacityBudgetRead, options?: RawAxiosRequestConfig): AxiosPromise<CapacityBudgetRead> {
+            return localVarFp.apiCapacityBudgetUpdate(id, capacityBudgetRead, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Supply vs. Σ demand for a (scope, period_start): remaining hours + over/under flag.
+         * @param {string} periodStart 
+         * @param {ApiCapacityReconcileRetrieveScopeEnum} scope * &#x60;WEEKLY&#x60; - Weekly * &#x60;MONTHLY&#x60; - Monthly * &#x60;YEARLY&#x60; - Yearly
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiCapacityReconcileRetrieve(periodStart: string, scope: ApiCapacityReconcileRetrieveScopeEnum, options?: RawAxiosRequestConfig): AxiosPromise<CapacityReconcile> {
+            return localVarFp.apiCapacityReconcileRetrieve(periodStart, scope, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Dated scheduled-work heatmap for all capacity buckets in a visible range.
+         * @param {ApiCapacityTimelineRetrieveGranularityEnum} granularity * &#x60;day&#x60; - day * &#x60;week&#x60; - week * &#x60;month&#x60; - month
+         * @param {string} rangeEnd 
+         * @param {string} rangeStart 
+         * @param {ApiCapacityTimelineRetrieveScopeEnum} scope * &#x60;WEEKLY&#x60; - Weekly * &#x60;MONTHLY&#x60; - Monthly * &#x60;YEARLY&#x60; - Yearly
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiCapacityTimelineRetrieve(granularity: ApiCapacityTimelineRetrieveGranularityEnum, rangeEnd: string, rangeStart: string, scope: ApiCapacityTimelineRetrieveScopeEnum, options?: RawAxiosRequestConfig): AxiosPromise<CapacityTimeline> {
+            return localVarFp.apiCapacityTimelineRetrieve(granularity, rangeEnd, rangeStart, scope, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {UserCapacityRead} userCapacityRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiUserCapacityCreate(userCapacityRead: UserCapacityRead, options?: RawAxiosRequestConfig): AxiosPromise<UserCapacityRead> {
+            return localVarFp.apiUserCapacityCreate(userCapacityRead, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {number} id A unique integer value identifying this user capacity.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiUserCapacityDestroy(id: number, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiUserCapacityDestroy(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiUserCapacityList(limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedUserCapacityReadList> {
+            return localVarFp.apiUserCapacityList(limit, offset, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {number} id A unique integer value identifying this user capacity.
+         * @param {PatchedUserCapacityRead} [patchedUserCapacityRead] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiUserCapacityPartialUpdate(id: number, patchedUserCapacityRead?: PatchedUserCapacityRead, options?: RawAxiosRequestConfig): AxiosPromise<UserCapacityRead> {
+            return localVarFp.apiUserCapacityPartialUpdate(id, patchedUserCapacityRead, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {number} id A unique integer value identifying this user capacity.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiUserCapacityRetrieve(id: number, options?: RawAxiosRequestConfig): AxiosPromise<UserCapacityRead> {
+            return localVarFp.apiUserCapacityRetrieve(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * The current user\'s available-hours (supply) per scope/period.
+         * @param {number} id A unique integer value identifying this user capacity.
+         * @param {UserCapacityRead} userCapacityRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiUserCapacityUpdate(id: number, userCapacityRead: UserCapacityRead, options?: RawAxiosRequestConfig): AxiosPromise<UserCapacityRead> {
+            return localVarFp.apiUserCapacityUpdate(id, userCapacityRead, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * CapacityApi - object-oriented interface
+ * @export
+ * @class CapacityApi
+ * @extends {BaseAPI}
+ */
+export class CapacityApi extends BaseAPI {
+    /**
+     * Per-bucket (project or life area) hour budgets for the current user.
+     * @param {CapacityBudgetRead} capacityBudgetRead 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof CapacityApi
+     */
+    public apiCapacityBudgetCreate(capacityBudgetRead: CapacityBudgetRead, options?: RawAxiosRequestConfig) {
+        return CapacityApiFp(this.configuration).apiCapacityBudgetCreate(capacityBudgetRead, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Per-bucket (project or life area) hour budgets for the current user.
+     * @param {number} id A unique integer value identifying this capacity budget.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof CapacityApi
+     */
+    public apiCapacityBudgetDestroy(id: number, options?: RawAxiosRequestConfig) {
+        return CapacityApiFp(this.configuration).apiCapacityBudgetDestroy(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Per-bucket (project or life area) hour budgets for the current user.
+     * @param {number} [limit] Number of results to return per page.
+     * @param {number} [offset] The initial index from which to return the results.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof CapacityApi
+     */
+    public apiCapacityBudgetList(limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
+        return CapacityApiFp(this.configuration).apiCapacityBudgetList(limit, offset, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Per-bucket (project or life area) hour budgets for the current user.
+     * @param {number} id A unique integer value identifying this capacity budget.
+     * @param {PatchedCapacityBudgetRead} [patchedCapacityBudgetRead] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof CapacityApi
+     */
+    public apiCapacityBudgetPartialUpdate(id: number, patchedCapacityBudgetRead?: PatchedCapacityBudgetRead, options?: RawAxiosRequestConfig) {
+        return CapacityApiFp(this.configuration).apiCapacityBudgetPartialUpdate(id, patchedCapacityBudgetRead, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Per-bucket (project or life area) hour budgets for the current user.
+     * @param {number} id A unique integer value identifying this capacity budget.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof CapacityApi
+     */
+    public apiCapacityBudgetRetrieve(id: number, options?: RawAxiosRequestConfig) {
+        return CapacityApiFp(this.configuration).apiCapacityBudgetRetrieve(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Per-bucket (project or life area) hour budgets for the current user.
+     * @param {number} id A unique integer value identifying this capacity budget.
+     * @param {CapacityBudgetRead} capacityBudgetRead 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof CapacityApi
+     */
+    public apiCapacityBudgetUpdate(id: number, capacityBudgetRead: CapacityBudgetRead, options?: RawAxiosRequestConfig) {
+        return CapacityApiFp(this.configuration).apiCapacityBudgetUpdate(id, capacityBudgetRead, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Supply vs. Σ demand for a (scope, period_start): remaining hours + over/under flag.
+     * @param {string} periodStart 
+     * @param {ApiCapacityReconcileRetrieveScopeEnum} scope * &#x60;WEEKLY&#x60; - Weekly * &#x60;MONTHLY&#x60; - Monthly * &#x60;YEARLY&#x60; - Yearly
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof CapacityApi
+     */
+    public apiCapacityReconcileRetrieve(periodStart: string, scope: ApiCapacityReconcileRetrieveScopeEnum, options?: RawAxiosRequestConfig) {
+        return CapacityApiFp(this.configuration).apiCapacityReconcileRetrieve(periodStart, scope, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Dated scheduled-work heatmap for all capacity buckets in a visible range.
+     * @param {ApiCapacityTimelineRetrieveGranularityEnum} granularity * &#x60;day&#x60; - day * &#x60;week&#x60; - week * &#x60;month&#x60; - month
+     * @param {string} rangeEnd 
+     * @param {string} rangeStart 
+     * @param {ApiCapacityTimelineRetrieveScopeEnum} scope * &#x60;WEEKLY&#x60; - Weekly * &#x60;MONTHLY&#x60; - Monthly * &#x60;YEARLY&#x60; - Yearly
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof CapacityApi
+     */
+    public apiCapacityTimelineRetrieve(granularity: ApiCapacityTimelineRetrieveGranularityEnum, rangeEnd: string, rangeStart: string, scope: ApiCapacityTimelineRetrieveScopeEnum, options?: RawAxiosRequestConfig) {
+        return CapacityApiFp(this.configuration).apiCapacityTimelineRetrieve(granularity, rangeEnd, rangeStart, scope, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * The current user\'s available-hours (supply) per scope/period.
+     * @param {UserCapacityRead} userCapacityRead 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof CapacityApi
+     */
+    public apiUserCapacityCreate(userCapacityRead: UserCapacityRead, options?: RawAxiosRequestConfig) {
+        return CapacityApiFp(this.configuration).apiUserCapacityCreate(userCapacityRead, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * The current user\'s available-hours (supply) per scope/period.
+     * @param {number} id A unique integer value identifying this user capacity.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof CapacityApi
+     */
+    public apiUserCapacityDestroy(id: number, options?: RawAxiosRequestConfig) {
+        return CapacityApiFp(this.configuration).apiUserCapacityDestroy(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * The current user\'s available-hours (supply) per scope/period.
+     * @param {number} [limit] Number of results to return per page.
+     * @param {number} [offset] The initial index from which to return the results.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof CapacityApi
+     */
+    public apiUserCapacityList(limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
+        return CapacityApiFp(this.configuration).apiUserCapacityList(limit, offset, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * The current user\'s available-hours (supply) per scope/period.
+     * @param {number} id A unique integer value identifying this user capacity.
+     * @param {PatchedUserCapacityRead} [patchedUserCapacityRead] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof CapacityApi
+     */
+    public apiUserCapacityPartialUpdate(id: number, patchedUserCapacityRead?: PatchedUserCapacityRead, options?: RawAxiosRequestConfig) {
+        return CapacityApiFp(this.configuration).apiUserCapacityPartialUpdate(id, patchedUserCapacityRead, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * The current user\'s available-hours (supply) per scope/period.
+     * @param {number} id A unique integer value identifying this user capacity.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof CapacityApi
+     */
+    public apiUserCapacityRetrieve(id: number, options?: RawAxiosRequestConfig) {
+        return CapacityApiFp(this.configuration).apiUserCapacityRetrieve(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * The current user\'s available-hours (supply) per scope/period.
+     * @param {number} id A unique integer value identifying this user capacity.
+     * @param {UserCapacityRead} userCapacityRead 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof CapacityApi
+     */
+    public apiUserCapacityUpdate(id: number, userCapacityRead: UserCapacityRead, options?: RawAxiosRequestConfig) {
+        return CapacityApiFp(this.configuration).apiUserCapacityUpdate(id, userCapacityRead, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+/**
+ * @export
+ */
+export const ApiCapacityReconcileRetrieveScopeEnum = {
+    Weekly: 'WEEKLY',
+    Monthly: 'MONTHLY',
+    Yearly: 'YEARLY'
+} as const;
+export type ApiCapacityReconcileRetrieveScopeEnum = typeof ApiCapacityReconcileRetrieveScopeEnum[keyof typeof ApiCapacityReconcileRetrieveScopeEnum];
+/**
+ * @export
+ */
+export const ApiCapacityTimelineRetrieveGranularityEnum = {
+    Day: 'day',
+    Week: 'week',
+    Month: 'month'
+} as const;
+export type ApiCapacityTimelineRetrieveGranularityEnum = typeof ApiCapacityTimelineRetrieveGranularityEnum[keyof typeof ApiCapacityTimelineRetrieveGranularityEnum];
+/**
+ * @export
+ */
+export const ApiCapacityTimelineRetrieveScopeEnum = {
+    Weekly: 'WEEKLY',
+    Monthly: 'MONTHLY',
+    Yearly: 'YEARLY'
+} as const;
+export type ApiCapacityTimelineRetrieveScopeEnum = typeof ApiCapacityTimelineRetrieveScopeEnum[keyof typeof ApiCapacityTimelineRetrieveScopeEnum];
 
 
 /**
@@ -22539,6 +29617,57 @@ export const DailyReportApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          * Report ViewSet
+         * @param {string} date Any day within the target month (YYYY-MM-DD)
+         * @param {DailyReport} dailyReport 
+         * @param {boolean} [notify] Create or refresh the monthly summary inbox notification (default false).
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiDailyReportGenerateMonthlyReportCreate: async (date: string, dailyReport: DailyReport, notify?: boolean, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'date' is not null or undefined
+            assertParamExists('apiDailyReportGenerateMonthlyReportCreate', 'date', date)
+            // verify required parameter 'dailyReport' is not null or undefined
+            assertParamExists('apiDailyReportGenerateMonthlyReportCreate', 'dailyReport', dailyReport)
+            const localVarPath = `/api/daily_report/generate-monthly-report/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (date !== undefined) {
+                localVarQueryParameter['date'] = date;
+            }
+
+            if (notify !== undefined) {
+                localVarQueryParameter['notify'] = notify;
+            }
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(dailyReport, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Report ViewSet
          * @param {string} date Any day within the target week (YYYY-MM-DD)
          * @param {DailyReport} dailyReport 
          * @param {boolean} [notify] Create or refresh the weekly summary inbox notification (default true).
@@ -22645,6 +29774,46 @@ export const DailyReportApiAxiosParamCreator = function (configuration?: Configu
             // verify required parameter 'date' is not null or undefined
             assertParamExists('apiDailyReportGetDailyReportRetrieve', 'date', date)
             const localVarPath = `/api/daily_report/get-daily-report/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (date !== undefined) {
+                localVarQueryParameter['date'] = date;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Return the monthly report for the month containing the given date. When no report has been generated yet, responds with 200 and an empty report payload (``id`` is null).
+         * @param {string} date Any day within the target month (YYYY-MM-DD)
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiDailyReportGetMonthlyReportRetrieve: async (date: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'date' is not null or undefined
+            assertParamExists('apiDailyReportGetMonthlyReportRetrieve', 'date', date)
+            const localVarPath = `/api/daily_report/get-monthly-report/`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -23003,6 +30172,20 @@ export const DailyReportApiFp = function(configuration?: Configuration) {
         },
         /**
          * Report ViewSet
+         * @param {string} date Any day within the target month (YYYY-MM-DD)
+         * @param {DailyReport} dailyReport 
+         * @param {boolean} [notify] Create or refresh the monthly summary inbox notification (default false).
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiDailyReportGenerateMonthlyReportCreate(date: string, dailyReport: DailyReport, notify?: boolean, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MonthlyReport>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiDailyReportGenerateMonthlyReportCreate(date, dailyReport, notify, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DailyReportApi.apiDailyReportGenerateMonthlyReportCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Report ViewSet
          * @param {string} date Any day within the target week (YYYY-MM-DD)
          * @param {DailyReport} dailyReport 
          * @param {boolean} [notify] Create or refresh the weekly summary inbox notification (default true).
@@ -23038,6 +30221,18 @@ export const DailyReportApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.apiDailyReportGetDailyReportRetrieve(date, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DailyReportApi.apiDailyReportGetDailyReportRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Return the monthly report for the month containing the given date. When no report has been generated yet, responds with 200 and an empty report payload (``id`` is null).
+         * @param {string} date Any day within the target month (YYYY-MM-DD)
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiDailyReportGetMonthlyReportRetrieve(date: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MonthlyReport>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiDailyReportGetMonthlyReportRetrieve(date, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DailyReportApi.apiDailyReportGetMonthlyReportRetrieve']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -23169,6 +30364,17 @@ export const DailyReportApiFactory = function (configuration?: Configuration, ba
         },
         /**
          * Report ViewSet
+         * @param {string} date Any day within the target month (YYYY-MM-DD)
+         * @param {DailyReport} dailyReport 
+         * @param {boolean} [notify] Create or refresh the monthly summary inbox notification (default false).
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiDailyReportGenerateMonthlyReportCreate(date: string, dailyReport: DailyReport, notify?: boolean, options?: RawAxiosRequestConfig): AxiosPromise<MonthlyReport> {
+            return localVarFp.apiDailyReportGenerateMonthlyReportCreate(date, dailyReport, notify, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Report ViewSet
          * @param {string} date Any day within the target week (YYYY-MM-DD)
          * @param {DailyReport} dailyReport 
          * @param {boolean} [notify] Create or refresh the weekly summary inbox notification (default true).
@@ -23196,6 +30402,15 @@ export const DailyReportApiFactory = function (configuration?: Configuration, ba
          */
         apiDailyReportGetDailyReportRetrieve(date: string, options?: RawAxiosRequestConfig): AxiosPromise<DailyReport> {
             return localVarFp.apiDailyReportGetDailyReportRetrieve(date, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Return the monthly report for the month containing the given date. When no report has been generated yet, responds with 200 and an empty report payload (``id`` is null).
+         * @param {string} date Any day within the target month (YYYY-MM-DD)
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiDailyReportGetMonthlyReportRetrieve(date: string, options?: RawAxiosRequestConfig): AxiosPromise<MonthlyReport> {
+            return localVarFp.apiDailyReportGetMonthlyReportRetrieve(date, options).then((request) => request(axios, basePath));
         },
         /**
          * Return the weekly report for the week containing the given date. When no report has been generated yet, responds with 200 and an empty report payload (``id`` is null).
@@ -23316,6 +30531,19 @@ export class DailyReportApi extends BaseAPI {
 
     /**
      * Report ViewSet
+     * @param {string} date Any day within the target month (YYYY-MM-DD)
+     * @param {DailyReport} dailyReport 
+     * @param {boolean} [notify] Create or refresh the monthly summary inbox notification (default false).
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DailyReportApi
+     */
+    public apiDailyReportGenerateMonthlyReportCreate(date: string, dailyReport: DailyReport, notify?: boolean, options?: RawAxiosRequestConfig) {
+        return DailyReportApiFp(this.configuration).apiDailyReportGenerateMonthlyReportCreate(date, dailyReport, notify, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Report ViewSet
      * @param {string} date Any day within the target week (YYYY-MM-DD)
      * @param {DailyReport} dailyReport 
      * @param {boolean} [notify] Create or refresh the weekly summary inbox notification (default true).
@@ -23348,6 +30576,17 @@ export class DailyReportApi extends BaseAPI {
      */
     public apiDailyReportGetDailyReportRetrieve(date: string, options?: RawAxiosRequestConfig) {
         return DailyReportApiFp(this.configuration).apiDailyReportGetDailyReportRetrieve(date, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Return the monthly report for the month containing the given date. When no report has been generated yet, responds with 200 and an empty report payload (``id`` is null).
+     * @param {string} date Any day within the target month (YYYY-MM-DD)
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DailyReportApi
+     */
+    public apiDailyReportGetMonthlyReportRetrieve(date: string, options?: RawAxiosRequestConfig) {
+        return DailyReportApiFp(this.configuration).apiDailyReportGetMonthlyReportRetrieve(date, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -23807,7 +31046,7 @@ export const EventApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * Destroy a Event. If it is linked to Google Calendar, remove it there first.
+         * Destroy a Event. If it is linked to Google Calendar, remove it there first.  For recurring events, honors (via query params or body): - change_type: \"single\" | \"this_and_following\" | \"all\" (default \"all\") - occurrence_start: datetime of the clicked occurrence (required for   single / this_and_following unless deleting a materialized override row) - send_invite_emails: whether Google should notify guests of the cancellation   (default true) — mirrors Google Calendar\'s own \"notify guests?\" delete prompt. - also_remove_habit_check_in: for a \"single\" delete of a Habit-linked occurrence,   also clear that day\'s habit check-in (default false).
          * @param {number} id A unique integer value identifying this Calendar Event.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -23881,6 +31120,125 @@ export const EventApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
+         * Exclude this event from performance reports. The event stays on the calendar and in planning; hours, plan-vs-actual actuals, and AI insight omit it. Recurring events honor change_type (single / this_and_following / all) and occurrence_start.
+         * @param {number} id A unique integer value identifying this Calendar Event.
+         * @param {EventReportExclusionRequest} [eventReportExclusionRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiEventExcludeFromReportsCreate: async (id: number, eventReportExclusionRequest?: EventReportExclusionRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiEventExcludeFromReportsCreate', 'id', id)
+            const localVarPath = `/api/event/{id}/exclude-from-reports/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(eventReportExclusionRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Revert exactly one event history row (create/update/delete), or every event in one change_set_id (one bulk API call / HITL batch) — never a full calendar restore. Pass preview=true to get can_revert / blocked_reason / operations without applying.
+         * @param {HistoryRevertRequest} [historyRevertRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiEventHistoryRevertCreate: async (historyRevertRequest?: HistoryRevertRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/event/history/revert/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(historyRevertRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Include this event in performance reports again (inverse of exclude-from-reports).
+         * @param {number} id A unique integer value identifying this Calendar Event.
+         * @param {EventReportExclusionRequest} [eventReportExclusionRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiEventIncludeInReportsCreate: async (id: number, eventReportExclusionRequest?: EventReportExclusionRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiEventIncludeInReportsCreate', 'id', id)
+            const localVarPath = `/api/event/{id}/include-in-reports/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(eventReportExclusionRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * List of Events.  For non-recurring events - return all For recurring events: - store only the \"master\" event with a recurrence_rule - expand occurrences on the fly within [from_datetime, to_datetime]
          * @param {string} [accountId] Calendar account filter: omit for all accounts, &#x60;focusanalyze&#x60; for FocusAnalyze-only events, or a Google Calendar integration id.
          * @param {string} [fromDatetime] From datetime
@@ -23890,11 +31248,12 @@ export const EventApiAxiosParamCreator = function (configuration?: Configuration
          * @param {number} [page] Page number
          * @param {number} [pageSize] Page size
          * @param {number} [projectId] Project ID to filter events
+         * @param {ApiEventListScopeEnum} [scope] Task scope for a project filter. &#x60;all_tasks&#x60; includes all project tracks; &#x60;current_track&#x60; includes only the active/current track.
          * @param {string} [toDatetime] To datetime
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiEventList: async (accountId?: string, fromDatetime?: string, limit?: number, name?: string, offset?: number, page?: number, pageSize?: number, projectId?: number, toDatetime?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        apiEventList: async (accountId?: string, fromDatetime?: string, limit?: number, name?: string, offset?: number, page?: number, pageSize?: number, projectId?: number, scope?: ApiEventListScopeEnum, toDatetime?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/event/`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -23941,6 +31300,10 @@ export const EventApiAxiosParamCreator = function (configuration?: Configuration
 
             if (projectId !== undefined) {
                 localVarQueryParameter['project_id'] = projectId;
+            }
+
+            if (scope !== undefined) {
+                localVarQueryParameter['scope'] = scope;
             }
 
             if (toDatetime !== undefined) {
@@ -23993,6 +31356,45 @@ export const EventApiAxiosParamCreator = function (configuration?: Configuration
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchedEvent, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Resolve a Places suggestion to a formatted location string for Event.location. Pass the same session_token used for search-locations to close the billing session.
+         * @param {EventLocationResolve} eventLocationResolve 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiEventResolveLocationCreate: async (eventLocationResolve: EventLocationResolve, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'eventLocationResolve' is not null or undefined
+            assertParamExists('apiEventResolveLocationCreate', 'eventLocationResolve', eventLocationResolve)
+            const localVarPath = `/api/event/resolve-location/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(eventLocationResolve, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -24113,6 +31515,49 @@ export const EventApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
+         * Respond to your own invitation on this event — accept, decline, or tentative. Only for invitees (the organiser doesn\'t RSVP to their own event). Requires the Google Calendar account this invite was sent to already be connected. Writes the response to Google (as you, not the organiser) and propagates it to every local copy of this event (organiser\'s + every other invitee\'s) so it\'s visible immediately without an extra Google read.
+         * @param {number} id A unique integer value identifying this Calendar Event.
+         * @param {EventRsvpRequest} eventRsvpRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiEventRsvpCreate: async (id: number, eventRsvpRequest: EventRsvpRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiEventRsvpCreate', 'id', id)
+            // verify required parameter 'eventRsvpRequest' is not null or undefined
+            assertParamExists('apiEventRsvpCreate', 'eventRsvpRequest', eventRsvpRequest)
+            const localVarPath = `/api/event/{id}/rsvp/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(eventRsvpRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Search organization members to invite to a calendar event.
          * @param {string} q Search invitees by name or email (organization members).
          * @param {number} [account] Google Calendar UserIntegration id for the event. That account\&#39;s email is excluded from results (organiser).
@@ -24154,6 +31599,61 @@ export const EventApiAxiosParamCreator = function (configuration?: Configuration
 
             if (q !== undefined) {
                 localVarQueryParameter['q'] = q;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Google Places Autocomplete suggestions for the event location field. Returns an empty list when Places is not configured or the query is too short; free-text location entry still works without selecting a suggestion.
+         * @param {string} q Location search text (min 2 characters).
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {string} [sessionToken] Places Autocomplete session token (UUID). Reuse across keystrokes in one search; pass the same token to resolve-location when the user picks a place.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiEventSearchLocationsList: async (q: string, limit?: number, offset?: number, sessionToken?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'q' is not null or undefined
+            assertParamExists('apiEventSearchLocationsList', 'q', q)
+            const localVarPath = `/api/event/search-locations/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+            if (q !== undefined) {
+                localVarQueryParameter['q'] = q;
+            }
+
+            if (sessionToken !== undefined) {
+                localVarQueryParameter['session_token'] = sessionToken;
             }
 
 
@@ -24349,7 +31849,7 @@ export const EventApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Destroy a Event. If it is linked to Google Calendar, remove it there first.
+         * Destroy a Event. If it is linked to Google Calendar, remove it there first.  For recurring events, honors (via query params or body): - change_type: \"single\" | \"this_and_following\" | \"all\" (default \"all\") - occurrence_start: datetime of the clicked occurrence (required for   single / this_and_following unless deleting a materialized override row) - send_invite_emails: whether Google should notify guests of the cancellation   (default true) — mirrors Google Calendar\'s own \"notify guests?\" delete prompt. - also_remove_habit_check_in: for a \"single\" delete of a Habit-linked occurrence,   also clear that day\'s habit check-in (default false).
          * @param {number} id A unique integer value identifying this Calendar Event.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -24373,6 +31873,44 @@ export const EventApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Exclude this event from performance reports. The event stays on the calendar and in planning; hours, plan-vs-actual actuals, and AI insight omit it. Recurring events honor change_type (single / this_and_following / all) and occurrence_start.
+         * @param {number} id A unique integer value identifying this Calendar Event.
+         * @param {EventReportExclusionRequest} [eventReportExclusionRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiEventExcludeFromReportsCreate(id: number, eventReportExclusionRequest?: EventReportExclusionRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Event>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiEventExcludeFromReportsCreate(id, eventReportExclusionRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['EventApi.apiEventExcludeFromReportsCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Revert exactly one event history row (create/update/delete), or every event in one change_set_id (one bulk API call / HITL batch) — never a full calendar restore. Pass preview=true to get can_revert / blocked_reason / operations without applying.
+         * @param {HistoryRevertRequest} [historyRevertRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiEventHistoryRevertCreate(historyRevertRequest?: HistoryRevertRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RevertResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiEventHistoryRevertCreate(historyRevertRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['EventApi.apiEventHistoryRevertCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Include this event in performance reports again (inverse of exclude-from-reports).
+         * @param {number} id A unique integer value identifying this Calendar Event.
+         * @param {EventReportExclusionRequest} [eventReportExclusionRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiEventIncludeInReportsCreate(id: number, eventReportExclusionRequest?: EventReportExclusionRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Event>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiEventIncludeInReportsCreate(id, eventReportExclusionRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['EventApi.apiEventIncludeInReportsCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * List of Events.  For non-recurring events - return all For recurring events: - store only the \"master\" event with a recurrence_rule - expand occurrences on the fly within [from_datetime, to_datetime]
          * @param {string} [accountId] Calendar account filter: omit for all accounts, &#x60;focusanalyze&#x60; for FocusAnalyze-only events, or a Google Calendar integration id.
          * @param {string} [fromDatetime] From datetime
@@ -24382,12 +31920,13 @@ export const EventApiFp = function(configuration?: Configuration) {
          * @param {number} [page] Page number
          * @param {number} [pageSize] Page size
          * @param {number} [projectId] Project ID to filter events
+         * @param {ApiEventListScopeEnum} [scope] Task scope for a project filter. &#x60;all_tasks&#x60; includes all project tracks; &#x60;current_track&#x60; includes only the active/current track.
          * @param {string} [toDatetime] To datetime
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiEventList(accountId?: string, fromDatetime?: string, limit?: number, name?: string, offset?: number, page?: number, pageSize?: number, projectId?: number, toDatetime?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedEventList>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.apiEventList(accountId, fromDatetime, limit, name, offset, page, pageSize, projectId, toDatetime, options);
+        async apiEventList(accountId?: string, fromDatetime?: string, limit?: number, name?: string, offset?: number, page?: number, pageSize?: number, projectId?: number, scope?: ApiEventListScopeEnum, toDatetime?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedEventList>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiEventList(accountId, fromDatetime, limit, name, offset, page, pageSize, projectId, scope, toDatetime, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['EventApi.apiEventList']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -24403,6 +31942,18 @@ export const EventApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.apiEventPartialUpdate(id, patchedEvent, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['EventApi.apiEventPartialUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Resolve a Places suggestion to a formatted location string for Event.location. Pass the same session_token used for search-locations to close the billing session.
+         * @param {EventLocationResolve} eventLocationResolve 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiEventResolveLocationCreate(eventLocationResolve: EventLocationResolve, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<EventLocationResolveResult>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiEventResolveLocationCreate(eventLocationResolve, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['EventApi.apiEventResolveLocationCreate']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -24442,6 +31993,19 @@ export const EventApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Respond to your own invitation on this event — accept, decline, or tentative. Only for invitees (the organiser doesn\'t RSVP to their own event). Requires the Google Calendar account this invite was sent to already be connected. Writes the response to Google (as you, not the organiser) and propagates it to every local copy of this event (organiser\'s + every other invitee\'s) so it\'s visible immediately without an extra Google read.
+         * @param {number} id A unique integer value identifying this Calendar Event.
+         * @param {EventRsvpRequest} eventRsvpRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiEventRsvpCreate(id: number, eventRsvpRequest: EventRsvpRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Event>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiEventRsvpCreate(id, eventRsvpRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['EventApi.apiEventRsvpCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Search organization members to invite to a calendar event.
          * @param {string} q Search invitees by name or email (organization members).
          * @param {number} [account] Google Calendar UserIntegration id for the event. That account\&#39;s email is excluded from results (organiser).
@@ -24454,6 +32018,21 @@ export const EventApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.apiEventSearchInviteesList(q, account, limit, offset, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['EventApi.apiEventSearchInviteesList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Google Places Autocomplete suggestions for the event location field. Returns an empty list when Places is not configured or the query is too short; free-text location entry still works without selecting a suggestion.
+         * @param {string} q Location search text (min 2 characters).
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {string} [sessionToken] Places Autocomplete session token (UUID). Reuse across keystrokes in one search; pass the same token to resolve-location when the user picks a place.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiEventSearchLocationsList(q: string, limit?: number, offset?: number, sessionToken?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedEventLocationSuggestionList>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiEventSearchLocationsList(q, limit, offset, sessionToken, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['EventApi.apiEventSearchLocationsList']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -24554,7 +32133,7 @@ export const EventApiFactory = function (configuration?: Configuration, basePath
             return localVarFp.apiEventCreate(createEvent, options).then((request) => request(axios, basePath));
         },
         /**
-         * Destroy a Event. If it is linked to Google Calendar, remove it there first.
+         * Destroy a Event. If it is linked to Google Calendar, remove it there first.  For recurring events, honors (via query params or body): - change_type: \"single\" | \"this_and_following\" | \"all\" (default \"all\") - occurrence_start: datetime of the clicked occurrence (required for   single / this_and_following unless deleting a materialized override row) - send_invite_emails: whether Google should notify guests of the cancellation   (default true) — mirrors Google Calendar\'s own \"notify guests?\" delete prompt. - also_remove_habit_check_in: for a \"single\" delete of a Habit-linked occurrence,   also clear that day\'s habit check-in (default false).
          * @param {number} id A unique integer value identifying this Calendar Event.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -24572,6 +32151,35 @@ export const EventApiFactory = function (configuration?: Configuration, basePath
             return localVarFp.apiEventDuplicateCreate(id, options).then((request) => request(axios, basePath));
         },
         /**
+         * Exclude this event from performance reports. The event stays on the calendar and in planning; hours, plan-vs-actual actuals, and AI insight omit it. Recurring events honor change_type (single / this_and_following / all) and occurrence_start.
+         * @param {number} id A unique integer value identifying this Calendar Event.
+         * @param {EventReportExclusionRequest} [eventReportExclusionRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiEventExcludeFromReportsCreate(id: number, eventReportExclusionRequest?: EventReportExclusionRequest, options?: RawAxiosRequestConfig): AxiosPromise<Event> {
+            return localVarFp.apiEventExcludeFromReportsCreate(id, eventReportExclusionRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Revert exactly one event history row (create/update/delete), or every event in one change_set_id (one bulk API call / HITL batch) — never a full calendar restore. Pass preview=true to get can_revert / blocked_reason / operations without applying.
+         * @param {HistoryRevertRequest} [historyRevertRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiEventHistoryRevertCreate(historyRevertRequest?: HistoryRevertRequest, options?: RawAxiosRequestConfig): AxiosPromise<RevertResponse> {
+            return localVarFp.apiEventHistoryRevertCreate(historyRevertRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Include this event in performance reports again (inverse of exclude-from-reports).
+         * @param {number} id A unique integer value identifying this Calendar Event.
+         * @param {EventReportExclusionRequest} [eventReportExclusionRequest] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiEventIncludeInReportsCreate(id: number, eventReportExclusionRequest?: EventReportExclusionRequest, options?: RawAxiosRequestConfig): AxiosPromise<Event> {
+            return localVarFp.apiEventIncludeInReportsCreate(id, eventReportExclusionRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
          * List of Events.  For non-recurring events - return all For recurring events: - store only the \"master\" event with a recurrence_rule - expand occurrences on the fly within [from_datetime, to_datetime]
          * @param {string} [accountId] Calendar account filter: omit for all accounts, &#x60;focusanalyze&#x60; for FocusAnalyze-only events, or a Google Calendar integration id.
          * @param {string} [fromDatetime] From datetime
@@ -24581,12 +32189,13 @@ export const EventApiFactory = function (configuration?: Configuration, basePath
          * @param {number} [page] Page number
          * @param {number} [pageSize] Page size
          * @param {number} [projectId] Project ID to filter events
+         * @param {ApiEventListScopeEnum} [scope] Task scope for a project filter. &#x60;all_tasks&#x60; includes all project tracks; &#x60;current_track&#x60; includes only the active/current track.
          * @param {string} [toDatetime] To datetime
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiEventList(accountId?: string, fromDatetime?: string, limit?: number, name?: string, offset?: number, page?: number, pageSize?: number, projectId?: number, toDatetime?: string, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedEventList> {
-            return localVarFp.apiEventList(accountId, fromDatetime, limit, name, offset, page, pageSize, projectId, toDatetime, options).then((request) => request(axios, basePath));
+        apiEventList(accountId?: string, fromDatetime?: string, limit?: number, name?: string, offset?: number, page?: number, pageSize?: number, projectId?: number, scope?: ApiEventListScopeEnum, toDatetime?: string, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedEventList> {
+            return localVarFp.apiEventList(accountId, fromDatetime, limit, name, offset, page, pageSize, projectId, scope, toDatetime, options).then((request) => request(axios, basePath));
         },
         /**
          * Partial Update a Event
@@ -24597,6 +32206,15 @@ export const EventApiFactory = function (configuration?: Configuration, basePath
          */
         apiEventPartialUpdate(id: number, patchedEvent?: PatchedEvent, options?: RawAxiosRequestConfig): AxiosPromise<Event> {
             return localVarFp.apiEventPartialUpdate(id, patchedEvent, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Resolve a Places suggestion to a formatted location string for Event.location. Pass the same session_token used for search-locations to close the billing session.
+         * @param {EventLocationResolve} eventLocationResolve 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiEventResolveLocationCreate(eventLocationResolve: EventLocationResolve, options?: RawAxiosRequestConfig): AxiosPromise<EventLocationResolveResult> {
+            return localVarFp.apiEventResolveLocationCreate(eventLocationResolve, options).then((request) => request(axios, basePath));
         },
         /**
          * Restore the user\'s calendar to the state at target_at using simple_history snapshots. Google Calendar linked events are pushed asynchronously after the local restore completes.
@@ -24626,6 +32244,16 @@ export const EventApiFactory = function (configuration?: Configuration, basePath
             return localVarFp.apiEventRetrieve(id, options).then((request) => request(axios, basePath));
         },
         /**
+         * Respond to your own invitation on this event — accept, decline, or tentative. Only for invitees (the organiser doesn\'t RSVP to their own event). Requires the Google Calendar account this invite was sent to already be connected. Writes the response to Google (as you, not the organiser) and propagates it to every local copy of this event (organiser\'s + every other invitee\'s) so it\'s visible immediately without an extra Google read.
+         * @param {number} id A unique integer value identifying this Calendar Event.
+         * @param {EventRsvpRequest} eventRsvpRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiEventRsvpCreate(id: number, eventRsvpRequest: EventRsvpRequest, options?: RawAxiosRequestConfig): AxiosPromise<Event> {
+            return localVarFp.apiEventRsvpCreate(id, eventRsvpRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Search organization members to invite to a calendar event.
          * @param {string} q Search invitees by name or email (organization members).
          * @param {number} [account] Google Calendar UserIntegration id for the event. That account\&#39;s email is excluded from results (organiser).
@@ -24636,6 +32264,18 @@ export const EventApiFactory = function (configuration?: Configuration, basePath
          */
         apiEventSearchInviteesList(q: string, account?: number, limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedEventInviteeSearchResultList> {
             return localVarFp.apiEventSearchInviteesList(q, account, limit, offset, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Google Places Autocomplete suggestions for the event location field. Returns an empty list when Places is not configured or the query is too short; free-text location entry still works without selecting a suggestion.
+         * @param {string} q Location search text (min 2 characters).
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {string} [sessionToken] Places Autocomplete session token (UUID). Reuse across keystrokes in one search; pass the same token to resolve-location when the user picks a place.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiEventSearchLocationsList(q: string, limit?: number, offset?: number, sessionToken?: string, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedEventLocationSuggestionList> {
+            return localVarFp.apiEventSearchLocationsList(q, limit, offset, sessionToken, options).then((request) => request(axios, basePath));
         },
         /**
          * Search tasks: We search for all the tasks from the user for a given search text in the query params. It searches for name, and it\'s id.
@@ -24741,7 +32381,7 @@ export class EventApi extends BaseAPI {
     }
 
     /**
-     * Destroy a Event. If it is linked to Google Calendar, remove it there first.
+     * Destroy a Event. If it is linked to Google Calendar, remove it there first.  For recurring events, honors (via query params or body): - change_type: \"single\" | \"this_and_following\" | \"all\" (default \"all\") - occurrence_start: datetime of the clicked occurrence (required for   single / this_and_following unless deleting a materialized override row) - send_invite_emails: whether Google should notify guests of the cancellation   (default true) — mirrors Google Calendar\'s own \"notify guests?\" delete prompt. - also_remove_habit_check_in: for a \"single\" delete of a Habit-linked occurrence,   also clear that day\'s habit check-in (default false).
      * @param {number} id A unique integer value identifying this Calendar Event.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -24763,6 +32403,41 @@ export class EventApi extends BaseAPI {
     }
 
     /**
+     * Exclude this event from performance reports. The event stays on the calendar and in planning; hours, plan-vs-actual actuals, and AI insight omit it. Recurring events honor change_type (single / this_and_following / all) and occurrence_start.
+     * @param {number} id A unique integer value identifying this Calendar Event.
+     * @param {EventReportExclusionRequest} [eventReportExclusionRequest] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof EventApi
+     */
+    public apiEventExcludeFromReportsCreate(id: number, eventReportExclusionRequest?: EventReportExclusionRequest, options?: RawAxiosRequestConfig) {
+        return EventApiFp(this.configuration).apiEventExcludeFromReportsCreate(id, eventReportExclusionRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Revert exactly one event history row (create/update/delete), or every event in one change_set_id (one bulk API call / HITL batch) — never a full calendar restore. Pass preview=true to get can_revert / blocked_reason / operations without applying.
+     * @param {HistoryRevertRequest} [historyRevertRequest] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof EventApi
+     */
+    public apiEventHistoryRevertCreate(historyRevertRequest?: HistoryRevertRequest, options?: RawAxiosRequestConfig) {
+        return EventApiFp(this.configuration).apiEventHistoryRevertCreate(historyRevertRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Include this event in performance reports again (inverse of exclude-from-reports).
+     * @param {number} id A unique integer value identifying this Calendar Event.
+     * @param {EventReportExclusionRequest} [eventReportExclusionRequest] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof EventApi
+     */
+    public apiEventIncludeInReportsCreate(id: number, eventReportExclusionRequest?: EventReportExclusionRequest, options?: RawAxiosRequestConfig) {
+        return EventApiFp(this.configuration).apiEventIncludeInReportsCreate(id, eventReportExclusionRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * List of Events.  For non-recurring events - return all For recurring events: - store only the \"master\" event with a recurrence_rule - expand occurrences on the fly within [from_datetime, to_datetime]
      * @param {string} [accountId] Calendar account filter: omit for all accounts, &#x60;focusanalyze&#x60; for FocusAnalyze-only events, or a Google Calendar integration id.
      * @param {string} [fromDatetime] From datetime
@@ -24772,13 +32447,14 @@ export class EventApi extends BaseAPI {
      * @param {number} [page] Page number
      * @param {number} [pageSize] Page size
      * @param {number} [projectId] Project ID to filter events
+     * @param {ApiEventListScopeEnum} [scope] Task scope for a project filter. &#x60;all_tasks&#x60; includes all project tracks; &#x60;current_track&#x60; includes only the active/current track.
      * @param {string} [toDatetime] To datetime
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof EventApi
      */
-    public apiEventList(accountId?: string, fromDatetime?: string, limit?: number, name?: string, offset?: number, page?: number, pageSize?: number, projectId?: number, toDatetime?: string, options?: RawAxiosRequestConfig) {
-        return EventApiFp(this.configuration).apiEventList(accountId, fromDatetime, limit, name, offset, page, pageSize, projectId, toDatetime, options).then((request) => request(this.axios, this.basePath));
+    public apiEventList(accountId?: string, fromDatetime?: string, limit?: number, name?: string, offset?: number, page?: number, pageSize?: number, projectId?: number, scope?: ApiEventListScopeEnum, toDatetime?: string, options?: RawAxiosRequestConfig) {
+        return EventApiFp(this.configuration).apiEventList(accountId, fromDatetime, limit, name, offset, page, pageSize, projectId, scope, toDatetime, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -24791,6 +32467,17 @@ export class EventApi extends BaseAPI {
      */
     public apiEventPartialUpdate(id: number, patchedEvent?: PatchedEvent, options?: RawAxiosRequestConfig) {
         return EventApiFp(this.configuration).apiEventPartialUpdate(id, patchedEvent, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Resolve a Places suggestion to a formatted location string for Event.location. Pass the same session_token used for search-locations to close the billing session.
+     * @param {EventLocationResolve} eventLocationResolve 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof EventApi
+     */
+    public apiEventResolveLocationCreate(eventLocationResolve: EventLocationResolve, options?: RawAxiosRequestConfig) {
+        return EventApiFp(this.configuration).apiEventResolveLocationCreate(eventLocationResolve, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -24827,6 +32514,18 @@ export class EventApi extends BaseAPI {
     }
 
     /**
+     * Respond to your own invitation on this event — accept, decline, or tentative. Only for invitees (the organiser doesn\'t RSVP to their own event). Requires the Google Calendar account this invite was sent to already be connected. Writes the response to Google (as you, not the organiser) and propagates it to every local copy of this event (organiser\'s + every other invitee\'s) so it\'s visible immediately without an extra Google read.
+     * @param {number} id A unique integer value identifying this Calendar Event.
+     * @param {EventRsvpRequest} eventRsvpRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof EventApi
+     */
+    public apiEventRsvpCreate(id: number, eventRsvpRequest: EventRsvpRequest, options?: RawAxiosRequestConfig) {
+        return EventApiFp(this.configuration).apiEventRsvpCreate(id, eventRsvpRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Search organization members to invite to a calendar event.
      * @param {string} q Search invitees by name or email (organization members).
      * @param {number} [account] Google Calendar UserIntegration id for the event. That account\&#39;s email is excluded from results (organiser).
@@ -24838,6 +32537,20 @@ export class EventApi extends BaseAPI {
      */
     public apiEventSearchInviteesList(q: string, account?: number, limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
         return EventApiFp(this.configuration).apiEventSearchInviteesList(q, account, limit, offset, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Google Places Autocomplete suggestions for the event location field. Returns an empty list when Places is not configured or the query is too short; free-text location entry still works without selecting a suggestion.
+     * @param {string} q Location search text (min 2 characters).
+     * @param {number} [limit] Number of results to return per page.
+     * @param {number} [offset] The initial index from which to return the results.
+     * @param {string} [sessionToken] Places Autocomplete session token (UUID). Reuse across keystrokes in one search; pass the same token to resolve-location when the user picks a place.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof EventApi
+     */
+    public apiEventSearchLocationsList(q: string, limit?: number, offset?: number, sessionToken?: string, options?: RawAxiosRequestConfig) {
+        return EventApiFp(this.configuration).apiEventSearchLocationsList(q, limit, offset, sessionToken, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -24863,6 +32576,942 @@ export class EventApi extends BaseAPI {
      */
     public apiEventUpdate(id: number, updateEvent: UpdateEvent, options?: RawAxiosRequestConfig) {
         return EventApiFp(this.configuration).apiEventUpdate(id, updateEvent, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+/**
+ * @export
+ */
+export const ApiEventListScopeEnum = {
+    AllTasks: 'all_tasks',
+    CurrentTrack: 'current_track'
+} as const;
+export type ApiEventListScopeEnum = typeof ApiEventListScopeEnum[keyof typeof ApiEventListScopeEnum];
+
+
+/**
+ * FocusAIRulesApi - axios parameter creator
+ * @export
+ */
+export const FocusAIRulesApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {UserRule} userRule 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptRulesCreate: async (userRule: UserRule, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'userRule' is not null or undefined
+            assertParamExists('apiFocusgptRulesCreate', 'userRule', userRule)
+            const localVarPath = `/api/focusgpt/rules/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(userRule, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptRulesDestroy: async (id: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiFocusgptRulesDestroy', 'id', id)
+            const localVarPath = `/api/focusgpt/rules/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptRulesList: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/focusgpt/rules/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {string} id 
+         * @param {PatchedUserRule} [patchedUserRule] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptRulesPartialUpdate: async (id: string, patchedUserRule?: PatchedUserRule, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiFocusgptRulesPartialUpdate', 'id', id)
+            const localVarPath = `/api/focusgpt/rules/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchedUserRule, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptRulesRetrieve: async (id: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiFocusgptRulesRetrieve', 'id', id)
+            const localVarPath = `/api/focusgpt/rules/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {string} id 
+         * @param {UserRule} userRule 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptRulesUpdate: async (id: string, userRule: UserRule, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiFocusgptRulesUpdate', 'id', id)
+            // verify required parameter 'userRule' is not null or undefined
+            assertParamExists('apiFocusgptRulesUpdate', 'userRule', userRule)
+            const localVarPath = `/api/focusgpt/rules/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(userRule, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * FocusAIRulesApi - functional programming interface
+ * @export
+ */
+export const FocusAIRulesApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = FocusAIRulesApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {UserRule} userRule 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptRulesCreate(userRule: UserRule, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserRule>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptRulesCreate(userRule, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FocusAIRulesApi.apiFocusgptRulesCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptRulesDestroy(id: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptRulesDestroy(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FocusAIRulesApi.apiFocusgptRulesDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptRulesList(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<UserRule>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptRulesList(options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FocusAIRulesApi.apiFocusgptRulesList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {string} id 
+         * @param {PatchedUserRule} [patchedUserRule] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptRulesPartialUpdate(id: string, patchedUserRule?: PatchedUserRule, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserRule>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptRulesPartialUpdate(id, patchedUserRule, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FocusAIRulesApi.apiFocusgptRulesPartialUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptRulesRetrieve(id: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserRule>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptRulesRetrieve(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FocusAIRulesApi.apiFocusgptRulesRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {string} id 
+         * @param {UserRule} userRule 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptRulesUpdate(id: string, userRule: UserRule, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserRule>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptRulesUpdate(id, userRule, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FocusAIRulesApi.apiFocusgptRulesUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * FocusAIRulesApi - factory interface
+ * @export
+ */
+export const FocusAIRulesApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = FocusAIRulesApiFp(configuration)
+    return {
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {UserRule} userRule 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptRulesCreate(userRule: UserRule, options?: RawAxiosRequestConfig): AxiosPromise<UserRule> {
+            return localVarFp.apiFocusgptRulesCreate(userRule, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptRulesDestroy(id: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiFocusgptRulesDestroy(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptRulesList(options?: RawAxiosRequestConfig): AxiosPromise<Array<UserRule>> {
+            return localVarFp.apiFocusgptRulesList(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {string} id 
+         * @param {PatchedUserRule} [patchedUserRule] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptRulesPartialUpdate(id: string, patchedUserRule?: PatchedUserRule, options?: RawAxiosRequestConfig): AxiosPromise<UserRule> {
+            return localVarFp.apiFocusgptRulesPartialUpdate(id, patchedUserRule, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptRulesRetrieve(id: string, options?: RawAxiosRequestConfig): AxiosPromise<UserRule> {
+            return localVarFp.apiFocusgptRulesRetrieve(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * CRUD for the current user\'s standing FocusAI rules.
+         * @param {string} id 
+         * @param {UserRule} userRule 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptRulesUpdate(id: string, userRule: UserRule, options?: RawAxiosRequestConfig): AxiosPromise<UserRule> {
+            return localVarFp.apiFocusgptRulesUpdate(id, userRule, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * FocusAIRulesApi - object-oriented interface
+ * @export
+ * @class FocusAIRulesApi
+ * @extends {BaseAPI}
+ */
+export class FocusAIRulesApi extends BaseAPI {
+    /**
+     * CRUD for the current user\'s standing FocusAI rules.
+     * @param {UserRule} userRule 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FocusAIRulesApi
+     */
+    public apiFocusgptRulesCreate(userRule: UserRule, options?: RawAxiosRequestConfig) {
+        return FocusAIRulesApiFp(this.configuration).apiFocusgptRulesCreate(userRule, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * CRUD for the current user\'s standing FocusAI rules.
+     * @param {string} id 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FocusAIRulesApi
+     */
+    public apiFocusgptRulesDestroy(id: string, options?: RawAxiosRequestConfig) {
+        return FocusAIRulesApiFp(this.configuration).apiFocusgptRulesDestroy(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * CRUD for the current user\'s standing FocusAI rules.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FocusAIRulesApi
+     */
+    public apiFocusgptRulesList(options?: RawAxiosRequestConfig) {
+        return FocusAIRulesApiFp(this.configuration).apiFocusgptRulesList(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * CRUD for the current user\'s standing FocusAI rules.
+     * @param {string} id 
+     * @param {PatchedUserRule} [patchedUserRule] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FocusAIRulesApi
+     */
+    public apiFocusgptRulesPartialUpdate(id: string, patchedUserRule?: PatchedUserRule, options?: RawAxiosRequestConfig) {
+        return FocusAIRulesApiFp(this.configuration).apiFocusgptRulesPartialUpdate(id, patchedUserRule, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * CRUD for the current user\'s standing FocusAI rules.
+     * @param {string} id 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FocusAIRulesApi
+     */
+    public apiFocusgptRulesRetrieve(id: string, options?: RawAxiosRequestConfig) {
+        return FocusAIRulesApiFp(this.configuration).apiFocusgptRulesRetrieve(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * CRUD for the current user\'s standing FocusAI rules.
+     * @param {string} id 
+     * @param {UserRule} userRule 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FocusAIRulesApi
+     */
+    public apiFocusgptRulesUpdate(id: string, userRule: UserRule, options?: RawAxiosRequestConfig) {
+        return FocusAIRulesApiFp(this.configuration).apiFocusgptRulesUpdate(id, userRule, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+
+/**
+ * FocusAISkillsApi - axios parameter creator
+ * @export
+ */
+export const FocusAISkillsApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {UserSkill} userSkill 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptSkillsCreate: async (userSkill: UserSkill, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'userSkill' is not null or undefined
+            assertParamExists('apiFocusgptSkillsCreate', 'userSkill', userSkill)
+            const localVarPath = `/api/focusgpt/skills/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(userSkill, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptSkillsDestroy: async (id: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiFocusgptSkillsDestroy', 'id', id)
+            const localVarPath = `/api/focusgpt/skills/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptSkillsList: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/focusgpt/skills/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {string} id 
+         * @param {PatchedUserSkill} [patchedUserSkill] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptSkillsPartialUpdate: async (id: string, patchedUserSkill?: PatchedUserSkill, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiFocusgptSkillsPartialUpdate', 'id', id)
+            const localVarPath = `/api/focusgpt/skills/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchedUserSkill, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptSkillsRetrieve: async (id: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiFocusgptSkillsRetrieve', 'id', id)
+            const localVarPath = `/api/focusgpt/skills/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {string} id 
+         * @param {UserSkill} userSkill 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptSkillsUpdate: async (id: string, userSkill: UserSkill, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiFocusgptSkillsUpdate', 'id', id)
+            // verify required parameter 'userSkill' is not null or undefined
+            assertParamExists('apiFocusgptSkillsUpdate', 'userSkill', userSkill)
+            const localVarPath = `/api/focusgpt/skills/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(userSkill, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * FocusAISkillsApi - functional programming interface
+ * @export
+ */
+export const FocusAISkillsApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = FocusAISkillsApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {UserSkill} userSkill 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptSkillsCreate(userSkill: UserSkill, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSkill>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptSkillsCreate(userSkill, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FocusAISkillsApi.apiFocusgptSkillsCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptSkillsDestroy(id: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptSkillsDestroy(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FocusAISkillsApi.apiFocusgptSkillsDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptSkillsList(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<UserSkill>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptSkillsList(options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FocusAISkillsApi.apiFocusgptSkillsList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {string} id 
+         * @param {PatchedUserSkill} [patchedUserSkill] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptSkillsPartialUpdate(id: string, patchedUserSkill?: PatchedUserSkill, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSkill>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptSkillsPartialUpdate(id, patchedUserSkill, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FocusAISkillsApi.apiFocusgptSkillsPartialUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptSkillsRetrieve(id: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSkill>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptSkillsRetrieve(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FocusAISkillsApi.apiFocusgptSkillsRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {string} id 
+         * @param {UserSkill} userSkill 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiFocusgptSkillsUpdate(id: string, userSkill: UserSkill, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSkill>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptSkillsUpdate(id, userSkill, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FocusAISkillsApi.apiFocusgptSkillsUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * FocusAISkillsApi - factory interface
+ * @export
+ */
+export const FocusAISkillsApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = FocusAISkillsApiFp(configuration)
+    return {
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {UserSkill} userSkill 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptSkillsCreate(userSkill: UserSkill, options?: RawAxiosRequestConfig): AxiosPromise<UserSkill> {
+            return localVarFp.apiFocusgptSkillsCreate(userSkill, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptSkillsDestroy(id: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiFocusgptSkillsDestroy(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptSkillsList(options?: RawAxiosRequestConfig): AxiosPromise<Array<UserSkill>> {
+            return localVarFp.apiFocusgptSkillsList(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {string} id 
+         * @param {PatchedUserSkill} [patchedUserSkill] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptSkillsPartialUpdate(id: string, patchedUserSkill?: PatchedUserSkill, options?: RawAxiosRequestConfig): AxiosPromise<UserSkill> {
+            return localVarFp.apiFocusgptSkillsPartialUpdate(id, patchedUserSkill, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptSkillsRetrieve(id: string, options?: RawAxiosRequestConfig): AxiosPromise<UserSkill> {
+            return localVarFp.apiFocusgptSkillsRetrieve(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * CRUD for the current user\'s on-demand FocusAI skills/routines.
+         * @param {string} id 
+         * @param {UserSkill} userSkill 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiFocusgptSkillsUpdate(id: string, userSkill: UserSkill, options?: RawAxiosRequestConfig): AxiosPromise<UserSkill> {
+            return localVarFp.apiFocusgptSkillsUpdate(id, userSkill, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * FocusAISkillsApi - object-oriented interface
+ * @export
+ * @class FocusAISkillsApi
+ * @extends {BaseAPI}
+ */
+export class FocusAISkillsApi extends BaseAPI {
+    /**
+     * CRUD for the current user\'s on-demand FocusAI skills/routines.
+     * @param {UserSkill} userSkill 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FocusAISkillsApi
+     */
+    public apiFocusgptSkillsCreate(userSkill: UserSkill, options?: RawAxiosRequestConfig) {
+        return FocusAISkillsApiFp(this.configuration).apiFocusgptSkillsCreate(userSkill, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * CRUD for the current user\'s on-demand FocusAI skills/routines.
+     * @param {string} id 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FocusAISkillsApi
+     */
+    public apiFocusgptSkillsDestroy(id: string, options?: RawAxiosRequestConfig) {
+        return FocusAISkillsApiFp(this.configuration).apiFocusgptSkillsDestroy(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * CRUD for the current user\'s on-demand FocusAI skills/routines.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FocusAISkillsApi
+     */
+    public apiFocusgptSkillsList(options?: RawAxiosRequestConfig) {
+        return FocusAISkillsApiFp(this.configuration).apiFocusgptSkillsList(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * CRUD for the current user\'s on-demand FocusAI skills/routines.
+     * @param {string} id 
+     * @param {PatchedUserSkill} [patchedUserSkill] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FocusAISkillsApi
+     */
+    public apiFocusgptSkillsPartialUpdate(id: string, patchedUserSkill?: PatchedUserSkill, options?: RawAxiosRequestConfig) {
+        return FocusAISkillsApiFp(this.configuration).apiFocusgptSkillsPartialUpdate(id, patchedUserSkill, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * CRUD for the current user\'s on-demand FocusAI skills/routines.
+     * @param {string} id 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FocusAISkillsApi
+     */
+    public apiFocusgptSkillsRetrieve(id: string, options?: RawAxiosRequestConfig) {
+        return FocusAISkillsApiFp(this.configuration).apiFocusgptSkillsRetrieve(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * CRUD for the current user\'s on-demand FocusAI skills/routines.
+     * @param {string} id 
+     * @param {UserSkill} userSkill 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FocusAISkillsApi
+     */
+    public apiFocusgptSkillsUpdate(id: string, userSkill: UserSkill, options?: RawAxiosRequestConfig) {
+        return FocusAISkillsApiFp(this.configuration).apiFocusgptSkillsUpdate(id, userSkill, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -25737,6 +34386,518 @@ export class GitLabApi extends BaseAPI {
 
 
 /**
+ * GoalApi - axios parameter creator
+ * @export
+ */
+export const GoalApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Create a new goal for a project the current user can manage.
+         * @summary Create goal
+         * @param {Goal} goal 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiGoalCreate: async (goal: Goal, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'goal' is not null or undefined
+            assertParamExists('apiGoalCreate', 'goal', goal)
+            const localVarPath = `/api/goal/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(goal, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Delete a goal (and its key results). Linked tasks are unaffected.
+         * @summary Delete goal
+         * @param {number} id A unique integer value identifying this goal.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiGoalDestroy: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiGoalDestroy', 'id', id)
+            const localVarPath = `/api/goal/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * List goals for the current user (optionally scoped to a project).
+         * @summary List goals
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {number} [project] Filter goals by project id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiGoalList: async (limit?: number, offset?: number, project?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/goal/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+            if (project !== undefined) {
+                localVarQueryParameter['project'] = project;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update fields on a goal belonging to a project the current user can manage.
+         * @summary Partially update goal
+         * @param {number} id A unique integer value identifying this goal.
+         * @param {PatchedGoal} [patchedGoal] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiGoalPartialUpdate: async (id: number, patchedGoal?: PatchedGoal, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiGoalPartialUpdate', 'id', id)
+            const localVarPath = `/api/goal/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchedGoal, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Retrieve a single goal by id.
+         * @summary Retrieve goal
+         * @param {number} id A unique integer value identifying this goal.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiGoalRetrieve: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiGoalRetrieve', 'id', id)
+            const localVarPath = `/api/goal/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update fields on a goal belonging to a project the current user can manage.
+         * @summary Update goal
+         * @param {number} id A unique integer value identifying this goal.
+         * @param {Goal} goal 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiGoalUpdate: async (id: number, goal: Goal, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiGoalUpdate', 'id', id)
+            // verify required parameter 'goal' is not null or undefined
+            assertParamExists('apiGoalUpdate', 'goal', goal)
+            const localVarPath = `/api/goal/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(goal, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * GoalApi - functional programming interface
+ * @export
+ */
+export const GoalApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = GoalApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Create a new goal for a project the current user can manage.
+         * @summary Create goal
+         * @param {Goal} goal 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiGoalCreate(goal: Goal, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Goal>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiGoalCreate(goal, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['GoalApi.apiGoalCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Delete a goal (and its key results). Linked tasks are unaffected.
+         * @summary Delete goal
+         * @param {number} id A unique integer value identifying this goal.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiGoalDestroy(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiGoalDestroy(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['GoalApi.apiGoalDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * List goals for the current user (optionally scoped to a project).
+         * @summary List goals
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {number} [project] Filter goals by project id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiGoalList(limit?: number, offset?: number, project?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedGoalList>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiGoalList(limit, offset, project, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['GoalApi.apiGoalList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Update fields on a goal belonging to a project the current user can manage.
+         * @summary Partially update goal
+         * @param {number} id A unique integer value identifying this goal.
+         * @param {PatchedGoal} [patchedGoal] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiGoalPartialUpdate(id: number, patchedGoal?: PatchedGoal, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Goal>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiGoalPartialUpdate(id, patchedGoal, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['GoalApi.apiGoalPartialUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Retrieve a single goal by id.
+         * @summary Retrieve goal
+         * @param {number} id A unique integer value identifying this goal.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiGoalRetrieve(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Goal>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiGoalRetrieve(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['GoalApi.apiGoalRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Update fields on a goal belonging to a project the current user can manage.
+         * @summary Update goal
+         * @param {number} id A unique integer value identifying this goal.
+         * @param {Goal} goal 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiGoalUpdate(id: number, goal: Goal, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Goal>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiGoalUpdate(id, goal, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['GoalApi.apiGoalUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * GoalApi - factory interface
+ * @export
+ */
+export const GoalApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = GoalApiFp(configuration)
+    return {
+        /**
+         * Create a new goal for a project the current user can manage.
+         * @summary Create goal
+         * @param {Goal} goal 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiGoalCreate(goal: Goal, options?: RawAxiosRequestConfig): AxiosPromise<Goal> {
+            return localVarFp.apiGoalCreate(goal, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Delete a goal (and its key results). Linked tasks are unaffected.
+         * @summary Delete goal
+         * @param {number} id A unique integer value identifying this goal.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiGoalDestroy(id: number, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiGoalDestroy(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * List goals for the current user (optionally scoped to a project).
+         * @summary List goals
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {number} [project] Filter goals by project id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiGoalList(limit?: number, offset?: number, project?: number, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedGoalList> {
+            return localVarFp.apiGoalList(limit, offset, project, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update fields on a goal belonging to a project the current user can manage.
+         * @summary Partially update goal
+         * @param {number} id A unique integer value identifying this goal.
+         * @param {PatchedGoal} [patchedGoal] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiGoalPartialUpdate(id: number, patchedGoal?: PatchedGoal, options?: RawAxiosRequestConfig): AxiosPromise<Goal> {
+            return localVarFp.apiGoalPartialUpdate(id, patchedGoal, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Retrieve a single goal by id.
+         * @summary Retrieve goal
+         * @param {number} id A unique integer value identifying this goal.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiGoalRetrieve(id: number, options?: RawAxiosRequestConfig): AxiosPromise<Goal> {
+            return localVarFp.apiGoalRetrieve(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update fields on a goal belonging to a project the current user can manage.
+         * @summary Update goal
+         * @param {number} id A unique integer value identifying this goal.
+         * @param {Goal} goal 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiGoalUpdate(id: number, goal: Goal, options?: RawAxiosRequestConfig): AxiosPromise<Goal> {
+            return localVarFp.apiGoalUpdate(id, goal, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * GoalApi - object-oriented interface
+ * @export
+ * @class GoalApi
+ * @extends {BaseAPI}
+ */
+export class GoalApi extends BaseAPI {
+    /**
+     * Create a new goal for a project the current user can manage.
+     * @summary Create goal
+     * @param {Goal} goal 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof GoalApi
+     */
+    public apiGoalCreate(goal: Goal, options?: RawAxiosRequestConfig) {
+        return GoalApiFp(this.configuration).apiGoalCreate(goal, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Delete a goal (and its key results). Linked tasks are unaffected.
+     * @summary Delete goal
+     * @param {number} id A unique integer value identifying this goal.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof GoalApi
+     */
+    public apiGoalDestroy(id: number, options?: RawAxiosRequestConfig) {
+        return GoalApiFp(this.configuration).apiGoalDestroy(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * List goals for the current user (optionally scoped to a project).
+     * @summary List goals
+     * @param {number} [limit] Number of results to return per page.
+     * @param {number} [offset] The initial index from which to return the results.
+     * @param {number} [project] Filter goals by project id.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof GoalApi
+     */
+    public apiGoalList(limit?: number, offset?: number, project?: number, options?: RawAxiosRequestConfig) {
+        return GoalApiFp(this.configuration).apiGoalList(limit, offset, project, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update fields on a goal belonging to a project the current user can manage.
+     * @summary Partially update goal
+     * @param {number} id A unique integer value identifying this goal.
+     * @param {PatchedGoal} [patchedGoal] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof GoalApi
+     */
+    public apiGoalPartialUpdate(id: number, patchedGoal?: PatchedGoal, options?: RawAxiosRequestConfig) {
+        return GoalApiFp(this.configuration).apiGoalPartialUpdate(id, patchedGoal, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Retrieve a single goal by id.
+     * @summary Retrieve goal
+     * @param {number} id A unique integer value identifying this goal.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof GoalApi
+     */
+    public apiGoalRetrieve(id: number, options?: RawAxiosRequestConfig) {
+        return GoalApiFp(this.configuration).apiGoalRetrieve(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update fields on a goal belonging to a project the current user can manage.
+     * @summary Update goal
+     * @param {number} id A unique integer value identifying this goal.
+     * @param {Goal} goal 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof GoalApi
+     */
+    public apiGoalUpdate(id: number, goal: Goal, options?: RawAxiosRequestConfig) {
+        return GoalApiFp(this.configuration).apiGoalUpdate(id, goal, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+
+/**
  * GoogleCalendarApi - axios parameter creator
  * @export
  */
@@ -25769,6 +34930,78 @@ export const GoogleCalendarApiAxiosParamCreator = function (configuration?: Conf
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * List every calendar (primary + secondary/shared) FA knows about for the user\'s connected account(s), refreshed live from Google\'s calendarList (G1/FA-950). Optional query param: integration_id (one account; else all).
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        integrationsGoogleCalendarCalendarsList: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/integrations/google-calendar/calendars/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Opt a calendar in or out of sync/webhooks (G1/FA-950). Turning on runs an initial full sync and creates its watch channel; turning off stops the channel but leaves already-imported events (see ``set_calendar_selected``).
+         * @param {SelectCalendarRequest} selectCalendarRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        integrationsGoogleCalendarCalendarsSelectCreate: async (selectCalendarRequest: SelectCalendarRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'selectCalendarRequest' is not null or undefined
+            assertParamExists('integrationsGoogleCalendarCalendarsSelectCreate', 'selectCalendarRequest', selectCalendarRequest)
+            const localVarPath = `/integrations/google-calendar/calendars/select/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(selectCalendarRequest, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -25962,6 +35195,29 @@ export const GoogleCalendarApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * List every calendar (primary + secondary/shared) FA knows about for the user\'s connected account(s), refreshed live from Google\'s calendarList (G1/FA-950). Optional query param: integration_id (one account; else all).
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async integrationsGoogleCalendarCalendarsList(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<UserGoogleCalendar>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.integrationsGoogleCalendarCalendarsList(options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['GoogleCalendarApi.integrationsGoogleCalendarCalendarsList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Opt a calendar in or out of sync/webhooks (G1/FA-950). Turning on runs an initial full sync and creates its watch channel; turning off stops the channel but leaves already-imported events (see ``set_calendar_selected``).
+         * @param {SelectCalendarRequest} selectCalendarRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async integrationsGoogleCalendarCalendarsSelectCreate(selectCalendarRequest: SelectCalendarRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserGoogleCalendar>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.integrationsGoogleCalendarCalendarsSelectCreate(selectCalendarRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['GoogleCalendarApi.integrationsGoogleCalendarCalendarsSelectCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Google Calendar Callback
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -26035,6 +35291,23 @@ export const GoogleCalendarApiFactory = function (configuration?: Configuration,
             return localVarFp.integrationsGoogleCalendarAuthUrlRetrieve(options).then((request) => request(axios, basePath));
         },
         /**
+         * List every calendar (primary + secondary/shared) FA knows about for the user\'s connected account(s), refreshed live from Google\'s calendarList (G1/FA-950). Optional query param: integration_id (one account; else all).
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        integrationsGoogleCalendarCalendarsList(options?: RawAxiosRequestConfig): AxiosPromise<Array<UserGoogleCalendar>> {
+            return localVarFp.integrationsGoogleCalendarCalendarsList(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Opt a calendar in or out of sync/webhooks (G1/FA-950). Turning on runs an initial full sync and creates its watch channel; turning off stops the channel but leaves already-imported events (see ``set_calendar_selected``).
+         * @param {SelectCalendarRequest} selectCalendarRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        integrationsGoogleCalendarCalendarsSelectCreate(selectCalendarRequest: SelectCalendarRequest, options?: RawAxiosRequestConfig): AxiosPromise<UserGoogleCalendar> {
+            return localVarFp.integrationsGoogleCalendarCalendarsSelectCreate(selectCalendarRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Google Calendar Callback
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -26095,6 +35368,27 @@ export class GoogleCalendarApi extends BaseAPI {
     }
 
     /**
+     * List every calendar (primary + secondary/shared) FA knows about for the user\'s connected account(s), refreshed live from Google\'s calendarList (G1/FA-950). Optional query param: integration_id (one account; else all).
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof GoogleCalendarApi
+     */
+    public integrationsGoogleCalendarCalendarsList(options?: RawAxiosRequestConfig) {
+        return GoogleCalendarApiFp(this.configuration).integrationsGoogleCalendarCalendarsList(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Opt a calendar in or out of sync/webhooks (G1/FA-950). Turning on runs an initial full sync and creates its watch channel; turning off stops the channel but leaves already-imported events (see ``set_calendar_selected``).
+     * @param {SelectCalendarRequest} selectCalendarRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof GoogleCalendarApi
+     */
+    public integrationsGoogleCalendarCalendarsSelectCreate(selectCalendarRequest: SelectCalendarRequest, options?: RawAxiosRequestConfig) {
+        return GoogleCalendarApiFp(this.configuration).integrationsGoogleCalendarCalendarsSelectCreate(selectCalendarRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Google Calendar Callback
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -26142,6 +35436,903 @@ export class GoogleCalendarApi extends BaseAPI {
      */
     public integrationsGoogleCalendarUserIntegrationsList(options?: RawAxiosRequestConfig) {
         return GoogleCalendarApiFp(this.configuration).integrationsGoogleCalendarUserIntegrationsList(options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+
+/**
+ * HabitsApi - axios parameter creator
+ * @export
+ */
+export const HabitsApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Change a habit\'s cadence, effective from a given date (default today) — see ``change_cadence``\'s docstring for how this interacts with streak history and the linked calendar Event.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {HabitChangeCadence} habitChangeCadence 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitChangeCadenceCreate: async (id: number, habitChangeCadence: HabitChangeCadence, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiHabitChangeCadenceCreate', 'id', id)
+            // verify required parameter 'habitChangeCadence' is not null or undefined
+            assertParamExists('apiHabitChangeCadenceCreate', 'habitChangeCadence', habitChangeCadence)
+            const localVarPath = `/api/habit/{id}/change-cadence/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(habitChangeCadence, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {HabitCheckInWrite} [habitCheckInWrite] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitCheckInCreate: async (id: number, habitCheckInWrite?: HabitCheckInWrite, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiHabitCheckInCreate', 'id', id)
+            const localVarPath = `/api/habit/{id}/check-in/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(habitCheckInWrite, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {HabitCheckInUndo} habitCheckInUndo 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitCheckInUndoCreate: async (id: number, habitCheckInUndo: HabitCheckInUndo, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiHabitCheckInUndoCreate', 'id', id)
+            // verify required parameter 'habitCheckInUndo' is not null or undefined
+            assertParamExists('apiHabitCheckInUndoCreate', 'habitCheckInUndo', habitCheckInUndo)
+            const localVarPath = `/api/habit/{id}/check-in/undo/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(habitCheckInUndo, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {string} end 
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {string} start 
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitCheckInsList: async (end: string, id: number, start: string, limit?: number, offset?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'end' is not null or undefined
+            assertParamExists('apiHabitCheckInsList', 'end', end)
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiHabitCheckInsList', 'id', id)
+            // verify required parameter 'start' is not null or undefined
+            assertParamExists('apiHabitCheckInsList', 'start', start)
+            const localVarPath = `/api/habit/{id}/check-ins/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (end !== undefined) {
+                localVarQueryParameter['end'] = (end as any instanceof Date) ?
+                    (end as any).toISOString().substring(0,10) :
+                    end;
+            }
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+            if (start !== undefined) {
+                localVarQueryParameter['start'] = (start as any instanceof Date) ?
+                    (start as any).toISOString().substring(0,10) :
+                    start;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {HabitRead} habitRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitCreate: async (habitRead: HabitRead, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'habitRead' is not null or undefined
+            assertParamExists('apiHabitCreate', 'habitRead', habitRead)
+            const localVarPath = `/api/habit/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(habitRead, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Delete a habit. Body may include ``event_action`` (see ``HabitEventActionSerializer``) to also keep/end/delete the linked calendar Event — defaults to \"keep\" (today\'s behavior: the event, if any, is left untouched).
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitDestroy: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiHabitDestroy', 'id', id)
+            const localVarPath = `/api/habit/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitList: async (limit?: number, offset?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/habit/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {PatchedHabitRead} [patchedHabitRead] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitPartialUpdate: async (id: number, patchedHabitRead?: PatchedHabitRead, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiHabitPartialUpdate', 'id', id)
+            const localVarPath = `/api/habit/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchedHabitRead, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitRetrieve: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiHabitRetrieve', 'id', id)
+            const localVarPath = `/api/habit/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Unlink a habit from its calendar event. Body may include ``event_action`` to also end or fully delete the Event; defaults to \"keep\" (event stays on the calendar as an ordinary, no-longer-habit-linked recurring event).
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {HabitEventAction} [habitEventAction] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitUnlinkCreate: async (id: number, habitEventAction?: HabitEventAction, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiHabitUnlinkCreate', 'id', id)
+            const localVarPath = `/api/habit/{id}/unlink/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(habitEventAction, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {HabitRead} habitRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitUpdate: async (id: number, habitRead: HabitRead, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiHabitUpdate', 'id', id)
+            // verify required parameter 'habitRead' is not null or undefined
+            assertParamExists('apiHabitUpdate', 'habitRead', habitRead)
+            const localVarPath = `/api/habit/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(habitRead, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * HabitsApi - functional programming interface
+ * @export
+ */
+export const HabitsApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = HabitsApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Change a habit\'s cadence, effective from a given date (default today) — see ``change_cadence``\'s docstring for how this interacts with streak history and the linked calendar Event.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {HabitChangeCadence} habitChangeCadence 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiHabitChangeCadenceCreate(id: number, habitChangeCadence: HabitChangeCadence, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<HabitRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiHabitChangeCadenceCreate(id, habitChangeCadence, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['HabitsApi.apiHabitChangeCadenceCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {HabitCheckInWrite} [habitCheckInWrite] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiHabitCheckInCreate(id: number, habitCheckInWrite?: HabitCheckInWrite, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<HabitCheckInRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiHabitCheckInCreate(id, habitCheckInWrite, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['HabitsApi.apiHabitCheckInCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {HabitCheckInUndo} habitCheckInUndo 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiHabitCheckInUndoCreate(id: number, habitCheckInUndo: HabitCheckInUndo, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<HabitRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiHabitCheckInUndoCreate(id, habitCheckInUndo, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['HabitsApi.apiHabitCheckInUndoCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {string} end 
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {string} start 
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiHabitCheckInsList(end: string, id: number, start: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedHabitCheckInReadList>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiHabitCheckInsList(end, id, start, limit, offset, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['HabitsApi.apiHabitCheckInsList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {HabitRead} habitRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiHabitCreate(habitRead: HabitRead, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<HabitRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiHabitCreate(habitRead, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['HabitsApi.apiHabitCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Delete a habit. Body may include ``event_action`` (see ``HabitEventActionSerializer``) to also keep/end/delete the linked calendar Event — defaults to \"keep\" (today\'s behavior: the event, if any, is left untouched).
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiHabitDestroy(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiHabitDestroy(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['HabitsApi.apiHabitDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiHabitList(limit?: number, offset?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedHabitReadList>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiHabitList(limit, offset, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['HabitsApi.apiHabitList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {PatchedHabitRead} [patchedHabitRead] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiHabitPartialUpdate(id: number, patchedHabitRead?: PatchedHabitRead, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<HabitRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiHabitPartialUpdate(id, patchedHabitRead, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['HabitsApi.apiHabitPartialUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiHabitRetrieve(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<HabitRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiHabitRetrieve(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['HabitsApi.apiHabitRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Unlink a habit from its calendar event. Body may include ``event_action`` to also end or fully delete the Event; defaults to \"keep\" (event stays on the calendar as an ordinary, no-longer-habit-linked recurring event).
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {HabitEventAction} [habitEventAction] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiHabitUnlinkCreate(id: number, habitEventAction?: HabitEventAction, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<HabitRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiHabitUnlinkCreate(id, habitEventAction, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['HabitsApi.apiHabitUnlinkCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {HabitRead} habitRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiHabitUpdate(id: number, habitRead: HabitRead, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<HabitRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiHabitUpdate(id, habitRead, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['HabitsApi.apiHabitUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * HabitsApi - factory interface
+ * @export
+ */
+export const HabitsApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = HabitsApiFp(configuration)
+    return {
+        /**
+         * Change a habit\'s cadence, effective from a given date (default today) — see ``change_cadence``\'s docstring for how this interacts with streak history and the linked calendar Event.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {HabitChangeCadence} habitChangeCadence 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitChangeCadenceCreate(id: number, habitChangeCadence: HabitChangeCadence, options?: RawAxiosRequestConfig): AxiosPromise<HabitRead> {
+            return localVarFp.apiHabitChangeCadenceCreate(id, habitChangeCadence, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {HabitCheckInWrite} [habitCheckInWrite] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitCheckInCreate(id: number, habitCheckInWrite?: HabitCheckInWrite, options?: RawAxiosRequestConfig): AxiosPromise<HabitCheckInRead> {
+            return localVarFp.apiHabitCheckInCreate(id, habitCheckInWrite, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {HabitCheckInUndo} habitCheckInUndo 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitCheckInUndoCreate(id: number, habitCheckInUndo: HabitCheckInUndo, options?: RawAxiosRequestConfig): AxiosPromise<HabitRead> {
+            return localVarFp.apiHabitCheckInUndoCreate(id, habitCheckInUndo, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {string} end 
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {string} start 
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitCheckInsList(end: string, id: number, start: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedHabitCheckInReadList> {
+            return localVarFp.apiHabitCheckInsList(end, id, start, limit, offset, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {HabitRead} habitRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitCreate(habitRead: HabitRead, options?: RawAxiosRequestConfig): AxiosPromise<HabitRead> {
+            return localVarFp.apiHabitCreate(habitRead, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Delete a habit. Body may include ``event_action`` (see ``HabitEventActionSerializer``) to also keep/end/delete the linked calendar Event — defaults to \"keep\" (today\'s behavior: the event, if any, is left untouched).
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitDestroy(id: number, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiHabitDestroy(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitList(limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedHabitReadList> {
+            return localVarFp.apiHabitList(limit, offset, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {PatchedHabitRead} [patchedHabitRead] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitPartialUpdate(id: number, patchedHabitRead?: PatchedHabitRead, options?: RawAxiosRequestConfig): AxiosPromise<HabitRead> {
+            return localVarFp.apiHabitPartialUpdate(id, patchedHabitRead, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitRetrieve(id: number, options?: RawAxiosRequestConfig): AxiosPromise<HabitRead> {
+            return localVarFp.apiHabitRetrieve(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Unlink a habit from its calendar event. Body may include ``event_action`` to also end or fully delete the Event; defaults to \"keep\" (event stays on the calendar as an ordinary, no-longer-habit-linked recurring event).
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {HabitEventAction} [habitEventAction] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitUnlinkCreate(id: number, habitEventAction?: HabitEventAction, options?: RawAxiosRequestConfig): AxiosPromise<HabitRead> {
+            return localVarFp.apiHabitUnlinkCreate(id, habitEventAction, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+         * @param {number} id A unique integer value identifying this habit.
+         * @param {HabitRead} habitRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiHabitUpdate(id: number, habitRead: HabitRead, options?: RawAxiosRequestConfig): AxiosPromise<HabitRead> {
+            return localVarFp.apiHabitUpdate(id, habitRead, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * HabitsApi - object-oriented interface
+ * @export
+ * @class HabitsApi
+ * @extends {BaseAPI}
+ */
+export class HabitsApi extends BaseAPI {
+    /**
+     * Change a habit\'s cadence, effective from a given date (default today) — see ``change_cadence``\'s docstring for how this interacts with streak history and the linked calendar Event.
+     * @param {number} id A unique integer value identifying this habit.
+     * @param {HabitChangeCadence} habitChangeCadence 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof HabitsApi
+     */
+    public apiHabitChangeCadenceCreate(id: number, habitChangeCadence: HabitChangeCadence, options?: RawAxiosRequestConfig) {
+        return HabitsApiFp(this.configuration).apiHabitChangeCadenceCreate(id, habitChangeCadence, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+     * @param {number} id A unique integer value identifying this habit.
+     * @param {HabitCheckInWrite} [habitCheckInWrite] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof HabitsApi
+     */
+    public apiHabitCheckInCreate(id: number, habitCheckInWrite?: HabitCheckInWrite, options?: RawAxiosRequestConfig) {
+        return HabitsApiFp(this.configuration).apiHabitCheckInCreate(id, habitCheckInWrite, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+     * @param {number} id A unique integer value identifying this habit.
+     * @param {HabitCheckInUndo} habitCheckInUndo 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof HabitsApi
+     */
+    public apiHabitCheckInUndoCreate(id: number, habitCheckInUndo: HabitCheckInUndo, options?: RawAxiosRequestConfig) {
+        return HabitsApiFp(this.configuration).apiHabitCheckInUndoCreate(id, habitCheckInUndo, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+     * @param {string} end 
+     * @param {number} id A unique integer value identifying this habit.
+     * @param {string} start 
+     * @param {number} [limit] Number of results to return per page.
+     * @param {number} [offset] The initial index from which to return the results.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof HabitsApi
+     */
+    public apiHabitCheckInsList(end: string, id: number, start: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
+        return HabitsApiFp(this.configuration).apiHabitCheckInsList(end, id, start, limit, offset, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+     * @param {HabitRead} habitRead 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof HabitsApi
+     */
+    public apiHabitCreate(habitRead: HabitRead, options?: RawAxiosRequestConfig) {
+        return HabitsApiFp(this.configuration).apiHabitCreate(habitRead, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Delete a habit. Body may include ``event_action`` (see ``HabitEventActionSerializer``) to also keep/end/delete the linked calendar Event — defaults to \"keep\" (today\'s behavior: the event, if any, is left untouched).
+     * @param {number} id A unique integer value identifying this habit.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof HabitsApi
+     */
+    public apiHabitDestroy(id: number, options?: RawAxiosRequestConfig) {
+        return HabitsApiFp(this.configuration).apiHabitDestroy(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+     * @param {number} [limit] Number of results to return per page.
+     * @param {number} [offset] The initial index from which to return the results.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof HabitsApi
+     */
+    public apiHabitList(limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
+        return HabitsApiFp(this.configuration).apiHabitList(limit, offset, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+     * @param {number} id A unique integer value identifying this habit.
+     * @param {PatchedHabitRead} [patchedHabitRead] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof HabitsApi
+     */
+    public apiHabitPartialUpdate(id: number, patchedHabitRead?: PatchedHabitRead, options?: RawAxiosRequestConfig) {
+        return HabitsApiFp(this.configuration).apiHabitPartialUpdate(id, patchedHabitRead, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+     * @param {number} id A unique integer value identifying this habit.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof HabitsApi
+     */
+    public apiHabitRetrieve(id: number, options?: RawAxiosRequestConfig) {
+        return HabitsApiFp(this.configuration).apiHabitRetrieve(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Unlink a habit from its calendar event. Body may include ``event_action`` to also end or fully delete the Event; defaults to \"keep\" (event stays on the calendar as an ordinary, no-longer-habit-linked recurring event).
+     * @param {number} id A unique integer value identifying this habit.
+     * @param {HabitEventAction} [habitEventAction] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof HabitsApi
+     */
+    public apiHabitUnlinkCreate(id: number, habitEventAction?: HabitEventAction, options?: RawAxiosRequestConfig) {
+        return HabitsApiFp(this.configuration).apiHabitUnlinkCreate(id, habitEventAction, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * First-class trackable habits: cadence, streaks, optional LifeArea/Event link.
+     * @param {number} id A unique integer value identifying this habit.
+     * @param {HabitRead} habitRead 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof HabitsApi
+     */
+    public apiHabitUpdate(id: number, habitRead: HabitRead, options?: RawAxiosRequestConfig) {
+        return HabitsApiFp(this.configuration).apiHabitUpdate(id, habitRead, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -26803,6 +36994,46 @@ export const JournalApiAxiosParamCreator = function (configuration?: Configurati
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
+        apiJournalDayNoteHistoryList: async (date: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'date' is not null or undefined
+            assertParamExists('apiJournalDayNoteHistoryList', 'date', date)
+            const localVarPath = `/api/journal/day/note-history/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (date !== undefined) {
+                localVarQueryParameter['date'] = date;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Day and week journals: plans, performance, and notes.
+         * @param {string} date 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
         apiJournalDayPartialUpdate: async (date: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'date' is not null or undefined
             assertParamExists('apiJournalDayPartialUpdate', 'date', date)
@@ -26847,6 +37078,98 @@ export const JournalApiAxiosParamCreator = function (configuration?: Configurati
             // verify required parameter 'date' is not null or undefined
             assertParamExists('apiJournalDayRetrieve', 'date', date)
             const localVarPath = `/api/journal/day/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (date !== undefined) {
+                localVarQueryParameter['date'] = date;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Upload an image for use in day or week journal notes. Maximum file size is 10MB. Requires `date` query param (YYYY-MM-DD).
+         * @summary Upload journal note editor image
+         * @param {string} date 
+         * @param {File} image 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiJournalDayUploadEditorImageCreate: async (date: string, image: File, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'date' is not null or undefined
+            assertParamExists('apiJournalDayUploadEditorImageCreate', 'date', date)
+            // verify required parameter 'image' is not null or undefined
+            assertParamExists('apiJournalDayUploadEditorImageCreate', 'image', image)
+            const localVarPath = `/api/journal/day/upload-editor-image/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+            const localVarFormParams = new ((configuration && configuration.formDataCtor) || FormData)();
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (date !== undefined) {
+                localVarQueryParameter['date'] = date;
+            }
+
+
+            if (image !== undefined) { 
+                localVarFormParams.append('image', image as any);
+            }
+    
+    
+            localVarHeaderParameter['Content-Type'] = 'multipart/form-data';
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = localVarFormParams;
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Day and week journals: plans, performance, and notes.
+         * @param {string} date Any date within the week (YYYY-MM-DD)
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiJournalWeekNoteHistoryList: async (date: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'date' is not null or undefined
+            assertParamExists('apiJournalWeekNoteHistoryList', 'date', date)
+            const localVarPath = `/api/journal/week/note-history/`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -26957,6 +37280,58 @@ export const JournalApiAxiosParamCreator = function (configuration?: Configurati
                 options: localVarRequestOptions,
             };
         },
+        /**
+         * Upload an image for use in day or week journal notes. Maximum file size is 10MB. Requires `date` query param (YYYY-MM-DD).
+         * @summary Upload journal note editor image
+         * @param {string} date Any date within the week (YYYY-MM-DD)
+         * @param {File} image 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiJournalWeekUploadEditorImageCreate: async (date: string, image: File, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'date' is not null or undefined
+            assertParamExists('apiJournalWeekUploadEditorImageCreate', 'date', date)
+            // verify required parameter 'image' is not null or undefined
+            assertParamExists('apiJournalWeekUploadEditorImageCreate', 'image', image)
+            const localVarPath = `/api/journal/week/upload-editor-image/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+            const localVarFormParams = new ((configuration && configuration.formDataCtor) || FormData)();
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (date !== undefined) {
+                localVarQueryParameter['date'] = date;
+            }
+
+
+            if (image !== undefined) { 
+                localVarFormParams.append('image', image as any);
+            }
+    
+    
+            localVarHeaderParameter['Content-Type'] = 'multipart/form-data';
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = localVarFormParams;
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
     }
 };
 
@@ -26967,6 +37342,18 @@ export const JournalApiAxiosParamCreator = function (configuration?: Configurati
 export const JournalApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = JournalApiAxiosParamCreator(configuration)
     return {
+        /**
+         * Day and week journals: plans, performance, and notes.
+         * @param {string} date 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiJournalDayNoteHistoryList(date: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<JournalNoteHistoryEntry>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiJournalDayNoteHistoryList(date, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['JournalApi.apiJournalDayNoteHistoryList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
         /**
          * Day and week journals: plans, performance, and notes.
          * @param {string} date 
@@ -26989,6 +37376,32 @@ export const JournalApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.apiJournalDayRetrieve(date, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['JournalApi.apiJournalDayRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Upload an image for use in day or week journal notes. Maximum file size is 10MB. Requires `date` query param (YYYY-MM-DD).
+         * @summary Upload journal note editor image
+         * @param {string} date 
+         * @param {File} image 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiJournalDayUploadEditorImageCreate(date: string, image: File, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserUploadedImageResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiJournalDayUploadEditorImageCreate(date, image, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['JournalApi.apiJournalDayUploadEditorImageCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Day and week journals: plans, performance, and notes.
+         * @param {string} date Any date within the week (YYYY-MM-DD)
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiJournalWeekNoteHistoryList(date: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<JournalNoteHistoryEntry>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiJournalWeekNoteHistoryList(date, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['JournalApi.apiJournalWeekNoteHistoryList']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -27015,6 +37428,20 @@ export const JournalApiFp = function(configuration?: Configuration) {
             const localVarOperationServerBasePath = operationServerMap['JournalApi.apiJournalWeekRetrieve']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
+        /**
+         * Upload an image for use in day or week journal notes. Maximum file size is 10MB. Requires `date` query param (YYYY-MM-DD).
+         * @summary Upload journal note editor image
+         * @param {string} date Any date within the week (YYYY-MM-DD)
+         * @param {File} image 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiJournalWeekUploadEditorImageCreate(date: string, image: File, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserUploadedImageResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiJournalWeekUploadEditorImageCreate(date, image, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['JournalApi.apiJournalWeekUploadEditorImageCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
     }
 };
 
@@ -27025,6 +37452,15 @@ export const JournalApiFp = function(configuration?: Configuration) {
 export const JournalApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
     const localVarFp = JournalApiFp(configuration)
     return {
+        /**
+         * Day and week journals: plans, performance, and notes.
+         * @param {string} date 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiJournalDayNoteHistoryList(date: string, options?: RawAxiosRequestConfig): AxiosPromise<Array<JournalNoteHistoryEntry>> {
+            return localVarFp.apiJournalDayNoteHistoryList(date, options).then((request) => request(axios, basePath));
+        },
         /**
          * Day and week journals: plans, performance, and notes.
          * @param {string} date 
@@ -27044,6 +37480,26 @@ export const JournalApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.apiJournalDayRetrieve(date, options).then((request) => request(axios, basePath));
         },
         /**
+         * Upload an image for use in day or week journal notes. Maximum file size is 10MB. Requires `date` query param (YYYY-MM-DD).
+         * @summary Upload journal note editor image
+         * @param {string} date 
+         * @param {File} image 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiJournalDayUploadEditorImageCreate(date: string, image: File, options?: RawAxiosRequestConfig): AxiosPromise<UserUploadedImageResponse> {
+            return localVarFp.apiJournalDayUploadEditorImageCreate(date, image, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Day and week journals: plans, performance, and notes.
+         * @param {string} date Any date within the week (YYYY-MM-DD)
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiJournalWeekNoteHistoryList(date: string, options?: RawAxiosRequestConfig): AxiosPromise<Array<JournalNoteHistoryEntry>> {
+            return localVarFp.apiJournalWeekNoteHistoryList(date, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Day and week journals: plans, performance, and notes.
          * @param {string} date Any date within the week (YYYY-MM-DD)
          * @param {*} [options] Override http request option.
@@ -27061,6 +37517,17 @@ export const JournalApiFactory = function (configuration?: Configuration, basePa
         apiJournalWeekRetrieve(date: string, options?: RawAxiosRequestConfig): AxiosPromise<WeekJournal> {
             return localVarFp.apiJournalWeekRetrieve(date, options).then((request) => request(axios, basePath));
         },
+        /**
+         * Upload an image for use in day or week journal notes. Maximum file size is 10MB. Requires `date` query param (YYYY-MM-DD).
+         * @summary Upload journal note editor image
+         * @param {string} date Any date within the week (YYYY-MM-DD)
+         * @param {File} image 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiJournalWeekUploadEditorImageCreate(date: string, image: File, options?: RawAxiosRequestConfig): AxiosPromise<UserUploadedImageResponse> {
+            return localVarFp.apiJournalWeekUploadEditorImageCreate(date, image, options).then((request) => request(axios, basePath));
+        },
     };
 };
 
@@ -27071,6 +37538,17 @@ export const JournalApiFactory = function (configuration?: Configuration, basePa
  * @extends {BaseAPI}
  */
 export class JournalApi extends BaseAPI {
+    /**
+     * Day and week journals: plans, performance, and notes.
+     * @param {string} date 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof JournalApi
+     */
+    public apiJournalDayNoteHistoryList(date: string, options?: RawAxiosRequestConfig) {
+        return JournalApiFp(this.configuration).apiJournalDayNoteHistoryList(date, options).then((request) => request(this.axios, this.basePath));
+    }
+
     /**
      * Day and week journals: plans, performance, and notes.
      * @param {string} date 
@@ -27094,6 +37572,30 @@ export class JournalApi extends BaseAPI {
     }
 
     /**
+     * Upload an image for use in day or week journal notes. Maximum file size is 10MB. Requires `date` query param (YYYY-MM-DD).
+     * @summary Upload journal note editor image
+     * @param {string} date 
+     * @param {File} image 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof JournalApi
+     */
+    public apiJournalDayUploadEditorImageCreate(date: string, image: File, options?: RawAxiosRequestConfig) {
+        return JournalApiFp(this.configuration).apiJournalDayUploadEditorImageCreate(date, image, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Day and week journals: plans, performance, and notes.
+     * @param {string} date Any date within the week (YYYY-MM-DD)
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof JournalApi
+     */
+    public apiJournalWeekNoteHistoryList(date: string, options?: RawAxiosRequestConfig) {
+        return JournalApiFp(this.configuration).apiJournalWeekNoteHistoryList(date, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Day and week journals: plans, performance, and notes.
      * @param {string} date Any date within the week (YYYY-MM-DD)
      * @param {*} [options] Override http request option.
@@ -27113,6 +37615,458 @@ export class JournalApi extends BaseAPI {
      */
     public apiJournalWeekRetrieve(date: string, options?: RawAxiosRequestConfig) {
         return JournalApiFp(this.configuration).apiJournalWeekRetrieve(date, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Upload an image for use in day or week journal notes. Maximum file size is 10MB. Requires `date` query param (YYYY-MM-DD).
+     * @summary Upload journal note editor image
+     * @param {string} date Any date within the week (YYYY-MM-DD)
+     * @param {File} image 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof JournalApi
+     */
+    public apiJournalWeekUploadEditorImageCreate(date: string, image: File, options?: RawAxiosRequestConfig) {
+        return JournalApiFp(this.configuration).apiJournalWeekUploadEditorImageCreate(date, image, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+
+/**
+ * KeyResultApi - axios parameter creator
+ * @export
+ */
+export const KeyResultApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Create a new key result under a goal the current user can manage.
+         * @summary Create key result
+         * @param {KeyResult} keyResult 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiKeyResultCreate: async (keyResult: KeyResult, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'keyResult' is not null or undefined
+            assertParamExists('apiKeyResultCreate', 'keyResult', keyResult)
+            const localVarPath = `/api/key_result/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(keyResult, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Key Result ViewSet — a single measurable line item under a Goal.
+         * @summary Delete key result
+         * @param {number} id A unique integer value identifying this key result.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiKeyResultDestroy: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiKeyResultDestroy', 'id', id)
+            const localVarPath = `/api/key_result/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * List key results for the current user (optionally scoped to a goal).
+         * @summary List key results
+         * @param {number} [goal] Filter key results by goal id.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiKeyResultList: async (goal?: number, limit?: number, offset?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/key_result/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (goal !== undefined) {
+                localVarQueryParameter['goal'] = goal;
+            }
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Key Result ViewSet — a single measurable line item under a Goal.
+         * @summary Partially update key result
+         * @param {number} id A unique integer value identifying this key result.
+         * @param {PatchedKeyResult} [patchedKeyResult] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiKeyResultPartialUpdate: async (id: number, patchedKeyResult?: PatchedKeyResult, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiKeyResultPartialUpdate', 'id', id)
+            const localVarPath = `/api/key_result/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchedKeyResult, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Key Result ViewSet — a single measurable line item under a Goal.
+         * @summary Update key result
+         * @param {number} id A unique integer value identifying this key result.
+         * @param {KeyResult} keyResult 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiKeyResultUpdate: async (id: number, keyResult: KeyResult, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiKeyResultUpdate', 'id', id)
+            // verify required parameter 'keyResult' is not null or undefined
+            assertParamExists('apiKeyResultUpdate', 'keyResult', keyResult)
+            const localVarPath = `/api/key_result/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(keyResult, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * KeyResultApi - functional programming interface
+ * @export
+ */
+export const KeyResultApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = KeyResultApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Create a new key result under a goal the current user can manage.
+         * @summary Create key result
+         * @param {KeyResult} keyResult 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiKeyResultCreate(keyResult: KeyResult, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<KeyResult>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiKeyResultCreate(keyResult, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['KeyResultApi.apiKeyResultCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Key Result ViewSet — a single measurable line item under a Goal.
+         * @summary Delete key result
+         * @param {number} id A unique integer value identifying this key result.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiKeyResultDestroy(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiKeyResultDestroy(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['KeyResultApi.apiKeyResultDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * List key results for the current user (optionally scoped to a goal).
+         * @summary List key results
+         * @param {number} [goal] Filter key results by goal id.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiKeyResultList(goal?: number, limit?: number, offset?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedKeyResultList>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiKeyResultList(goal, limit, offset, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['KeyResultApi.apiKeyResultList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Key Result ViewSet — a single measurable line item under a Goal.
+         * @summary Partially update key result
+         * @param {number} id A unique integer value identifying this key result.
+         * @param {PatchedKeyResult} [patchedKeyResult] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiKeyResultPartialUpdate(id: number, patchedKeyResult?: PatchedKeyResult, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<KeyResult>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiKeyResultPartialUpdate(id, patchedKeyResult, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['KeyResultApi.apiKeyResultPartialUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Key Result ViewSet — a single measurable line item under a Goal.
+         * @summary Update key result
+         * @param {number} id A unique integer value identifying this key result.
+         * @param {KeyResult} keyResult 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiKeyResultUpdate(id: number, keyResult: KeyResult, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<KeyResult>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiKeyResultUpdate(id, keyResult, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['KeyResultApi.apiKeyResultUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * KeyResultApi - factory interface
+ * @export
+ */
+export const KeyResultApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = KeyResultApiFp(configuration)
+    return {
+        /**
+         * Create a new key result under a goal the current user can manage.
+         * @summary Create key result
+         * @param {KeyResult} keyResult 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiKeyResultCreate(keyResult: KeyResult, options?: RawAxiosRequestConfig): AxiosPromise<KeyResult> {
+            return localVarFp.apiKeyResultCreate(keyResult, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Key Result ViewSet — a single measurable line item under a Goal.
+         * @summary Delete key result
+         * @param {number} id A unique integer value identifying this key result.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiKeyResultDestroy(id: number, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiKeyResultDestroy(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * List key results for the current user (optionally scoped to a goal).
+         * @summary List key results
+         * @param {number} [goal] Filter key results by goal id.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiKeyResultList(goal?: number, limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedKeyResultList> {
+            return localVarFp.apiKeyResultList(goal, limit, offset, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Key Result ViewSet — a single measurable line item under a Goal.
+         * @summary Partially update key result
+         * @param {number} id A unique integer value identifying this key result.
+         * @param {PatchedKeyResult} [patchedKeyResult] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiKeyResultPartialUpdate(id: number, patchedKeyResult?: PatchedKeyResult, options?: RawAxiosRequestConfig): AxiosPromise<KeyResult> {
+            return localVarFp.apiKeyResultPartialUpdate(id, patchedKeyResult, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Key Result ViewSet — a single measurable line item under a Goal.
+         * @summary Update key result
+         * @param {number} id A unique integer value identifying this key result.
+         * @param {KeyResult} keyResult 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiKeyResultUpdate(id: number, keyResult: KeyResult, options?: RawAxiosRequestConfig): AxiosPromise<KeyResult> {
+            return localVarFp.apiKeyResultUpdate(id, keyResult, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * KeyResultApi - object-oriented interface
+ * @export
+ * @class KeyResultApi
+ * @extends {BaseAPI}
+ */
+export class KeyResultApi extends BaseAPI {
+    /**
+     * Create a new key result under a goal the current user can manage.
+     * @summary Create key result
+     * @param {KeyResult} keyResult 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof KeyResultApi
+     */
+    public apiKeyResultCreate(keyResult: KeyResult, options?: RawAxiosRequestConfig) {
+        return KeyResultApiFp(this.configuration).apiKeyResultCreate(keyResult, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Key Result ViewSet — a single measurable line item under a Goal.
+     * @summary Delete key result
+     * @param {number} id A unique integer value identifying this key result.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof KeyResultApi
+     */
+    public apiKeyResultDestroy(id: number, options?: RawAxiosRequestConfig) {
+        return KeyResultApiFp(this.configuration).apiKeyResultDestroy(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * List key results for the current user (optionally scoped to a goal).
+     * @summary List key results
+     * @param {number} [goal] Filter key results by goal id.
+     * @param {number} [limit] Number of results to return per page.
+     * @param {number} [offset] The initial index from which to return the results.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof KeyResultApi
+     */
+    public apiKeyResultList(goal?: number, limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
+        return KeyResultApiFp(this.configuration).apiKeyResultList(goal, limit, offset, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Key Result ViewSet — a single measurable line item under a Goal.
+     * @summary Partially update key result
+     * @param {number} id A unique integer value identifying this key result.
+     * @param {PatchedKeyResult} [patchedKeyResult] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof KeyResultApi
+     */
+    public apiKeyResultPartialUpdate(id: number, patchedKeyResult?: PatchedKeyResult, options?: RawAxiosRequestConfig) {
+        return KeyResultApiFp(this.configuration).apiKeyResultPartialUpdate(id, patchedKeyResult, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Key Result ViewSet — a single measurable line item under a Goal.
+     * @summary Update key result
+     * @param {number} id A unique integer value identifying this key result.
+     * @param {KeyResult} keyResult 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof KeyResultApi
+     */
+    public apiKeyResultUpdate(id: number, keyResult: KeyResult, options?: RawAxiosRequestConfig) {
+        return KeyResultApiFp(this.configuration).apiKeyResultUpdate(id, keyResult, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -27792,7 +38746,7 @@ export const NotificationApiAxiosParamCreator = function (configuration?: Config
          * @param {number} [pageSize] Number of results to return per page.
          * @param {NotificationsApiListSourceEnum} [source] Filter notifications by source
          * @param {NotificationsApiListStatusEnum} [status] Filter notifications by status
-         * @param {NotificationsApiListTypeEnum} [type] Filter notifications by type
+         * @param {NotificationsApiListTypeEnum} [type] Filter notifications by persistent inbox type (SSE-only types are not allowed)
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -28172,6 +39126,85 @@ export const NotificationApiAxiosParamCreator = function (configuration?: Config
                 options: localVarRequestOptions,
             };
         },
+        /**
+         * Upsert an FCM registration token for the current user (mobile push).
+         * @param {DevicePushTokenRegister} devicePushTokenRegister 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        notificationsDevicesCreate: async (devicePushTokenRegister: DevicePushTokenRegister, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'devicePushTokenRegister' is not null or undefined
+            assertParamExists('notificationsDevicesCreate', 'devicePushTokenRegister', devicePushTokenRegister)
+            const localVarPath = `/notifications/devices/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(devicePushTokenRegister, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Deactivate an FCM registration token for the current user (e.g. on logout).
+         * @param {string} token FCM registration token to deactivate
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        notificationsDevicesDestroy: async (token: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'token' is not null or undefined
+            assertParamExists('notificationsDevicesDestroy', 'token', token)
+            const localVarPath = `/notifications/devices/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (token !== undefined) {
+                localVarQueryParameter['token'] = token;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
     }
 };
 
@@ -28212,7 +39245,7 @@ export const NotificationApiFp = function(configuration?: Configuration) {
          * @param {number} [pageSize] Number of results to return per page.
          * @param {NotificationsApiListSourceEnum} [source] Filter notifications by source
          * @param {NotificationsApiListStatusEnum} [status] Filter notifications by status
-         * @param {NotificationsApiListTypeEnum} [type] Filter notifications by type
+         * @param {NotificationsApiListTypeEnum} [type] Filter notifications by persistent inbox type (SSE-only types are not allowed)
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -28323,6 +39356,30 @@ export const NotificationApiFp = function(configuration?: Configuration) {
             const localVarOperationServerBasePath = operationServerMap['NotificationApi.notificationsApiUpdate']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
+        /**
+         * Upsert an FCM registration token for the current user (mobile push).
+         * @param {DevicePushTokenRegister} devicePushTokenRegister 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async notificationsDevicesCreate(devicePushTokenRegister: DevicePushTokenRegister, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DevicePushToken>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.notificationsDevicesCreate(devicePushTokenRegister, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['NotificationApi.notificationsDevicesCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Deactivate an FCM registration token for the current user (e.g. on logout).
+         * @param {string} token FCM registration token to deactivate
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async notificationsDevicesDestroy(token: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.notificationsDevicesDestroy(token, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['NotificationApi.notificationsDevicesDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
     }
 };
 
@@ -28357,7 +39414,7 @@ export const NotificationApiFactory = function (configuration?: Configuration, b
          * @param {number} [pageSize] Number of results to return per page.
          * @param {NotificationsApiListSourceEnum} [source] Filter notifications by source
          * @param {NotificationsApiListStatusEnum} [status] Filter notifications by status
-         * @param {NotificationsApiListTypeEnum} [type] Filter notifications by type
+         * @param {NotificationsApiListTypeEnum} [type] Filter notifications by persistent inbox type (SSE-only types are not allowed)
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -28441,6 +39498,24 @@ export const NotificationApiFactory = function (configuration?: Configuration, b
         notificationsApiUpdate(id: number, notification: Notification, options?: RawAxiosRequestConfig): AxiosPromise<Notification> {
             return localVarFp.notificationsApiUpdate(id, notification, options).then((request) => request(axios, basePath));
         },
+        /**
+         * Upsert an FCM registration token for the current user (mobile push).
+         * @param {DevicePushTokenRegister} devicePushTokenRegister 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        notificationsDevicesCreate(devicePushTokenRegister: DevicePushTokenRegister, options?: RawAxiosRequestConfig): AxiosPromise<DevicePushToken> {
+            return localVarFp.notificationsDevicesCreate(devicePushTokenRegister, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Deactivate an FCM registration token for the current user (e.g. on logout).
+         * @param {string} token FCM registration token to deactivate
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        notificationsDevicesDestroy(token: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.notificationsDevicesDestroy(token, options).then((request) => request(axios, basePath));
+        },
     };
 };
 
@@ -28479,7 +39554,7 @@ export class NotificationApi extends BaseAPI {
      * @param {number} [pageSize] Number of results to return per page.
      * @param {NotificationsApiListSourceEnum} [source] Filter notifications by source
      * @param {NotificationsApiListStatusEnum} [status] Filter notifications by status
-     * @param {NotificationsApiListTypeEnum} [type] Filter notifications by type
+     * @param {NotificationsApiListTypeEnum} [type] Filter notifications by persistent inbox type (SSE-only types are not allowed)
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof NotificationApi
@@ -28580,6 +39655,28 @@ export class NotificationApi extends BaseAPI {
     public notificationsApiUpdate(id: number, notification: Notification, options?: RawAxiosRequestConfig) {
         return NotificationApiFp(this.configuration).notificationsApiUpdate(id, notification, options).then((request) => request(this.axios, this.basePath));
     }
+
+    /**
+     * Upsert an FCM registration token for the current user (mobile push).
+     * @param {DevicePushTokenRegister} devicePushTokenRegister 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof NotificationApi
+     */
+    public notificationsDevicesCreate(devicePushTokenRegister: DevicePushTokenRegister, options?: RawAxiosRequestConfig) {
+        return NotificationApiFp(this.configuration).notificationsDevicesCreate(devicePushTokenRegister, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Deactivate an FCM registration token for the current user (e.g. on logout).
+     * @param {string} token FCM registration token to deactivate
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof NotificationApi
+     */
+    public notificationsDevicesDestroy(token: string, options?: RawAxiosRequestConfig) {
+        return NotificationApiFp(this.configuration).notificationsDevicesDestroy(token, options).then((request) => request(this.axios, this.basePath));
+    }
 }
 
 /**
@@ -28608,12 +39705,12 @@ export type NotificationsApiListStatusEnum = typeof NotificationsApiListStatusEn
  */
 export const NotificationsApiListTypeEnum = {
     CalendarInvite: 'calendar_invite',
-    CalendarReminder: 'calendar_reminder',
     Comment: 'comment',
     DailyBrief: 'daily_brief',
     DailyPlanNudge: 'daily_plan_nudge',
     DailyReflection: 'daily_reflection',
     Issue: 'issue',
+    MonthlyReflection: 'monthly_reflection',
     Pr: 'pr',
     TaskDue: 'task_due',
     TaskOverdue: 'task_overdue',
@@ -30097,6 +41194,51 @@ export const PlanSessionsApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
+         * GET: return the saved plan snapshot for the period (404 if none). DELETE: permanently remove the saved plan for the period (calendar events are kept). PATCH: update this specific snapshot\'s comparison_mode (which adherence number — baseline or latest — it shows as primary); body is PlanSnapshotComparisonModeSerializer.
+         * @param {ApiPlanSessionsSnapshotDestroyScopeEnum} scope 
+         * @param {string} [date] Anchor date YYYY-MM-DD
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiPlanSessionsSnapshotDestroy: async (scope: ApiPlanSessionsSnapshotDestroyScopeEnum, date?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'scope' is not null or undefined
+            assertParamExists('apiPlanSessionsSnapshotDestroy', 'scope', scope)
+            const localVarPath = `/api/plan-sessions/snapshot/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (date !== undefined) {
+                localVarQueryParameter['date'] = date;
+            }
+
+            if (scope !== undefined) {
+                localVarQueryParameter['scope'] = scope;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Commit whatever the live calendar currently shows as a new plan version (Phase 6 / D7) — no `blocks` body, unlike `commit`. Lets the user create a snapshot without entering planning mode, e.g. from the drift toast\'s \'Create planned snapshot\' action.
          * @param {PlanSnapshotLive} planSnapshotLive 
          * @param {*} [options] Override http request option.
@@ -30136,7 +41278,56 @@ export const PlanSessionsApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * 
+         * GET: return the saved plan snapshot for the period (404 if none). DELETE: permanently remove the saved plan for the period (calendar events are kept). PATCH: update this specific snapshot\'s comparison_mode (which adherence number — baseline or latest — it shows as primary); body is PlanSnapshotComparisonModeSerializer.
+         * @param {ApiPlanSessionsSnapshotPartialUpdateScopeEnum} scope 
+         * @param {string} [date] Anchor date YYYY-MM-DD
+         * @param {PatchedPlanSnapshotComparisonMode} [patchedPlanSnapshotComparisonMode] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiPlanSessionsSnapshotPartialUpdate: async (scope: ApiPlanSessionsSnapshotPartialUpdateScopeEnum, date?: string, patchedPlanSnapshotComparisonMode?: PatchedPlanSnapshotComparisonMode, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'scope' is not null or undefined
+            assertParamExists('apiPlanSessionsSnapshotPartialUpdate', 'scope', scope)
+            const localVarPath = `/api/plan-sessions/snapshot/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (date !== undefined) {
+                localVarQueryParameter['date'] = date;
+            }
+
+            if (scope !== undefined) {
+                localVarQueryParameter['scope'] = scope;
+            }
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchedPlanSnapshotComparisonMode, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * GET: return the saved plan snapshot for the period (404 if none). DELETE: permanently remove the saved plan for the period (calendar events are kept). PATCH: update this specific snapshot\'s comparison_mode (which adherence number — baseline or latest — it shows as primary); body is PlanSnapshotComparisonModeSerializer.
          * @param {ApiPlanSessionsSnapshotRetrieveScopeEnum} scope 
          * @param {string} [date] Anchor date YYYY-MM-DD
          * @param {*} [options] Override http request option.
@@ -30229,12 +41420,13 @@ export const PlanSessionsApiAxiosParamCreator = function (configuration?: Config
          * 
          * @param {string} periodStart 
          * @param {ApiPlanSessionsVsActualRetrieveScopeEnum} scope 
+         * @param {ApiPlanSessionsVsActualRetrieveGranularityEnum} [granularity] Only used with period_end (range aggregation, e.g. month view): which PlanSnapshot scope to sum over the range — daily snapshots (default) or weekly ones. These are strictly separate scopes (see plan_resolution.py), not merged, so pick whichever granularity the user actually planned in.
          * @param {string} [periodEnd] Optional range end YYYY-MM-DD (e.g. month end). Aggregates daily plan snapshots in range.
          * @param {string} [until] Compare until date YYYY-MM-DD
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiPlanSessionsVsActualRetrieve: async (periodStart: string, scope: ApiPlanSessionsVsActualRetrieveScopeEnum, periodEnd?: string, until?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        apiPlanSessionsVsActualRetrieve: async (periodStart: string, scope: ApiPlanSessionsVsActualRetrieveScopeEnum, granularity?: ApiPlanSessionsVsActualRetrieveGranularityEnum, periodEnd?: string, until?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'periodStart' is not null or undefined
             assertParamExists('apiPlanSessionsVsActualRetrieve', 'periodStart', periodStart)
             // verify required parameter 'scope' is not null or undefined
@@ -30254,6 +41446,10 @@ export const PlanSessionsApiAxiosParamCreator = function (configuration?: Config
             // authentication KeycloakAuthentication required
             // http bearer authentication required
             await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (granularity !== undefined) {
+                localVarQueryParameter['granularity'] = granularity;
+            }
 
             if (periodEnd !== undefined) {
                 localVarQueryParameter['period_end'] = periodEnd;
@@ -30399,6 +41595,19 @@ export const PlanSessionsApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * GET: return the saved plan snapshot for the period (404 if none). DELETE: permanently remove the saved plan for the period (calendar events are kept). PATCH: update this specific snapshot\'s comparison_mode (which adherence number — baseline or latest — it shows as primary); body is PlanSnapshotComparisonModeSerializer.
+         * @param {ApiPlanSessionsSnapshotDestroyScopeEnum} scope 
+         * @param {string} [date] Anchor date YYYY-MM-DD
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiPlanSessionsSnapshotDestroy(scope: ApiPlanSessionsSnapshotDestroyScopeEnum, date?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PlanSnapshot>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiPlanSessionsSnapshotDestroy(scope, date, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PlanSessionsApi.apiPlanSessionsSnapshotDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Commit whatever the live calendar currently shows as a new plan version (Phase 6 / D7) — no `blocks` body, unlike `commit`. Lets the user create a snapshot without entering planning mode, e.g. from the drift toast\'s \'Create planned snapshot\' action.
          * @param {PlanSnapshotLive} planSnapshotLive 
          * @param {*} [options] Override http request option.
@@ -30411,7 +41620,21 @@ export const PlanSessionsApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * 
+         * GET: return the saved plan snapshot for the period (404 if none). DELETE: permanently remove the saved plan for the period (calendar events are kept). PATCH: update this specific snapshot\'s comparison_mode (which adherence number — baseline or latest — it shows as primary); body is PlanSnapshotComparisonModeSerializer.
+         * @param {ApiPlanSessionsSnapshotPartialUpdateScopeEnum} scope 
+         * @param {string} [date] Anchor date YYYY-MM-DD
+         * @param {PatchedPlanSnapshotComparisonMode} [patchedPlanSnapshotComparisonMode] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiPlanSessionsSnapshotPartialUpdate(scope: ApiPlanSessionsSnapshotPartialUpdateScopeEnum, date?: string, patchedPlanSnapshotComparisonMode?: PatchedPlanSnapshotComparisonMode, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PlanSnapshot>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiPlanSessionsSnapshotPartialUpdate(scope, date, patchedPlanSnapshotComparisonMode, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PlanSessionsApi.apiPlanSessionsSnapshotPartialUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * GET: return the saved plan snapshot for the period (404 if none). DELETE: permanently remove the saved plan for the period (calendar events are kept). PATCH: update this specific snapshot\'s comparison_mode (which adherence number — baseline or latest — it shows as primary); body is PlanSnapshotComparisonModeSerializer.
          * @param {ApiPlanSessionsSnapshotRetrieveScopeEnum} scope 
          * @param {string} [date] Anchor date YYYY-MM-DD
          * @param {*} [options] Override http request option.
@@ -30440,13 +41663,14 @@ export const PlanSessionsApiFp = function(configuration?: Configuration) {
          * 
          * @param {string} periodStart 
          * @param {ApiPlanSessionsVsActualRetrieveScopeEnum} scope 
+         * @param {ApiPlanSessionsVsActualRetrieveGranularityEnum} [granularity] Only used with period_end (range aggregation, e.g. month view): which PlanSnapshot scope to sum over the range — daily snapshots (default) or weekly ones. These are strictly separate scopes (see plan_resolution.py), not merged, so pick whichever granularity the user actually planned in.
          * @param {string} [periodEnd] Optional range end YYYY-MM-DD (e.g. month end). Aggregates daily plan snapshots in range.
          * @param {string} [until] Compare until date YYYY-MM-DD
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiPlanSessionsVsActualRetrieve(periodStart: string, scope: ApiPlanSessionsVsActualRetrieveScopeEnum, periodEnd?: string, until?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PlanVsActual>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.apiPlanSessionsVsActualRetrieve(periodStart, scope, periodEnd, until, options);
+        async apiPlanSessionsVsActualRetrieve(periodStart: string, scope: ApiPlanSessionsVsActualRetrieveScopeEnum, granularity?: ApiPlanSessionsVsActualRetrieveGranularityEnum, periodEnd?: string, until?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PlanVsActual>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiPlanSessionsVsActualRetrieve(periodStart, scope, granularity, periodEnd, until, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PlanSessionsApi.apiPlanSessionsVsActualRetrieve']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -30544,6 +41768,16 @@ export const PlanSessionsApiFactory = function (configuration?: Configuration, b
             return localVarFp.apiPlanSessionsIndexRetrieve(cursor, from, limit, scope, status, to, options).then((request) => request(axios, basePath));
         },
         /**
+         * GET: return the saved plan snapshot for the period (404 if none). DELETE: permanently remove the saved plan for the period (calendar events are kept). PATCH: update this specific snapshot\'s comparison_mode (which adherence number — baseline or latest — it shows as primary); body is PlanSnapshotComparisonModeSerializer.
+         * @param {ApiPlanSessionsSnapshotDestroyScopeEnum} scope 
+         * @param {string} [date] Anchor date YYYY-MM-DD
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiPlanSessionsSnapshotDestroy(scope: ApiPlanSessionsSnapshotDestroyScopeEnum, date?: string, options?: RawAxiosRequestConfig): AxiosPromise<PlanSnapshot> {
+            return localVarFp.apiPlanSessionsSnapshotDestroy(scope, date, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Commit whatever the live calendar currently shows as a new plan version (Phase 6 / D7) — no `blocks` body, unlike `commit`. Lets the user create a snapshot without entering planning mode, e.g. from the drift toast\'s \'Create planned snapshot\' action.
          * @param {PlanSnapshotLive} planSnapshotLive 
          * @param {*} [options] Override http request option.
@@ -30553,7 +41787,18 @@ export const PlanSessionsApiFactory = function (configuration?: Configuration, b
             return localVarFp.apiPlanSessionsSnapshotLiveCreate(planSnapshotLive, options).then((request) => request(axios, basePath));
         },
         /**
-         * 
+         * GET: return the saved plan snapshot for the period (404 if none). DELETE: permanently remove the saved plan for the period (calendar events are kept). PATCH: update this specific snapshot\'s comparison_mode (which adherence number — baseline or latest — it shows as primary); body is PlanSnapshotComparisonModeSerializer.
+         * @param {ApiPlanSessionsSnapshotPartialUpdateScopeEnum} scope 
+         * @param {string} [date] Anchor date YYYY-MM-DD
+         * @param {PatchedPlanSnapshotComparisonMode} [patchedPlanSnapshotComparisonMode] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiPlanSessionsSnapshotPartialUpdate(scope: ApiPlanSessionsSnapshotPartialUpdateScopeEnum, date?: string, patchedPlanSnapshotComparisonMode?: PatchedPlanSnapshotComparisonMode, options?: RawAxiosRequestConfig): AxiosPromise<PlanSnapshot> {
+            return localVarFp.apiPlanSessionsSnapshotPartialUpdate(scope, date, patchedPlanSnapshotComparisonMode, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * GET: return the saved plan snapshot for the period (404 if none). DELETE: permanently remove the saved plan for the period (calendar events are kept). PATCH: update this specific snapshot\'s comparison_mode (which adherence number — baseline or latest — it shows as primary); body is PlanSnapshotComparisonModeSerializer.
          * @param {ApiPlanSessionsSnapshotRetrieveScopeEnum} scope 
          * @param {string} [date] Anchor date YYYY-MM-DD
          * @param {*} [options] Override http request option.
@@ -30576,13 +41821,14 @@ export const PlanSessionsApiFactory = function (configuration?: Configuration, b
          * 
          * @param {string} periodStart 
          * @param {ApiPlanSessionsVsActualRetrieveScopeEnum} scope 
+         * @param {ApiPlanSessionsVsActualRetrieveGranularityEnum} [granularity] Only used with period_end (range aggregation, e.g. month view): which PlanSnapshot scope to sum over the range — daily snapshots (default) or weekly ones. These are strictly separate scopes (see plan_resolution.py), not merged, so pick whichever granularity the user actually planned in.
          * @param {string} [periodEnd] Optional range end YYYY-MM-DD (e.g. month end). Aggregates daily plan snapshots in range.
          * @param {string} [until] Compare until date YYYY-MM-DD
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiPlanSessionsVsActualRetrieve(periodStart: string, scope: ApiPlanSessionsVsActualRetrieveScopeEnum, periodEnd?: string, until?: string, options?: RawAxiosRequestConfig): AxiosPromise<PlanVsActual> {
-            return localVarFp.apiPlanSessionsVsActualRetrieve(periodStart, scope, periodEnd, until, options).then((request) => request(axios, basePath));
+        apiPlanSessionsVsActualRetrieve(periodStart: string, scope: ApiPlanSessionsVsActualRetrieveScopeEnum, granularity?: ApiPlanSessionsVsActualRetrieveGranularityEnum, periodEnd?: string, until?: string, options?: RawAxiosRequestConfig): AxiosPromise<PlanVsActual> {
+            return localVarFp.apiPlanSessionsVsActualRetrieve(periodStart, scope, granularity, periodEnd, until, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -30693,6 +41939,18 @@ export class PlanSessionsApi extends BaseAPI {
     }
 
     /**
+     * GET: return the saved plan snapshot for the period (404 if none). DELETE: permanently remove the saved plan for the period (calendar events are kept). PATCH: update this specific snapshot\'s comparison_mode (which adherence number — baseline or latest — it shows as primary); body is PlanSnapshotComparisonModeSerializer.
+     * @param {ApiPlanSessionsSnapshotDestroyScopeEnum} scope 
+     * @param {string} [date] Anchor date YYYY-MM-DD
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PlanSessionsApi
+     */
+    public apiPlanSessionsSnapshotDestroy(scope: ApiPlanSessionsSnapshotDestroyScopeEnum, date?: string, options?: RawAxiosRequestConfig) {
+        return PlanSessionsApiFp(this.configuration).apiPlanSessionsSnapshotDestroy(scope, date, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Commit whatever the live calendar currently shows as a new plan version (Phase 6 / D7) — no `blocks` body, unlike `commit`. Lets the user create a snapshot without entering planning mode, e.g. from the drift toast\'s \'Create planned snapshot\' action.
      * @param {PlanSnapshotLive} planSnapshotLive 
      * @param {*} [options] Override http request option.
@@ -30704,7 +41962,20 @@ export class PlanSessionsApi extends BaseAPI {
     }
 
     /**
-     * 
+     * GET: return the saved plan snapshot for the period (404 if none). DELETE: permanently remove the saved plan for the period (calendar events are kept). PATCH: update this specific snapshot\'s comparison_mode (which adherence number — baseline or latest — it shows as primary); body is PlanSnapshotComparisonModeSerializer.
+     * @param {ApiPlanSessionsSnapshotPartialUpdateScopeEnum} scope 
+     * @param {string} [date] Anchor date YYYY-MM-DD
+     * @param {PatchedPlanSnapshotComparisonMode} [patchedPlanSnapshotComparisonMode] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PlanSessionsApi
+     */
+    public apiPlanSessionsSnapshotPartialUpdate(scope: ApiPlanSessionsSnapshotPartialUpdateScopeEnum, date?: string, patchedPlanSnapshotComparisonMode?: PatchedPlanSnapshotComparisonMode, options?: RawAxiosRequestConfig) {
+        return PlanSessionsApiFp(this.configuration).apiPlanSessionsSnapshotPartialUpdate(scope, date, patchedPlanSnapshotComparisonMode, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * GET: return the saved plan snapshot for the period (404 if none). DELETE: permanently remove the saved plan for the period (calendar events are kept). PATCH: update this specific snapshot\'s comparison_mode (which adherence number — baseline or latest — it shows as primary); body is PlanSnapshotComparisonModeSerializer.
      * @param {ApiPlanSessionsSnapshotRetrieveScopeEnum} scope 
      * @param {string} [date] Anchor date YYYY-MM-DD
      * @param {*} [options] Override http request option.
@@ -30731,14 +42002,15 @@ export class PlanSessionsApi extends BaseAPI {
      * 
      * @param {string} periodStart 
      * @param {ApiPlanSessionsVsActualRetrieveScopeEnum} scope 
+     * @param {ApiPlanSessionsVsActualRetrieveGranularityEnum} [granularity] Only used with period_end (range aggregation, e.g. month view): which PlanSnapshot scope to sum over the range — daily snapshots (default) or weekly ones. These are strictly separate scopes (see plan_resolution.py), not merged, so pick whichever granularity the user actually planned in.
      * @param {string} [periodEnd] Optional range end YYYY-MM-DD (e.g. month end). Aggregates daily plan snapshots in range.
      * @param {string} [until] Compare until date YYYY-MM-DD
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof PlanSessionsApi
      */
-    public apiPlanSessionsVsActualRetrieve(periodStart: string, scope: ApiPlanSessionsVsActualRetrieveScopeEnum, periodEnd?: string, until?: string, options?: RawAxiosRequestConfig) {
-        return PlanSessionsApiFp(this.configuration).apiPlanSessionsVsActualRetrieve(periodStart, scope, periodEnd, until, options).then((request) => request(this.axios, this.basePath));
+    public apiPlanSessionsVsActualRetrieve(periodStart: string, scope: ApiPlanSessionsVsActualRetrieveScopeEnum, granularity?: ApiPlanSessionsVsActualRetrieveGranularityEnum, periodEnd?: string, until?: string, options?: RawAxiosRequestConfig) {
+        return PlanSessionsApiFp(this.configuration).apiPlanSessionsVsActualRetrieve(periodStart, scope, granularity, periodEnd, until, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -30794,6 +42066,22 @@ export type ApiPlanSessionsIndexRetrieveStatusEnum = typeof ApiPlanSessionsIndex
 /**
  * @export
  */
+export const ApiPlanSessionsSnapshotDestroyScopeEnum = {
+    Daily: 'daily',
+    Weekly: 'weekly'
+} as const;
+export type ApiPlanSessionsSnapshotDestroyScopeEnum = typeof ApiPlanSessionsSnapshotDestroyScopeEnum[keyof typeof ApiPlanSessionsSnapshotDestroyScopeEnum];
+/**
+ * @export
+ */
+export const ApiPlanSessionsSnapshotPartialUpdateScopeEnum = {
+    Daily: 'daily',
+    Weekly: 'weekly'
+} as const;
+export type ApiPlanSessionsSnapshotPartialUpdateScopeEnum = typeof ApiPlanSessionsSnapshotPartialUpdateScopeEnum[keyof typeof ApiPlanSessionsSnapshotPartialUpdateScopeEnum];
+/**
+ * @export
+ */
 export const ApiPlanSessionsSnapshotRetrieveScopeEnum = {
     Daily: 'daily',
     Weekly: 'weekly'
@@ -30815,6 +42103,14 @@ export const ApiPlanSessionsVsActualRetrieveScopeEnum = {
     Weekly: 'weekly'
 } as const;
 export type ApiPlanSessionsVsActualRetrieveScopeEnum = typeof ApiPlanSessionsVsActualRetrieveScopeEnum[keyof typeof ApiPlanSessionsVsActualRetrieveScopeEnum];
+/**
+ * @export
+ */
+export const ApiPlanSessionsVsActualRetrieveGranularityEnum = {
+    Day: 'day',
+    Week: 'week'
+} as const;
+export type ApiPlanSessionsVsActualRetrieveGranularityEnum = typeof ApiPlanSessionsVsActualRetrieveGranularityEnum[keyof typeof ApiPlanSessionsVsActualRetrieveGranularityEnum];
 
 
 /**
@@ -32170,6 +43466,49 @@ export const ProjectApiAxiosParamCreator = function (configuration?: Configurati
             };
         },
         /**
+         * Revert exactly one task/track history row (create/update/delete) — never a full project restore. Pass preview=true to get can_revert / blocked_reason / operations without applying.
+         * @param {number} id A unique integer value identifying this project.
+         * @param {ProjectHistoryRevertRequest} projectHistoryRevertRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectHistoryRevertCreate: async (id: number, projectHistoryRevertRequest: ProjectHistoryRevertRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiProjectHistoryRevertCreate', 'id', id)
+            // verify required parameter 'projectHistoryRevertRequest' is not null or undefined
+            assertParamExists('apiProjectHistoryRevertCreate', 'projectHistoryRevertRequest', projectHistoryRevertRequest)
+            const localVarPath = `/api/project/{id}/history/revert/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(projectHistoryRevertRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Invite one or more users and/or groups as collaborators. Provide \'users\' (list of user IDs) and/or \'groups\' (list of group IDs). \'access_level\' is optional (view, edit, admin). At least one of users or groups must be non-empty.
          * @summary Invite collaborators
          * @param {number} id A unique integer value identifying this project.
@@ -33082,6 +44421,19 @@ export const ProjectApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Revert exactly one task/track history row (create/update/delete) — never a full project restore. Pass preview=true to get can_revert / blocked_reason / operations without applying.
+         * @param {number} id A unique integer value identifying this project.
+         * @param {ProjectHistoryRevertRequest} projectHistoryRevertRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiProjectHistoryRevertCreate(id: number, projectHistoryRevertRequest: ProjectHistoryRevertRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RevertResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectHistoryRevertCreate(id, projectHistoryRevertRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ProjectApi.apiProjectHistoryRevertCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Invite one or more users and/or groups as collaborators. Provide \'users\' (list of user IDs) and/or \'groups\' (list of group IDs). \'access_level\' is optional (view, edit, admin). At least one of users or groups must be non-empty.
          * @summary Invite collaborators
          * @param {number} id A unique integer value identifying this project.
@@ -33089,7 +44441,7 @@ export const ProjectApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiProjectInviteCreate(id: number, apiProjectInviteCreateRequest?: ApiProjectInviteCreateRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiProjectInviteCreate201Response>> {
+        async apiProjectInviteCreate(id: number, apiProjectInviteCreateRequest?: ApiProjectInviteCreateRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiJournalDayUploadEditorImageCreate400Response>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectInviteCreate(id, apiProjectInviteCreateRequest, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ProjectApi.apiProjectInviteCreate']?.[localVarOperationServerIndex]?.url;
@@ -33144,7 +44496,7 @@ export const ProjectApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiProjectRemoveIconDestroy(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiProjectInviteCreate201Response>> {
+        async apiProjectRemoveIconDestroy(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiJournalDayUploadEditorImageCreate400Response>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectRemoveIconDestroy(id, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ProjectApi.apiProjectRemoveIconDestroy']?.[localVarOperationServerIndex]?.url;
@@ -33441,6 +44793,16 @@ export const ProjectApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.apiProjectHistoryRetrieve(id, cursor, limit, options).then((request) => request(axios, basePath));
         },
         /**
+         * Revert exactly one task/track history row (create/update/delete) — never a full project restore. Pass preview=true to get can_revert / blocked_reason / operations without applying.
+         * @param {number} id A unique integer value identifying this project.
+         * @param {ProjectHistoryRevertRequest} projectHistoryRevertRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectHistoryRevertCreate(id: number, projectHistoryRevertRequest: ProjectHistoryRevertRequest, options?: RawAxiosRequestConfig): AxiosPromise<RevertResponse> {
+            return localVarFp.apiProjectHistoryRevertCreate(id, projectHistoryRevertRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Invite one or more users and/or groups as collaborators. Provide \'users\' (list of user IDs) and/or \'groups\' (list of group IDs). \'access_level\' is optional (view, edit, admin). At least one of users or groups must be non-empty.
          * @summary Invite collaborators
          * @param {number} id A unique integer value identifying this project.
@@ -33448,7 +44810,7 @@ export const ProjectApiFactory = function (configuration?: Configuration, basePa
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiProjectInviteCreate(id: number, apiProjectInviteCreateRequest?: ApiProjectInviteCreateRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiProjectInviteCreate201Response> {
+        apiProjectInviteCreate(id: number, apiProjectInviteCreateRequest?: ApiProjectInviteCreateRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiJournalDayUploadEditorImageCreate400Response> {
             return localVarFp.apiProjectInviteCreate(id, apiProjectInviteCreateRequest, options).then((request) => request(axios, basePath));
         },
         /**
@@ -33491,7 +44853,7 @@ export const ProjectApiFactory = function (configuration?: Configuration, basePa
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiProjectRemoveIconDestroy(id: number, options?: RawAxiosRequestConfig): AxiosPromise<ApiProjectInviteCreate201Response> {
+        apiProjectRemoveIconDestroy(id: number, options?: RawAxiosRequestConfig): AxiosPromise<ApiJournalDayUploadEditorImageCreate400Response> {
             return localVarFp.apiProjectRemoveIconDestroy(id, options).then((request) => request(axios, basePath));
         },
         /**
@@ -33771,6 +45133,18 @@ export class ProjectApi extends BaseAPI {
     }
 
     /**
+     * Revert exactly one task/track history row (create/update/delete) — never a full project restore. Pass preview=true to get can_revert / blocked_reason / operations without applying.
+     * @param {number} id A unique integer value identifying this project.
+     * @param {ProjectHistoryRevertRequest} projectHistoryRevertRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ProjectApi
+     */
+    public apiProjectHistoryRevertCreate(id: number, projectHistoryRevertRequest: ProjectHistoryRevertRequest, options?: RawAxiosRequestConfig) {
+        return ProjectApiFp(this.configuration).apiProjectHistoryRevertCreate(id, projectHistoryRevertRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Invite one or more users and/or groups as collaborators. Provide \'users\' (list of user IDs) and/or \'groups\' (list of group IDs). \'access_level\' is optional (view, edit, admin). At least one of users or groups must be non-empty.
      * @summary Invite collaborators
      * @param {number} id A unique integer value identifying this project.
@@ -34029,6 +45403,76 @@ export const ProjectTrackApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Bulk delete project tracks (max 20).
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectTrackBulkDeleteDestroy: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/project_track/bulk-delete/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Bulk partial update for project tracks (max 20). PATCH semantics: omitted fields unchanged.
+         * @param {PatchedBulkTrackUpdate} [patchedBulkTrackUpdate] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectTrackBulkUpdatePartialUpdate: async (patchedBulkTrackUpdate?: PatchedBulkTrackUpdate, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/project_track/bulk-update/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchedBulkTrackUpdate, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -34352,6 +45796,29 @@ export const ProjectTrackApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Bulk delete project tracks (max 20).
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiProjectTrackBulkDeleteDestroy(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BulkTrackDeleteResult>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectTrackBulkDeleteDestroy(options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ProjectTrackApi.apiProjectTrackBulkDeleteDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Bulk partial update for project tracks (max 20). PATCH semantics: omitted fields unchanged.
+         * @param {PatchedBulkTrackUpdate} [patchedBulkTrackUpdate] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiProjectTrackBulkUpdatePartialUpdate(patchedBulkTrackUpdate?: PatchedBulkTrackUpdate, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BulkTrackUpdateResult>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectTrackBulkUpdatePartialUpdate(patchedBulkTrackUpdate, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ProjectTrackApi.apiProjectTrackBulkUpdatePartialUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Marks this track as finished and inactive. Only the track that is currently active may be completed. Clears the project\'s current_track pointer when it matches. Tasks in a FINISH-role column stay on this track. All other tasks move to `move_tasks_to_track_id` when provided (must be another open track on the same project), otherwise to the next open track by `order` (wraps to lowest order). Optional `ai_track_analysis` ({overview, suggestions}) is stored on the finished track. Moved tasks keep their existing column (status) on the project board.
          * @summary Complete (finish) the active project track
          * @param {number} id A unique integer value identifying this project track.
@@ -34468,6 +45935,23 @@ export const ProjectTrackApiFactory = function (configuration?: Configuration, b
             return localVarFp.apiProjectTrackActivateCreate(id, options).then((request) => request(axios, basePath));
         },
         /**
+         * Bulk delete project tracks (max 20).
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectTrackBulkDeleteDestroy(options?: RawAxiosRequestConfig): AxiosPromise<BulkTrackDeleteResult> {
+            return localVarFp.apiProjectTrackBulkDeleteDestroy(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Bulk partial update for project tracks (max 20). PATCH semantics: omitted fields unchanged.
+         * @param {PatchedBulkTrackUpdate} [patchedBulkTrackUpdate] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectTrackBulkUpdatePartialUpdate(patchedBulkTrackUpdate?: PatchedBulkTrackUpdate, options?: RawAxiosRequestConfig): AxiosPromise<BulkTrackUpdateResult> {
+            return localVarFp.apiProjectTrackBulkUpdatePartialUpdate(patchedBulkTrackUpdate, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Marks this track as finished and inactive. Only the track that is currently active may be completed. Clears the project\'s current_track pointer when it matches. Tasks in a FINISH-role column stay on this track. All other tasks move to `move_tasks_to_track_id` when provided (must be another open track on the same project), otherwise to the next open track by `order` (wraps to lowest order). Optional `ai_track_analysis` ({overview, suggestions}) is stored on the finished track. Moved tasks keep their existing column (status) on the project board.
          * @summary Complete (finish) the active project track
          * @param {number} id A unique integer value identifying this project track.
@@ -34565,6 +46049,27 @@ export class ProjectTrackApi extends BaseAPI {
     }
 
     /**
+     * Bulk delete project tracks (max 20).
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ProjectTrackApi
+     */
+    public apiProjectTrackBulkDeleteDestroy(options?: RawAxiosRequestConfig) {
+        return ProjectTrackApiFp(this.configuration).apiProjectTrackBulkDeleteDestroy(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Bulk partial update for project tracks (max 20). PATCH semantics: omitted fields unchanged.
+     * @param {PatchedBulkTrackUpdate} [patchedBulkTrackUpdate] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ProjectTrackApi
+     */
+    public apiProjectTrackBulkUpdatePartialUpdate(patchedBulkTrackUpdate?: PatchedBulkTrackUpdate, options?: RawAxiosRequestConfig) {
+        return ProjectTrackApiFp(this.configuration).apiProjectTrackBulkUpdatePartialUpdate(patchedBulkTrackUpdate, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Marks this track as finished and inactive. Only the track that is currently active may be completed. Clears the project\'s current_track pointer when it matches. Tasks in a FINISH-role column stay on this track. All other tasks move to `move_tasks_to_track_id` when provided (must be another open track on the same project), otherwise to the next open track by `order` (wraps to lowest order). Optional `ai_track_analysis` ({overview, suggestions}) is stored on the finished track. Moved tasks keep their existing column (status) on the project board.
      * @summary Complete (finish) the active project track
      * @param {number} id A unique integer value identifying this project track.
@@ -34657,11 +46162,610 @@ export class ProjectTrackApi extends BaseAPI {
 
 
 /**
+ * ReleaseApi - axios parameter creator
+ * @export
+ */
+export const ReleaseApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Create a new release for a project the current user can manage.
+         * @summary Create release
+         * @param {Release} release 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiReleaseCreate: async (release: Release, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'release' is not null or undefined
+            assertParamExists('apiReleaseCreate', 'release', release)
+            const localVarPath = `/api/release/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(release, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Delete a release. Tasks linked to it are detached, not deleted.
+         * @summary Delete release
+         * @param {number} id A unique integer value identifying this release.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiReleaseDestroy: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiReleaseDestroy', 'id', id)
+            const localVarPath = `/api/release/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * List releases for the current user (optionally scoped to a project).
+         * @summary List releases
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {number} [project] Filter releases by project id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiReleaseList: async (limit?: number, offset?: number, project?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/release/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+            if (project !== undefined) {
+                localVarQueryParameter['project'] = project;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update fields on a release belonging to a project the current user can manage.
+         * @summary Partially update release
+         * @param {number} id A unique integer value identifying this release.
+         * @param {PatchedRelease} [patchedRelease] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiReleasePartialUpdate: async (id: number, patchedRelease?: PatchedRelease, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiReleasePartialUpdate', 'id', id)
+            const localVarPath = `/api/release/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchedRelease, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Retrieve a single release by id.
+         * @summary Retrieve release
+         * @param {number} id A unique integer value identifying this release.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiReleaseRetrieve: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiReleaseRetrieve', 'id', id)
+            const localVarPath = `/api/release/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update fields on a release belonging to a project the current user can manage.
+         * @summary Update release
+         * @param {number} id A unique integer value identifying this release.
+         * @param {Release} release 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiReleaseUpdate: async (id: number, release: Release, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiReleaseUpdate', 'id', id)
+            // verify required parameter 'release' is not null or undefined
+            assertParamExists('apiReleaseUpdate', 'release', release)
+            const localVarPath = `/api/release/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(release, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * ReleaseApi - functional programming interface
+ * @export
+ */
+export const ReleaseApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = ReleaseApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Create a new release for a project the current user can manage.
+         * @summary Create release
+         * @param {Release} release 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiReleaseCreate(release: Release, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Release>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiReleaseCreate(release, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ReleaseApi.apiReleaseCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Delete a release. Tasks linked to it are detached, not deleted.
+         * @summary Delete release
+         * @param {number} id A unique integer value identifying this release.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiReleaseDestroy(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiReleaseDestroy(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ReleaseApi.apiReleaseDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * List releases for the current user (optionally scoped to a project).
+         * @summary List releases
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {number} [project] Filter releases by project id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiReleaseList(limit?: number, offset?: number, project?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedReleaseList>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiReleaseList(limit, offset, project, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ReleaseApi.apiReleaseList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Update fields on a release belonging to a project the current user can manage.
+         * @summary Partially update release
+         * @param {number} id A unique integer value identifying this release.
+         * @param {PatchedRelease} [patchedRelease] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiReleasePartialUpdate(id: number, patchedRelease?: PatchedRelease, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Release>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiReleasePartialUpdate(id, patchedRelease, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ReleaseApi.apiReleasePartialUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Retrieve a single release by id.
+         * @summary Retrieve release
+         * @param {number} id A unique integer value identifying this release.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiReleaseRetrieve(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Release>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiReleaseRetrieve(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ReleaseApi.apiReleaseRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Update fields on a release belonging to a project the current user can manage.
+         * @summary Update release
+         * @param {number} id A unique integer value identifying this release.
+         * @param {Release} release 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiReleaseUpdate(id: number, release: Release, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Release>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiReleaseUpdate(id, release, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ReleaseApi.apiReleaseUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * ReleaseApi - factory interface
+ * @export
+ */
+export const ReleaseApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = ReleaseApiFp(configuration)
+    return {
+        /**
+         * Create a new release for a project the current user can manage.
+         * @summary Create release
+         * @param {Release} release 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiReleaseCreate(release: Release, options?: RawAxiosRequestConfig): AxiosPromise<Release> {
+            return localVarFp.apiReleaseCreate(release, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Delete a release. Tasks linked to it are detached, not deleted.
+         * @summary Delete release
+         * @param {number} id A unique integer value identifying this release.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiReleaseDestroy(id: number, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiReleaseDestroy(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * List releases for the current user (optionally scoped to a project).
+         * @summary List releases
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {number} [project] Filter releases by project id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiReleaseList(limit?: number, offset?: number, project?: number, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedReleaseList> {
+            return localVarFp.apiReleaseList(limit, offset, project, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update fields on a release belonging to a project the current user can manage.
+         * @summary Partially update release
+         * @param {number} id A unique integer value identifying this release.
+         * @param {PatchedRelease} [patchedRelease] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiReleasePartialUpdate(id: number, patchedRelease?: PatchedRelease, options?: RawAxiosRequestConfig): AxiosPromise<Release> {
+            return localVarFp.apiReleasePartialUpdate(id, patchedRelease, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Retrieve a single release by id.
+         * @summary Retrieve release
+         * @param {number} id A unique integer value identifying this release.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiReleaseRetrieve(id: number, options?: RawAxiosRequestConfig): AxiosPromise<Release> {
+            return localVarFp.apiReleaseRetrieve(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update fields on a release belonging to a project the current user can manage.
+         * @summary Update release
+         * @param {number} id A unique integer value identifying this release.
+         * @param {Release} release 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiReleaseUpdate(id: number, release: Release, options?: RawAxiosRequestConfig): AxiosPromise<Release> {
+            return localVarFp.apiReleaseUpdate(id, release, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * ReleaseApi - object-oriented interface
+ * @export
+ * @class ReleaseApi
+ * @extends {BaseAPI}
+ */
+export class ReleaseApi extends BaseAPI {
+    /**
+     * Create a new release for a project the current user can manage.
+     * @summary Create release
+     * @param {Release} release 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ReleaseApi
+     */
+    public apiReleaseCreate(release: Release, options?: RawAxiosRequestConfig) {
+        return ReleaseApiFp(this.configuration).apiReleaseCreate(release, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Delete a release. Tasks linked to it are detached, not deleted.
+     * @summary Delete release
+     * @param {number} id A unique integer value identifying this release.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ReleaseApi
+     */
+    public apiReleaseDestroy(id: number, options?: RawAxiosRequestConfig) {
+        return ReleaseApiFp(this.configuration).apiReleaseDestroy(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * List releases for the current user (optionally scoped to a project).
+     * @summary List releases
+     * @param {number} [limit] Number of results to return per page.
+     * @param {number} [offset] The initial index from which to return the results.
+     * @param {number} [project] Filter releases by project id.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ReleaseApi
+     */
+    public apiReleaseList(limit?: number, offset?: number, project?: number, options?: RawAxiosRequestConfig) {
+        return ReleaseApiFp(this.configuration).apiReleaseList(limit, offset, project, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update fields on a release belonging to a project the current user can manage.
+     * @summary Partially update release
+     * @param {number} id A unique integer value identifying this release.
+     * @param {PatchedRelease} [patchedRelease] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ReleaseApi
+     */
+    public apiReleasePartialUpdate(id: number, patchedRelease?: PatchedRelease, options?: RawAxiosRequestConfig) {
+        return ReleaseApiFp(this.configuration).apiReleasePartialUpdate(id, patchedRelease, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Retrieve a single release by id.
+     * @summary Retrieve release
+     * @param {number} id A unique integer value identifying this release.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ReleaseApi
+     */
+    public apiReleaseRetrieve(id: number, options?: RawAxiosRequestConfig) {
+        return ReleaseApiFp(this.configuration).apiReleaseRetrieve(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update fields on a release belonging to a project the current user can manage.
+     * @summary Update release
+     * @param {number} id A unique integer value identifying this release.
+     * @param {Release} release 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ReleaseApi
+     */
+    public apiReleaseUpdate(id: number, release: Release, options?: RawAxiosRequestConfig) {
+        return ReleaseApiFp(this.configuration).apiReleaseUpdate(id, release, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+
+/**
  * TaskApi - axios parameter creator
  * @export
  */
 export const TaskApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
+        /**
+         * Task ViewSet
+         * @summary Upload a durable file attachment on a task
+         * @param {string} id 
+         * @param {File} file 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiTaskFileAttachmentsCreate: async (id: string, file: File, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiTaskFileAttachmentsCreate', 'id', id)
+            // verify required parameter 'file' is not null or undefined
+            assertParamExists('apiTaskFileAttachmentsCreate', 'file', file)
+            const localVarPath = `/api/task/{id}/file-attachments/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+            const localVarFormParams = new ((configuration && configuration.formDataCtor) || FormData)();
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+            if (file !== undefined) { 
+                localVarFormParams.append('file', file as any);
+            }
+    
+    
+            localVarHeaderParameter['Content-Type'] = 'multipart/form-data';
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = localVarFormParams;
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Task ViewSet
+         * @summary Download a durable task file attachment
+         * @param {string} attachmentId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiTaskFileAttachmentsRetrieve: async (attachmentId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'attachmentId' is not null or undefined
+            assertParamExists('apiTaskFileAttachmentsRetrieve', 'attachmentId', attachmentId)
+            const localVarPath = `/api/task/file-attachments/{attachment_id}/`
+                .replace(`{${"attachment_id"}}`, encodeURIComponent(String(attachmentId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
         /**
          * Maps free-text to structured filters via an LLM, then queries the same Elasticsearch task index as ``GET /api/task/search/``. Consumes AI quota. Due-date filters are applied after retrieval (dates are not indexed on TaskDocument).
          * @summary Search tasks (natural language, FocusGPT)
@@ -34897,6 +47001,58 @@ export const TaskApiAxiosParamCreator = function (configuration?: Configuration)
                 options: localVarRequestOptions,
             };
         },
+        /**
+         * Upload a file before the task exists. Requires a project ID to verify you may add tasks. After creating the task, send returning attachment IDs in `pending_file_attachment_ids` on task create.
+         * @summary Upload a durable file attachment (draft)
+         * @param {File} file 
+         * @param {number} project 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiTaskUploadFileAttachmentDraftCreate: async (file: File, project: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'file' is not null or undefined
+            assertParamExists('apiTaskUploadFileAttachmentDraftCreate', 'file', file)
+            // verify required parameter 'project' is not null or undefined
+            assertParamExists('apiTaskUploadFileAttachmentDraftCreate', 'project', project)
+            const localVarPath = `/api/task/upload-file-attachment-draft/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+            const localVarFormParams = new ((configuration && configuration.formDataCtor) || FormData)();
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+            if (file !== undefined) { 
+                localVarFormParams.append('file', file as any);
+            }
+    
+            if (project !== undefined) { 
+                localVarFormParams.append('project', project as any);
+            }
+    
+    
+            localVarHeaderParameter['Content-Type'] = 'multipart/form-data';
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = localVarFormParams;
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
     }
 };
 
@@ -34907,6 +47063,33 @@ export const TaskApiAxiosParamCreator = function (configuration?: Configuration)
 export const TaskApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = TaskApiAxiosParamCreator(configuration)
     return {
+        /**
+         * Task ViewSet
+         * @summary Upload a durable file attachment on a task
+         * @param {string} id 
+         * @param {File} file 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiTaskFileAttachmentsCreate(id: string, file: File, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TaskFileAttachment>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiTaskFileAttachmentsCreate(id, file, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['TaskApi.apiTaskFileAttachmentsCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Task ViewSet
+         * @summary Download a durable task file attachment
+         * @param {string} attachmentId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiTaskFileAttachmentsRetrieve(attachmentId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiTaskFileAttachmentsRetrieve(attachmentId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['TaskApi.apiTaskFileAttachmentsRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
         /**
          * Maps free-text to structured filters via an LLM, then queries the same Elasticsearch task index as ``GET /api/task/search/``. Consumes AI quota. Due-date filters are applied after retrieval (dates are not indexed on TaskDocument).
          * @summary Search tasks (natural language, FocusGPT)
@@ -34972,6 +47155,20 @@ export const TaskApiFp = function(configuration?: Configuration) {
             const localVarOperationServerBasePath = operationServerMap['TaskApi.apiTaskUploadEditorImageDraftCreate']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
+        /**
+         * Upload a file before the task exists. Requires a project ID to verify you may add tasks. After creating the task, send returning attachment IDs in `pending_file_attachment_ids` on task create.
+         * @summary Upload a durable file attachment (draft)
+         * @param {File} file 
+         * @param {number} project 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiTaskUploadFileAttachmentDraftCreate(file: File, project: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TaskFileAttachment>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiTaskUploadFileAttachmentDraftCreate(file, project, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['TaskApi.apiTaskUploadFileAttachmentDraftCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
     }
 };
 
@@ -34982,6 +47179,27 @@ export const TaskApiFp = function(configuration?: Configuration) {
 export const TaskApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
     const localVarFp = TaskApiFp(configuration)
     return {
+        /**
+         * Task ViewSet
+         * @summary Upload a durable file attachment on a task
+         * @param {string} id 
+         * @param {File} file 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiTaskFileAttachmentsCreate(id: string, file: File, options?: RawAxiosRequestConfig): AxiosPromise<TaskFileAttachment> {
+            return localVarFp.apiTaskFileAttachmentsCreate(id, file, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Task ViewSet
+         * @summary Download a durable task file attachment
+         * @param {string} attachmentId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiTaskFileAttachmentsRetrieve(attachmentId: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiTaskFileAttachmentsRetrieve(attachmentId, options).then((request) => request(axios, basePath));
+        },
         /**
          * Maps free-text to structured filters via an LLM, then queries the same Elasticsearch task index as ``GET /api/task/search/``. Consumes AI quota. Due-date filters are applied after retrieval (dates are not indexed on TaskDocument).
          * @summary Search tasks (natural language, FocusGPT)
@@ -35035,6 +47253,17 @@ export const TaskApiFactory = function (configuration?: Configuration, basePath?
         apiTaskUploadEditorImageDraftCreate(image: File, project: number, options?: RawAxiosRequestConfig): AxiosPromise<UserUploadedImageResponse> {
             return localVarFp.apiTaskUploadEditorImageDraftCreate(image, project, options).then((request) => request(axios, basePath));
         },
+        /**
+         * Upload a file before the task exists. Requires a project ID to verify you may add tasks. After creating the task, send returning attachment IDs in `pending_file_attachment_ids` on task create.
+         * @summary Upload a durable file attachment (draft)
+         * @param {File} file 
+         * @param {number} project 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiTaskUploadFileAttachmentDraftCreate(file: File, project: number, options?: RawAxiosRequestConfig): AxiosPromise<TaskFileAttachment> {
+            return localVarFp.apiTaskUploadFileAttachmentDraftCreate(file, project, options).then((request) => request(axios, basePath));
+        },
     };
 };
 
@@ -35045,6 +47274,31 @@ export const TaskApiFactory = function (configuration?: Configuration, basePath?
  * @extends {BaseAPI}
  */
 export class TaskApi extends BaseAPI {
+    /**
+     * Task ViewSet
+     * @summary Upload a durable file attachment on a task
+     * @param {string} id 
+     * @param {File} file 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof TaskApi
+     */
+    public apiTaskFileAttachmentsCreate(id: string, file: File, options?: RawAxiosRequestConfig) {
+        return TaskApiFp(this.configuration).apiTaskFileAttachmentsCreate(id, file, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Task ViewSet
+     * @summary Download a durable task file attachment
+     * @param {string} attachmentId 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof TaskApi
+     */
+    public apiTaskFileAttachmentsRetrieve(attachmentId: string, options?: RawAxiosRequestConfig) {
+        return TaskApiFp(this.configuration).apiTaskFileAttachmentsRetrieve(attachmentId, options).then((request) => request(this.axios, this.basePath));
+    }
+
     /**
      * Maps free-text to structured filters via an LLM, then queries the same Elasticsearch task index as ``GET /api/task/search/``. Consumes AI quota. Due-date filters are applied after retrieval (dates are not indexed on TaskDocument).
      * @summary Search tasks (natural language, FocusGPT)
@@ -35105,6 +47359,19 @@ export class TaskApi extends BaseAPI {
     public apiTaskUploadEditorImageDraftCreate(image: File, project: number, options?: RawAxiosRequestConfig) {
         return TaskApiFp(this.configuration).apiTaskUploadEditorImageDraftCreate(image, project, options).then((request) => request(this.axios, this.basePath));
     }
+
+    /**
+     * Upload a file before the task exists. Requires a project ID to verify you may add tasks. After creating the task, send returning attachment IDs in `pending_file_attachment_ids` on task create.
+     * @summary Upload a durable file attachment (draft)
+     * @param {File} file 
+     * @param {number} project 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof TaskApi
+     */
+    public apiTaskUploadFileAttachmentDraftCreate(file: File, project: number, options?: RawAxiosRequestConfig) {
+        return TaskApiFp(this.configuration).apiTaskUploadFileAttachmentDraftCreate(file, project, options).then((request) => request(this.axios, this.basePath));
+    }
 }
 
 /**
@@ -35131,6 +47398,257 @@ export const ApiTaskSearchRetrieveSortEnum = {
     Relevance: 'relevance'
 } as const;
 export type ApiTaskSearchRetrieveSortEnum = typeof ApiTaskSearchRetrieveSortEnum[keyof typeof ApiTaskSearchRetrieveSortEnum];
+
+
+/**
+ * TaskDependencyApi - axios parameter creator
+ * @export
+ */
+export const TaskDependencyApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * List a project\'s dependency edges, or create one (same-project; `blocks` is cycle-checked, `relates_to` rejects a reverse-direction duplicate).
+         * @param {TaskDependencyCreate} taskDependencyCreate 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiTaskDependencyCreate: async (taskDependencyCreate: TaskDependencyCreate, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'taskDependencyCreate' is not null or undefined
+            assertParamExists('apiTaskDependencyCreate', 'taskDependencyCreate', taskDependencyCreate)
+            const localVarPath = `/api/task_dependency/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(taskDependencyCreate, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiTaskDependencyDestroy: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiTaskDependencyDestroy', 'id', id)
+            const localVarPath = `/api/task_dependency/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * List a project\'s dependency edges, or create one (same-project; `blocks` is cycle-checked, `relates_to` rejects a reverse-direction duplicate).
+         * @param {number} project 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiTaskDependencyList: async (project: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'project' is not null or undefined
+            assertParamExists('apiTaskDependencyList', 'project', project)
+            const localVarPath = `/api/task_dependency/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (project !== undefined) {
+                localVarQueryParameter['project'] = project;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * TaskDependencyApi - functional programming interface
+ * @export
+ */
+export const TaskDependencyApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = TaskDependencyApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * List a project\'s dependency edges, or create one (same-project; `blocks` is cycle-checked, `relates_to` rejects a reverse-direction duplicate).
+         * @param {TaskDependencyCreate} taskDependencyCreate 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiTaskDependencyCreate(taskDependencyCreate: TaskDependencyCreate, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TaskDependencyRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiTaskDependencyCreate(taskDependencyCreate, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['TaskDependencyApi.apiTaskDependencyCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiTaskDependencyDestroy(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiTaskDependencyDestroy(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['TaskDependencyApi.apiTaskDependencyDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * List a project\'s dependency edges, or create one (same-project; `blocks` is cycle-checked, `relates_to` rejects a reverse-direction duplicate).
+         * @param {number} project 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiTaskDependencyList(project: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<TaskDependencyRead>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiTaskDependencyList(project, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['TaskDependencyApi.apiTaskDependencyList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * TaskDependencyApi - factory interface
+ * @export
+ */
+export const TaskDependencyApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = TaskDependencyApiFp(configuration)
+    return {
+        /**
+         * List a project\'s dependency edges, or create one (same-project; `blocks` is cycle-checked, `relates_to` rejects a reverse-direction duplicate).
+         * @param {TaskDependencyCreate} taskDependencyCreate 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiTaskDependencyCreate(taskDependencyCreate: TaskDependencyCreate, options?: RawAxiosRequestConfig): AxiosPromise<TaskDependencyRead> {
+            return localVarFp.apiTaskDependencyCreate(taskDependencyCreate, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiTaskDependencyDestroy(id: number, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiTaskDependencyDestroy(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * List a project\'s dependency edges, or create one (same-project; `blocks` is cycle-checked, `relates_to` rejects a reverse-direction duplicate).
+         * @param {number} project 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiTaskDependencyList(project: number, options?: RawAxiosRequestConfig): AxiosPromise<Array<TaskDependencyRead>> {
+            return localVarFp.apiTaskDependencyList(project, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * TaskDependencyApi - object-oriented interface
+ * @export
+ * @class TaskDependencyApi
+ * @extends {BaseAPI}
+ */
+export class TaskDependencyApi extends BaseAPI {
+    /**
+     * List a project\'s dependency edges, or create one (same-project; `blocks` is cycle-checked, `relates_to` rejects a reverse-direction duplicate).
+     * @param {TaskDependencyCreate} taskDependencyCreate 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof TaskDependencyApi
+     */
+    public apiTaskDependencyCreate(taskDependencyCreate: TaskDependencyCreate, options?: RawAxiosRequestConfig) {
+        return TaskDependencyApiFp(this.configuration).apiTaskDependencyCreate(taskDependencyCreate, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @param {number} id 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof TaskDependencyApi
+     */
+    public apiTaskDependencyDestroy(id: number, options?: RawAxiosRequestConfig) {
+        return TaskDependencyApiFp(this.configuration).apiTaskDependencyDestroy(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * List a project\'s dependency edges, or create one (same-project; `blocks` is cycle-checked, `relates_to` rejects a reverse-direction duplicate).
+     * @param {number} project 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof TaskDependencyApi
+     */
+    public apiTaskDependencyList(project: number, options?: RawAxiosRequestConfig) {
+        return TaskDependencyApiFp(this.configuration).apiTaskDependencyList(project, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
 
 
 /**
@@ -35426,6 +47944,78 @@ export class TodoistApi extends BaseAPI {
  */
 export const UserApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
+        /**
+         * A personal (non-org) user asks for help from the billing settings page. Emails sales with the requester\'s identity and current plan plus a free-text message — no DB persistence, mirrors OrganizationQuotaIncreaseRequestView\'s pattern but for a personal subscriber instead of an org admin.
+         * @param {BillingContactRequest} billingContactRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiUserBillingContactCreate: async (billingContactRequest: BillingContactRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'billingContactRequest' is not null or undefined
+            assertParamExists('apiUserBillingContactCreate', 'billingContactRequest', billingContactRequest)
+            const localVarPath = `/api/user/billing-contact/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(billingContactRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Cancel a pending scheduled plan change (see create-subscription) before it takes effect — the subscription keeps running on its current plan.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiUserCancelPlanChangeCreate: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/user/cancel-plan-change/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
         /**
          * Cancel recurring Razorpay subscription at end of billing cycle.
          * @param {*} [options] Override http request option.
@@ -36229,6 +48819,29 @@ export const UserApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = UserApiAxiosParamCreator(configuration)
     return {
         /**
+         * A personal (non-org) user asks for help from the billing settings page. Emails sales with the requester\'s identity and current plan plus a free-text message — no DB persistence, mirrors OrganizationQuotaIncreaseRequestView\'s pattern but for a personal subscriber instead of an org admin.
+         * @param {BillingContactRequest} billingContactRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiUserBillingContactCreate(billingContactRequest: BillingContactRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiUserBillingContactCreate(billingContactRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['UserApi.apiUserBillingContactCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Cancel a pending scheduled plan change (see create-subscription) before it takes effect — the subscription keeps running on its current plan.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiUserCancelPlanChangeCreate(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSubscription>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiUserCancelPlanChangeCreate(options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['UserApi.apiUserCancelPlanChangeCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Cancel recurring Razorpay subscription at end of billing cycle.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -36489,6 +49102,23 @@ export const UserApiFactory = function (configuration?: Configuration, basePath?
     const localVarFp = UserApiFp(configuration)
     return {
         /**
+         * A personal (non-org) user asks for help from the billing settings page. Emails sales with the requester\'s identity and current plan plus a free-text message — no DB persistence, mirrors OrganizationQuotaIncreaseRequestView\'s pattern but for a personal subscriber instead of an org admin.
+         * @param {BillingContactRequest} billingContactRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiUserBillingContactCreate(billingContactRequest: BillingContactRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiUserBillingContactCreate(billingContactRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Cancel a pending scheduled plan change (see create-subscription) before it takes effect — the subscription keeps running on its current plan.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiUserCancelPlanChangeCreate(options?: RawAxiosRequestConfig): AxiosPromise<UserSubscription> {
+            return localVarFp.apiUserCancelPlanChangeCreate(options).then((request) => request(axios, basePath));
+        },
+        /**
          * Cancel recurring Razorpay subscription at end of billing cycle.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -36685,6 +49315,27 @@ export const UserApiFactory = function (configuration?: Configuration, basePath?
  * @extends {BaseAPI}
  */
 export class UserApi extends BaseAPI {
+    /**
+     * A personal (non-org) user asks for help from the billing settings page. Emails sales with the requester\'s identity and current plan plus a free-text message — no DB persistence, mirrors OrganizationQuotaIncreaseRequestView\'s pattern but for a personal subscriber instead of an org admin.
+     * @param {BillingContactRequest} billingContactRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof UserApi
+     */
+    public apiUserBillingContactCreate(billingContactRequest: BillingContactRequest, options?: RawAxiosRequestConfig) {
+        return UserApiFp(this.configuration).apiUserBillingContactCreate(billingContactRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Cancel a pending scheduled plan change (see create-subscription) before it takes effect — the subscription keeps running on its current plan.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof UserApi
+     */
+    public apiUserCancelPlanChangeCreate(options?: RawAxiosRequestConfig) {
+        return UserApiFp(this.configuration).apiUserCancelPlanChangeCreate(options).then((request) => request(this.axios, this.basePath));
+    }
+
     /**
      * Cancel recurring Razorpay subscription at end of billing cycle.
      * @param {*} [options] Override http request option.

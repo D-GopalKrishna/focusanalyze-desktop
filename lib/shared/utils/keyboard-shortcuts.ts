@@ -2,6 +2,8 @@ import { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { NextRouter } from 'next/router';
 import type { IGlobalOption } from '@/components/dashboard/common/search/GlobalOptions';
 import { DASHBOARD_CALENDAR, FOCUSANALYZE_PROJECT_PREFIX } from '@/lib/config/urls';
+import { isModKeyPressed, matchesShortcutKey, shortcutKeyLabelFromEvent } from "@shared/utils/mod-key";
+import type { SearchNavigableItem } from "@shared/utils/search";
 
 export function isKeyboardFocusInsideTextField(): boolean {
   const active = document.activeElement;
@@ -29,7 +31,7 @@ export function handleContextPanelQuoteShortcut(
 ) {
   const isQuoteKey = event.code === 'Quote' || event.key === "'" || event.key === '"';
 
-  const modifiersOk = !event.altKey && !event.shiftKey && (event.ctrlKey || event.metaKey);
+  const modifiersOk = !event.altKey && !event.shiftKey && isModKeyPressed(event);
 
   if (!isQuoteKey || !modifiersOk) return;
   if (isKeyboardFocusInsideTextField()) return;
@@ -63,15 +65,21 @@ export const handleContextPanelCtrlPeriodKeyDown = handleContextPanelQuoteShortc
 interface HandleGlobalSearchNavigationParams {
   event: KeyboardEvent | ReactKeyboardEvent;
   isSearchMode: boolean;
-  result: any;
+  /**
+   * Flat list of everything selectable in search mode — settings matches first, then
+   * backend entity results. Single index space, so `selectedResultIndex` addresses both.
+   */
+  navigableItems: SearchNavigableItem[];
   selectedResultIndex: number;
   setSelectedResultIndex: (fn: (prev: number) => number) => void;
   selectedOptionIndex: number;
   setSelectedOptionIndex: (fn: (prev: number) => number) => void;
   globalOptions: any[];
   setSidebarState: (fn: (prev: any) => any) => void;
-  router: any;
-  navigateToSearchResult: (item: any) => string | undefined;
+  /** Close overlay and go to a URL without undoing navigation via history.back(). */
+  navigateFromSearch: (url: string) => void;
+  /** Maps a navigable item (setting or entity) to its destination URL. */
+  resolveItemUrl: (item: SearchNavigableItem) => string | undefined;
   query: string;
   DASHBOARD_FOCUSAI: string;
   DASHBOARD_SEARCH: string;
@@ -82,22 +90,22 @@ interface HandleGlobalSearchNavigationParams {
 export function handleGlobalSearchNavigation({
   event,
   isSearchMode,
-  result,
+  navigableItems,
   selectedResultIndex,
   setSelectedResultIndex,
   selectedOptionIndex,
   setSelectedOptionIndex,
   globalOptions,
   setSidebarState,
-  router,
-  navigateToSearchResult,
+  navigateFromSearch,
+  resolveItemUrl,
   query,
   DASHBOARD_FOCUSAI,
   DASHBOARD_SEARCH,
   onFocusAIQuickAsk,
 }: HandleGlobalSearchNavigationParams) {
   if (isSearchMode) {
-    const resultsLength = result?.searchResults?.length || 0;
+    const resultsLength = navigableItems.length;
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       if (resultsLength > 0)
@@ -112,19 +120,17 @@ export function handleGlobalSearchNavigation({
     if (event.key === 'Enter') {
       event.preventDefault();
       if (selectedResultIndex < 0) {
-        setSidebarState((prev) => ({ ...prev, searchOpen: false }));
         const params = new URLSearchParams();
         if (query.trim()) params.set('q', query.trim());
-        router.push(
+        navigateFromSearch(
           params.toString() ? `${DASHBOARD_SEARCH}?${params.toString()}` : DASHBOARD_SEARCH,
         );
       } else {
-        const searchItem = result?.searchResults?.[selectedResultIndex];
-        if (searchItem) {
-          setSidebarState((prev) => ({ ...prev, searchOpen: false }));
-          const url = navigateToSearchResult(searchItem);
+        const navigableItem = navigableItems[selectedResultIndex];
+        if (navigableItem) {
+          const url = resolveItemUrl(navigableItem);
           if (url) {
-            router.push(url);
+            navigateFromSearch(url);
           }
         }
       }
@@ -149,12 +155,26 @@ export function handleGlobalSearchNavigation({
         } else {
           const searchParams = new URLSearchParams();
           searchParams.set('query', query);
-          router.push(`${DASHBOARD_FOCUSAI}?${searchParams.toString()}`);
-          setSidebarState((prev) => ({ ...prev, searchOpen: false }));
+          navigateFromSearch(`${DASHBOARD_FOCUSAI}?${searchParams.toString()}`);
         }
       }
     }
   }
+}
+
+/**
+ * Delete-event chord, cross-platform.
+ *
+ * Windows/Linux (and Mac full-size keyboards) have a real `Delete` key. MacBooks do not —
+ * the key labelled *delete* (⌫) reports `Backspace`, and forward-delete needs fn+⌫ — so the
+ * Mac-native gesture ⌘+⌫ is accepted as well.
+ *
+ * Bare `Backspace` is deliberately NOT a trigger: it is far too easy to hit by accident and
+ * the destructive action would fire with no modifier held.
+ */
+export function matchesDeleteEventShortcut(event: KeyboardEvent | ReactKeyboardEvent): boolean {
+  if (event.key === 'Delete') return true;
+  return event.key === 'Backspace' && isModKeyPressed(event);
 }
 
 interface HandleQuickEventDialogNavigationParams {
@@ -190,13 +210,13 @@ export function handleQuickEventDialogNavigation({
       onClose();
     }
   }
-  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+  if (event.key === 'Enter' && isModKeyPressed(event)) {
     if (isEditing) {
       handleKeyboardSubmit(event);
     }
   }
   if (
-    event.key === 'Delete' &&
+    matchesDeleteEventShortcut(event) &&
     onDelete &&
     !isEditing &&
     !showDateConfig &&
@@ -235,11 +255,10 @@ export function handleShortcutEditKeyDown({
 
   // Create new shortcut based on pressed keys
   const newShortcut = {
-    keys: [event.key === ' ' ? 'Space' : event.key],
-    ctrl: event.ctrlKey,
+    keys: [shortcutKeyLabelFromEvent(event)],
+    mod: isModKeyPressed(event),
     shift: event.shiftKey,
     alt: event.altKey,
-    meta: event.metaKey,
   };
 
   setTempShortcut(newShortcut);
@@ -296,17 +315,19 @@ export function handleCalendarKeyboardShortcuts({
   // Alt++ zoom in / Alt+- zoom out (time grid views only)
   const isTimeGridView = TIME_GRID_VIEWS.includes(currentView);
   if (isTimeGridView && event.altKey && onTimeZoomIn && onTimeZoomOut) {
-    if (event.key === '+' || event.key === '=') {
+    if (matchesShortcutKey('+', event)) {
       event.preventDefault();
       onTimeZoomIn();
       return;
     }
-    if (event.key === '-') {
+    if (matchesShortcutKey('-', event)) {
       event.preventDefault();
       onTimeZoomOut();
       return;
     }
   }
+
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
 
   if (event.key === 'p') {
     handlePrevClick(calendarApi, setCurrentDate, currentView, setCurrentView, fetchAllEvents);
@@ -316,6 +337,8 @@ export function handleCalendarKeyboardShortcuts({
     handleTodayClick(calendarApi, setCurrentDate, currentView, setCurrentView, fetchAllEvents);
   } else if (event.key === 'w') {
     handleViewChange(calendarApi, 'timeGridWeek', setCurrentView, setCurrentDate, fetchAllEvents);
+  } else if (event.key === 'd') {
+    handleViewChange(calendarApi, 'timeGridDay', setCurrentView, setCurrentDate, fetchAllEvents);
   } else if (event.key === 'm') {
     handleViewChange(calendarApi, 'dayGridMonth', setCurrentView, setCurrentDate, fetchAllEvents);
   }

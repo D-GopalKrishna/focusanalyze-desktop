@@ -1,11 +1,11 @@
 /**
  * Convert raw PCM audio to WAV format with proper headers.
  *
- * Gemini Live API sends raw 24kHz, 16-bit, mono PCM audio.
- * Browsers need WAV format (with headers) to play audio.
+ * FocusAI voice (cascade Cartesia / historical Gemini Live) sends raw 24kHz,
+ * 16-bit, mono PCM. Browsers need WAV (with headers) to play it.
  *
  * @param pcmData Raw PCM audio bytes
- * @param sampleRate Sample rate in Hz (default: 24000 for Gemini Live)
+ * @param sampleRate Sample rate in Hz (default: 24000)
  * @param numChannels Number of audio channels (default: 1 for mono)
  * @param bitsPerSample Bits per sample (default: 16)
  * @returns WAV format audio with headers

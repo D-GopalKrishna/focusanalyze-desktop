@@ -19,7 +19,9 @@ export type FocusAISurfaceHint = {
 };
 
 /** Label for thinking pill — only when surface is non-generic. */
-export function focusAISurfaceThinkingLabel(hint: FocusAISurfaceHint | null | undefined): string | undefined {
+export function focusAISurfaceThinkingLabel(
+  hint: FocusAISurfaceHint | null | undefined,
+): string | undefined {
   if (!hint?.surface || hint.surface === 'global') return undefined;
   switch (hint.surface) {
     case 'calendar':

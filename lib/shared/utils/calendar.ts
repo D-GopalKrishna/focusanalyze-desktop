@@ -17,13 +17,25 @@ export function fullCalendarViewToAppView(type: string): ICalendarView | undefin
 }
 
 // This function is used to get the from and to datetime for the calendar
-// It is used to fetch events for the new view type
+// It is used to fetch events for the new view type.
+// Prefer FullCalendar's activeStart/activeEnd so the fetch range matches the
+// columns on screen (honors firstDay / start-of-week). Hardcoding weekStartsOn:1
+// here previously left Sunday empty when the UI showed Sun–Sat (F9).
 const getFromAndToDatetime = (calendarApi: CalendarApi) => {
-  const newView = calendarApi?.view.type;
+  const view = calendarApi?.view;
+  if (view?.activeStart && view?.activeEnd) {
+    return {
+      fromDatetime: view.activeStart.toISOString(),
+      // activeEnd is exclusive — matches the backend half-open range.
+      toDatetime: view.activeEnd.toISOString(),
+    };
+  }
+
+  const newView = view?.type;
   let fromDatetime: string;
   let toDatetime: string;
 
-  // Get the calendar's current date instead of always using new Date()
+  // Fallback when the view isn't ready yet (e.g. before FullCalendar mounts).
   const currentDate = calendarApi.getDate();
 
   if (newView === 'timeGridThreeDay') {
@@ -333,6 +345,25 @@ const getCalendarSelectionAnchorRect = ({
 
   return dayRect;
 };
+
+/**
+ * Human-readable message from an event create/update API error. The backend returns
+ * `{"detail": "..."}` for plain errors, or `{"detail": {field: ["msg", ...], ...}}` for
+ * Django ValidationError field errors (e.g. `{"end_datetime": ["End datetime must be
+ * after start datetime."]}`) — this flattens either shape into one line instead of the
+ * generic "Could not update the event." that used to hide the actual reason.
+ */
+export function parseEventSaveErrorMessage(error: unknown, fallback: string): string {
+  const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+  if (typeof detail === 'string' && detail.trim()) return detail.trim();
+  if (detail && typeof detail === 'object') {
+    const messages = Object.values(detail as Record<string, unknown>).flatMap((v) =>
+      Array.isArray(v) ? v.filter((m): m is string => typeof m === 'string') : [],
+    );
+    if (messages.length > 0) return messages.join(' ');
+  }
+  return fallback;
+}
 
 export {
   handlePrevClick,

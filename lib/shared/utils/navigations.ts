@@ -54,8 +54,11 @@ export const updateUrlWithTaskId = (taskAcronym: string | null, router: any): vo
     currentUrl.searchParams.set(URL_PARAMS.OPEN_ISSUE, taskAcronym);
   } else {
     currentUrl.searchParams.delete(URL_PARAMS.OPEN_ISSUE);
+    currentUrl.searchParams.delete(URL_PARAMS.OPEN_COMMENT);
   }
-  router.replace(currentUrl.pathname + currentUrl.search);
+  // Without `scroll: false`, Next.js resets the nearest scrollable ancestor (the board/list
+  // ScrollArea) to the top on every navigation — including this query-param-only replace.
+  router.replace(currentUrl.pathname + currentUrl.search, { scroll: false });
 };
 
 /** Add/remove `openTrack` (numeric track id) while preserving other query params. */
@@ -66,5 +69,5 @@ export const updateUrlWithOpenTrack = (trackId: string | null, router: any): voi
   } else {
     currentUrl.searchParams.delete(URL_PARAMS.OPEN_TRACK);
   }
-  router.replace(currentUrl.pathname + currentUrl.search);
+  router.replace(currentUrl.pathname + currentUrl.search, { scroll: false });
 };

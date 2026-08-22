@@ -8,15 +8,28 @@ import {
   PaginatedConversationListList,
 } from "@shared/api-client";
 import { createApiClient, createApiConfiguration } from '../auth';
+import { getFreshAccessToken } from '@/lib/middleware/keycloak';
 import { axiosErrorBody, executeMultipartApiRequest, fetchApiEventStream } from '../openapiHelpers';
 import type { HitlDecision } from "@shared/api-client";
 import { parseFocusAiSseStream } from "@shared/utils/focusai/parseSseStream";
+import {
+  appendFocusAiAguiProtocol,
+  isFocusAiAguiEnabled,
+  parseAguiStream,
+} from "@shared/utils/focusai/parseAguiStream";
 import type { FocusAIStreamEvent } from "@shared/types/dashboard/focusai-stream";
 import type { PlanSuggestStreamEvent } from "@shared/types/dashboard/plan-suggest-stream";
 import type { PlanScope } from "@shared/types/dashboard/planning";
+import { resolvePlannerTimezone } from "@shared/utils/planner-sidebar-prefs";
 
 export const PRO_SUBSCRIPTION_REQUIRED_CODE = 'pro_subscription_required';
 export const AI_QUOTA_EXCEEDED_CODE = 'ai_quota_exceeded';
+export const DOCUMENT_ATTACHMENTS_PLUS_ONLY_CODE = 'document_attachments_plus_only';
+/** OpenAI/Anthropic billing or credit failure — not the user's FocusAnalyze plan.
+ * SSE `error.code` from the backend; show Contact support, not the Pro upgrade paywall.
+ * Distinct from TPM rate limits (retryable) and FA monthly token quota.
+ */
+export const AI_PROVIDER_UNAVAILABLE_CODE = 'ai_provider_unavailable';
 
 export class FocusAiApiError extends Error {
   status: number;
@@ -30,9 +43,47 @@ export class FocusAiApiError extends Error {
   }
 }
 
+export class FocusAiProviderUnavailableError extends Error {
+  readonly code = AI_PROVIDER_UNAVAILABLE_CODE;
+
+  constructor(message?: string) {
+    super(
+      message ||
+        "FocusAI can't reach the AI provider right now. Please try again later or contact support.",
+    );
+    this.name = 'FocusAiProviderUnavailableError';
+  }
+}
+
+/** SSE-side counterpart to isFocusAiQuotaExceededError (which only covers the REST 403 path) —
+ * thrown when the backend's `error` SSE frame carries `code: AI_QUOTA_EXCEEDED_CODE`. */
+export class FocusAiSseQuotaExceededError extends Error {
+  readonly code = AI_QUOTA_EXCEEDED_CODE;
+
+  constructor(message?: string) {
+    super(message || 'No remaining AI quota or inactive subscription.');
+    this.name = 'FocusAiSseQuotaExceededError';
+  }
+}
+
 const configuration = createApiConfiguration();
 const conversationApi = createApiClient(ApiApi);
 const apiParams = ApiApiAxiosParamCreator(configuration);
+
+function appendAguiProtocol(url: string): string {
+  return appendFocusAiAguiProtocol(url);
+}
+
+async function* parseFocusAiOrAguiStream(
+  body: ReadableStream<Uint8Array>,
+  signal?: AbortSignal,
+): AsyncGenerator<FocusAIStreamEvent> {
+  if (isFocusAiAguiEnabled()) {
+    yield* parseAguiStream(body, signal);
+    return;
+  }
+  yield* parseFocusAiSseStream(body, signal);
+}
 
 function toMessagePlanScope(scope?: PlanScope) {
   if (!scope) return undefined;
@@ -119,6 +170,8 @@ function buildMessageForm(params: {
   context: ContextEnum;
   functionArgs?: Record<string, unknown> | any;
   files?: string[];
+  fileNames?: string[];
+  model?: string | null;
 }): FormData {
   const form = new FormData();
 
@@ -126,11 +179,19 @@ function buildMessageForm(params: {
   form.append('content', params.content);
   form.append('context', params.context);
   form.append('function_args', JSON.stringify(params.functionArgs ?? {}));
+  if (params.model && params.model !== 'auto') {
+    form.append('model', params.model);
+  } else if (params.model === 'auto') {
+    form.append('model', 'auto');
+  }
 
   params.files?.forEach((f, idx) => {
     const { blob, mime } = base64ToBlob(f);
+    const given = params.fileNames?.[idx];
+    const extFromName = given?.includes('.') ? given.split('.').pop()!.toLowerCase() : '';
     const ext =
-      mime === 'image/png'
+      extFromName ||
+      (mime === 'image/png'
         ? 'png'
         : mime === 'image/webp'
           ? 'webp'
@@ -138,8 +199,15 @@ function buildMessageForm(params: {
             ? 'gif'
             : mime === 'application/pdf'
               ? 'pdf'
-              : 'jpg';
-    form.append('files', blob, `upload-${idx}.${ext}`);
+              : mime === 'text/csv'
+                ? 'csv'
+                : mime === 'text/tab-separated-values'
+                  ? 'tsv'
+                  : mime.includes('spreadsheetml')
+                    ? 'xlsx'
+                    : 'jpg');
+    const filename = given && given.includes('.') ? given : `upload-${idx}.${ext}`;
+    form.append('files', blob, filename);
   });
 
   return form;
@@ -180,6 +248,35 @@ export function isFocusAiQuotaExceededError(error: unknown): boolean {
   return false;
 }
 
+export function isDocumentAttachmentsPlusOnlyError(error: unknown): boolean {
+  if (error instanceof FocusAiApiError) {
+    return error.status === 403 && error.code === DOCUMENT_ATTACHMENTS_PLUS_ONLY_CODE;
+  }
+  return false;
+}
+
+export function isAiProviderUnavailableError(error: unknown): boolean {
+  if (error instanceof FocusAiProviderUnavailableError) return true;
+  if (error instanceof FocusAiApiError) {
+    return error.code === AI_PROVIDER_UNAVAILABLE_CODE;
+  }
+  if (error && typeof error === 'object' && 'code' in error) {
+    return (error as { code?: string }).code === AI_PROVIDER_UNAVAILABLE_CODE;
+  }
+  return false;
+}
+
+export function isAiSseQuotaExceededError(error: unknown): boolean {
+  if (error instanceof FocusAiSseQuotaExceededError) return true;
+  if (error instanceof FocusAiApiError) {
+    return error.code === AI_QUOTA_EXCEEDED_CODE;
+  }
+  if (error && typeof error === 'object' && 'code' in error) {
+    return (error as { code?: string }).code === AI_QUOTA_EXCEEDED_CODE;
+  }
+  return false;
+}
+
 /** Pro paywall or monthly AI token quota exhausted. */
 export function isFocusAiLimitError(error: unknown): boolean {
   return isFocusAiProPaywallError(error) || isFocusAiQuotaExceededError(error);
@@ -206,6 +303,7 @@ export async function* streamPlanningSuggestViaFocusAI(
         zone: 'planning_suggest',
         plan_scope: payload.scope,
         plan_date: payload.date,
+        timezone: resolvePlannerTimezone(),
       },
       conversationId: payload.conversationUuid ?? null,
       zone: 'planning_suggest',
@@ -225,9 +323,13 @@ export type StreamMessageTurnParams = {
   context: ContextEnum;
   functionArgs?: Record<string, unknown>;
   files?: string[];
+  /** Original filenames aligned with ``files`` (needed for PDF/CSV/XLSX classification). */
+  fileNames?: string[];
   zone?: string;
   planScope?: PlanScope;
   planDate?: string;
+  /** Composer model pick (`auto` or allowlisted id). */
+  model?: string | null;
 };
 
 /**
@@ -246,9 +348,14 @@ export async function* streamMessageTurn(
     undefined,
   );
 
+  const streamArgs = {
+    ...axiosArgs,
+    url: appendAguiProtocol(axiosArgs.url),
+  };
+
   let body: ReadableStream<Uint8Array>;
   try {
-    body = await fetchApiEventStream(axiosArgs, buildMessageForm(params), signal);
+    body = await fetchApiEventStream(streamArgs, buildMessageForm(params), signal);
   } catch (err) {
     const status = (err as { status?: number }).status ?? 0;
     const text = err instanceof Error ? err.message : '';
@@ -259,7 +366,7 @@ export async function* streamMessageTurn(
     );
   }
 
-  yield* parseFocusAiSseStream(body, signal);
+  yield* parseFocusAiOrAguiStream(body, signal);
 }
 
 /**
@@ -301,10 +408,15 @@ export async function* streamMessageUpdate(
     params.zone,
   );
 
+  const streamArgs = {
+    ...axiosArgs,
+    url: appendAguiProtocol(axiosArgs.url),
+  };
+
   let body: ReadableStream<Uint8Array>;
   try {
     body = await fetchApiEventStream(
-      axiosArgs,
+      streamArgs,
       JSON.stringify({
         user_message_id: params.userMessageId,
         content: params.content,
@@ -324,7 +436,7 @@ export async function* streamMessageUpdate(
     );
   }
 
-  yield* parseFocusAiSseStream(body, signal);
+  yield* parseFocusAiOrAguiStream(body, signal);
 }
 
 export async function* streamMessageTurnWithRetry(
@@ -463,17 +575,94 @@ export async function deleteConversation(conversationId: string): Promise<number
 export async function resumeAgent(
   conversationUuid: string,
   decisions: HitlDecision[],
+  timezone?: string | null,
 ): Promise<Conversation> {
   try {
+    const body: { decisions: HitlDecision[]; timezone?: string } = { decisions };
+    if (timezone) body.timezone = timezone;
     const response = await conversationApi.apiFocusgptConversationAgentResumeCreate(
       conversationUuid as unknown as number,
-      { decisions },
+      body as any,
     );
     return response.data;
   } catch (err) {
     if (isAxiosError(err)) {
       const status = err.response?.status ?? 0;
       throw new Error(formatFocusAiMessageApiError(status, axiosErrorBody(err)));
+    }
+    throw err;
+  }
+}
+
+/**
+ * Stream the agent resume the same way a fresh turn streams (Phase 1.7).
+ * POST /api/focusgpt/conversation/{uuid}/agent-resume/?stream=1
+ *
+ * Yields the same `FocusAIStreamEvent` shape as `streamMessageTurn` — `activity`/`llm_delta`
+ * frames while the approved tool executes, then a final `conversation` frame carrying the
+ * resolved message's `metadata.action_results`. Callers should read `ok` from that field, not
+ * from this call resolving without throwing (see design principle 1 in the Phase 1 plan).
+ */
+export async function* resumeAgentStream(
+  conversationUuid: string,
+  decisions: HitlDecision[],
+  timezone?: string | null,
+  signal?: AbortSignal,
+): AsyncGenerator<FocusAIStreamEvent> {
+  const body: { decisions: HitlDecision[]; timezone?: string } = { decisions };
+  if (timezone) body.timezone = timezone;
+
+  const axiosArgs = await apiParams.apiFocusgptConversationAgentResumeCreate(
+    conversationUuid as unknown as number,
+    body as any,
+    true,
+  );
+
+  const streamArgs = {
+    ...axiosArgs,
+    url: appendAguiProtocol(axiosArgs.url),
+  };
+
+  let responseBody: ReadableStream<Uint8Array>;
+  try {
+    responseBody = await fetchApiEventStream(streamArgs, JSON.stringify(body), signal);
+  } catch (err) {
+    const status = (err as { status?: number }).status ?? 0;
+    const text = err instanceof Error ? err.message : '';
+    throw new FocusAiApiError(
+      formatFocusAiMessageApiError(status, text),
+      status,
+      parseErrorCode(text),
+    );
+  }
+
+  yield* parseFocusAiOrAguiStream(responseBody, signal);
+}
+
+/**
+ * "Continue from here": fork a new conversation containing messages 1..anchor, with a fresh
+ * LangGraph thread. The original conversation is left untouched (its own next GET will surface
+ * `branched_to` for the anchor); the new conversation's response carries `branched_from`.
+ * conversationUuid is the original conversation's UUID.
+ */
+export async function branchConversation(
+  conversationUuid: string,
+  anchorMessageId: number,
+): Promise<Conversation> {
+  try {
+    const response = await conversationApi.apiFocusgptConversationBranchCreate(
+      conversationUuid as unknown as number,
+      { anchor_message_id: anchorMessageId },
+    );
+    return response.data;
+  } catch (err) {
+    if (isAxiosError(err)) {
+      const status = err.response?.status ?? 0;
+      throw new FocusAiApiError(
+        formatFocusAiMessageApiError(status, axiosErrorBody(err)),
+        status,
+        parseErrorCode(axiosErrorBody(err)),
+      );
     }
     throw err;
   }
@@ -500,4 +689,51 @@ export async function updateMessage(
     },
   );
   return response.data;
+}
+
+/**
+ * GET /api/focusgpt/model-options/
+ * Plan-gated Auto + manual model list for the FocusAI composer.
+ */
+export async function fetchFocusAIModelOptions(): Promise<
+  import('@/lib/utils/focusai/model-picker').FocusAIModelOptionsResponse
+> {
+  const base = createApiConfiguration().basePath?.replace(/\/$/, '') ?? '';
+  const auth = (await getFreshAccessToken()) ?? '';
+  const res = await fetch(`${base}/api/focusgpt/model-options/`, {
+    headers: {
+      Accept: 'application/json',
+      ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new FocusAiApiError(formatFocusAiMessageApiError(res.status, text), res.status);
+  }
+  return res.json();
+}
+
+/**
+ * GET /api/focusgpt/message-attachments/<id>/
+ * Auth download of a prompt upload (images/docs). Returns a blob for preview.
+ * Expired or foreign attachments → 404 → FocusAiApiError.
+ */
+export async function fetchFocusAIMessageAttachmentBlob(attachmentId: number): Promise<Blob> {
+  const base = createApiConfiguration().basePath?.replace(/\/$/, '') ?? '';
+  const auth = (await getFreshAccessToken()) ?? '';
+  const res = await fetch(`${base}/api/focusgpt/message-attachments/${attachmentId}/`, {
+    headers: {
+      ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new FocusAiApiError(
+      res.status === 404
+        ? 'This attachment is no longer available (expired or removed).'
+        : formatFocusAiMessageApiError(res.status, text),
+      res.status,
+    );
+  }
+  return res.blob();
 }

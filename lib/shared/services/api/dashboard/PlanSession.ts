@@ -4,10 +4,14 @@ import {
   ApiPlanSessionsDraftUpdateScopeEnum,
   ApiPlanSessionsIndexRetrieveScopeEnum,
   ApiPlanSessionsIndexRetrieveStatusEnum,
+  ApiPlanSessionsSnapshotDestroyScopeEnum,
+  ApiPlanSessionsSnapshotPartialUpdateScopeEnum,
   ApiPlanSessionsSnapshotRetrieveScopeEnum,
   ApiPlanSessionsStatusRetrieveScopeEnum,
   ApiPlanSessionsVsActualRetrieveScopeEnum,
+  ComparisonModeEnum,
   PlanSessionsApi,
+  type PatchedPlanSnapshotComparisonMode,
   type PlanDraftUpsert,
   type PlanIndexEntry,
   type PlanIndexList,
@@ -19,6 +23,9 @@ import {
   type PlanSnapshotLive,
   type PlanVsActual,
 } from "@shared/api-client";
+
+export type ComparisonMode = 'baseline' | 'latest';
+import { isAxiosError } from 'axios';
 import { bearerAuthorizationHeader, createApiClient, createApiConfiguration } from '../auth';
 
 import type { DraftPlanBlock } from "@shared/types/dashboard/planning";
@@ -26,6 +33,28 @@ import type { PlanScope } from "@shared/types/dashboard/planning";
 import { draftBlocksToApiPayload } from "@shared/utils/plan-draft-persist";
 
 const api = createApiClient(PlanSessionsApi);
+
+/** Prefer DRF field errors (`blocks`, `detail`) over a generic Save-failed toast. */
+export function getPlanSessionApiErrorDetail(error: unknown, fallbackMessage: string): string {
+  if (!isAxiosError(error)) {
+    return fallbackMessage;
+  }
+  const data = error.response?.data;
+  if (!data || typeof data !== 'object') {
+    return fallbackMessage;
+  }
+  const record = data as Record<string, unknown>;
+  for (const key of ['blocks', 'detail', 'non_field_errors'] as const) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+    if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+      return value[0].trim();
+    }
+  }
+  return fallbackMessage;
+}
 
 function toApiScope(scope: PlanScope) {
   return scope === 'weekly'
@@ -174,20 +203,29 @@ export async function getPlanVsActual(
     periodStart,
     toVsActualScope(scope),
     undefined,
+    undefined,
     until,
   );
   return resp.data;
 }
 
-/** Month (or arbitrary range): sums daily plan snapshots between periodStart and periodEnd. */
+/**
+ * Month (or arbitrary range): sums plan snapshots between periodStart and periodEnd.
+ * `granularity` picks which PlanSnapshot scope to sum — 'day' (default) sums DAILY
+ * snapshots, 'week' sums WEEKLY ones. These are strictly separate scopes, never merged
+ * (see plan_resolution.py) — pass whichever granularity the user actually planned in,
+ * or the total will silently read as 0/understated for weeks-only planners.
+ */
 export async function getPlanVsActualForRange(
   periodStart: string,
   periodEnd: string,
   until?: string,
+  granularity: 'day' | 'week' = 'day',
 ): Promise<PlanVsActual> {
   const resp = await api.apiPlanSessionsVsActualRetrieve(
     periodStart,
     toVsActualScope('daily'),
+    granularity,
     periodEnd,
     until,
   );
@@ -255,6 +293,40 @@ export async function deletePlanDraft(scope: PlanScope, date?: string): Promise<
     scope === 'weekly'
       ? ApiPlanSessionsDraftDestroyScopeEnum.Weekly
       : ApiPlanSessionsDraftDestroyScopeEnum.Daily,
+    date,
+  );
+}
+
+/**
+ * Persists which adherence number (baseline/latest) THIS specific day/week's plan shows as
+ * primary — per-snapshot, not a global user preference (plan-vs-actual-default-baseline
+ * Phase 2 revision: a choice made on one day must never change what another day shows).
+ * 404s (surfaced as a thrown error) if no snapshot exists yet for that scope/date.
+ */
+export async function setPlanSnapshotComparisonMode(
+  scope: PlanScope,
+  mode: ComparisonMode,
+  date?: string,
+): Promise<PlanSnapshot> {
+  const body: PatchedPlanSnapshotComparisonMode = {
+    comparison_mode: mode === 'latest' ? ComparisonModeEnum.Latest : ComparisonModeEnum.Baseline,
+  };
+  const resp = await api.apiPlanSessionsSnapshotPartialUpdate(
+    scope === 'weekly'
+      ? ApiPlanSessionsSnapshotPartialUpdateScopeEnum.Weekly
+      : ApiPlanSessionsSnapshotPartialUpdateScopeEnum.Daily,
+    date,
+    body,
+  );
+  return resp.data;
+}
+
+/** Permanently remove the saved plan for the period. Calendar events are kept. */
+export async function deletePlanSnapshot(scope: PlanScope, date?: string): Promise<void> {
+  await api.apiPlanSessionsSnapshotDestroy(
+    scope === 'weekly'
+      ? ApiPlanSessionsSnapshotDestroyScopeEnum.Weekly
+      : ApiPlanSessionsSnapshotDestroyScopeEnum.Daily,
     date,
   );
 }

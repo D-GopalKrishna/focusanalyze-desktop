@@ -1,4 +1,4 @@
-import { DailyReport, DailyReportApi, WeeklyReport } from "@shared/api-client";
+import { DailyReport, DailyReportApi, MonthlyReport, WeeklyReport } from "@shared/api-client";
 import { createApiClient } from '../auth';
 
 const api = createApiClient(DailyReportApi);
@@ -36,10 +36,26 @@ async function generateWeeklyReport(date: string, notify = true): Promise<Weekly
   return data;
 }
 
+async function getMonthlyReport(date: string): Promise<MonthlyReport> {
+  const { data } = await api.apiDailyReportGetMonthlyReportRetrieve(date);
+  return data;
+}
+
+async function generateMonthlyReport(date: string, notify = false): Promise<MonthlyReport> {
+  const { data } = await api.apiDailyReportGenerateMonthlyReportCreate(
+    date,
+    { date } as DailyReport,
+    notify,
+  );
+  return data;
+}
+
 export {
   getDailyReport,
   getDailyReportsInRange,
   generateDailyReport,
   getWeeklyReport,
   generateWeeklyReport,
+  getMonthlyReport,
+  generateMonthlyReport,
 };

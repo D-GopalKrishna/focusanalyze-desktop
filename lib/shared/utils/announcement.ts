@@ -1,3 +1,18 @@
+// Navigate an announcement CTA: relative/internal paths ("/dashboard/...") go through
+// the app router so the SPA doesn't lose state; anything else (an absolute external URL)
+// opens in a new tab.
+export function navigateToCtaUrl(
+  router: { push: (href: string) => void },
+  url: string | undefined | null,
+): void {
+  if (!url) return;
+  if (url.startsWith('/')) {
+    router.push(url);
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
+
 export function normalizeHighlights(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value

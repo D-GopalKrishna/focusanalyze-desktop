@@ -1,4 +1,8 @@
-import { NotificationsApiListTypeEnum } from "@shared/api-client/api";
+import {
+  NotificationsApiListStatusEnum,
+  NotificationsApiListTypeEnum,
+  NotificationTypeEnum,
+} from "@shared/api-client/api";
 import { getTaskById } from "@shared/services/api/dashboard/Task";
 import { getFocusAnalyzeTaskPageUrl } from "@shared/utils/navigations";
 import { dashboardPerformancePath } from '@/lib/config/urls';
@@ -6,12 +10,70 @@ import { dashboardPerformancePath } from '@/lib/config/urls';
 import { SourceEnum, type Notification } from "@shared/api-client/api";
 
 import { sourceIcons } from "@shared/types/notifications";
+import { dedupeStreamNotifications } from "@shared/utils/notification-stream-dedupe";
+
+export {
+  dedupeStreamNotifications,
+  getNotificationStreamDedupeKey,
+  getStreamNotificationsSeenKeys,
+  hasStreamNotificationToastBeenShown,
+  persistStreamNotificationsSeenKeys,
+  rememberStreamNotificationToastShown,
+} from "@shared/utils/notification-stream-dedupe";
 
 /**
- * Rows older than this (by `created_at`) are treated as backlog: one merged Sonner per batch.
- * Newer rows get individual toasts (title + action).
+ * Rows older than this (by `created_at`) are treated as backlog: one merged Sonner per batch
+ * ("You have N notifications to see"). Newer rows get individual toasts (title + action).
+ *
+ * Keep this short: Celery republishes all unread over SSE, so a 24h window would replay
+ * hours-old plan nudges / summaries as full toasts when the user opens the app.
  */
-export const STREAM_NOTIFICATION_FRESH_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+export const STREAM_NOTIFICATION_FRESH_MAX_AGE_MS = 15 * 60 * 1000;
+
+/** Copy for the merged backlog Sonner / desktop notification. */
+export function getStreamNotificationBacklogSummaryCopy(count: number): {
+  title: string;
+  description: string;
+} {
+  const n = Math.max(0, count);
+  return {
+    title: 'New notifications',
+    description: n === 1 ? 'You have 1 notification to see' : `You have ${n} notifications to see`,
+  };
+}
+
+/**
+ * Count for backlog summary toasts. Must match the sidebar inbox badge
+ * (`unread_notification_count` = persistent + unread only).
+ *
+ * Celery republishes unread over SSE (including non-persistent calendar reminders
+ * excluded from the inbox), so batch length must not be used as the inbox count.
+ */
+export function getStreamNotificationBacklogSummaryCount(
+  stale: (Pick<Notification, 'type' | 'status' | 'id'> & { dedupe_key?: string | null })[],
+  inboxUnreadCount: number,
+): number | null {
+  const uniqueStale = dedupeStreamNotifications(stale);
+  if (uniqueStale.length === 0) return null;
+
+  const staleOnlyCalendar = uniqueStale.every((n) => isStreamCalendarReminderNotification(n.type));
+  if (staleOnlyCalendar) {
+    return uniqueStale.length;
+  }
+
+  if (inboxUnreadCount > 0) {
+    return inboxUnreadCount;
+  }
+
+  const unreadPersistentInBatch = dedupeStreamNotifications(
+    uniqueStale.filter(
+      (n) =>
+        !isStreamCalendarReminderNotification(n.type) &&
+        n.status === NotificationsApiListStatusEnum.Unread,
+    ),
+  ).length;
+  return unreadPersistentInBatch > 0 ? unreadPersistentInBatch : null;
+}
 
 export function isStreamNotificationFreshForIndividualToast(
   createdAt: string | undefined,
@@ -44,7 +106,7 @@ export function partitionStreamNotificationsByFreshness(
  * Use this when deciding how to treat stream rows separately from task/update/etc.
  */
 export function isStreamCalendarReminderNotification(type: string | undefined): boolean {
-  return type === NotificationsApiListTypeEnum.CalendarReminder;
+  return type === NotificationTypeEnum.CalendarReminder;
 }
 
 /**
@@ -297,17 +359,31 @@ export function isPlanNudgeNotification(type: string | undefined): boolean {
 export function isPlanReflectionNotification(type: string | undefined): boolean {
   return (
     type === NotificationsApiListTypeEnum.WeeklyReflection ||
-    type === NotificationsApiListTypeEnum.DailyReflection
+    type === NotificationsApiListTypeEnum.DailyReflection ||
+    type === NotificationsApiListTypeEnum.MonthlyReflection
   );
 }
 
 export function getPlanReflectionFromNotification(notification: {
   type?: string;
   details?: unknown;
-}): { scope: 'daily' | 'weekly'; periodStart: string; snapshotId?: number | null } | null {
+}): { scope: 'daily' | 'weekly' | 'monthly'; periodStart: string; snapshotId?: number | null } | null {
   if (!isPlanReflectionNotification(notification.type)) return null;
   const d = readNotificationDetails(notification.details);
-  const scope = d?.scope === 'weekly' ? 'weekly' : d?.scope === 'daily' ? ('daily' as const) : null;
+  const scope =
+    d?.scope === 'weekly'
+      ? 'weekly'
+      : d?.scope === 'monthly'
+        ? 'monthly'
+        : d?.scope === 'daily'
+          ? ('daily' as const)
+          : notification.type === NotificationsApiListTypeEnum.MonthlyReflection
+            ? 'monthly'
+            : notification.type === NotificationsApiListTypeEnum.WeeklyReflection
+              ? 'weekly'
+              : notification.type === NotificationsApiListTypeEnum.DailyReflection
+                ? 'daily'
+                : null;
   const periodStart = parseString(d?.period_start);
   if (!scope || !periodStart) return null;
   return { scope, periodStart, snapshotId: parseNumericId(d?.snapshot_id) ?? null };
@@ -358,9 +434,15 @@ export function getNotificationPrimaryCta(
     const label =
       notification.type === NotificationsApiListTypeEnum.DailyReflection
         ? 'View report'
-        : 'Review week';
+        : notification.type === NotificationsApiListTypeEnum.MonthlyReflection
+          ? 'Review month'
+          : 'Review week';
     const period =
-      notification.type === NotificationsApiListTypeEnum.DailyReflection ? 'day' : 'week';
+      notification.type === NotificationsApiListTypeEnum.DailyReflection
+        ? 'day'
+        : notification.type === NotificationsApiListTypeEnum.MonthlyReflection
+          ? 'month'
+          : 'week';
     const periodStart = parseString(d?.period_start);
     return { label, href: dashboardPerformancePath(period, periodStart ?? undefined) };
   }

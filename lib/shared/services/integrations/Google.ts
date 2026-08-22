@@ -1,4 +1,4 @@
-import { GoogleCalendarApi } from "@shared/api-client";
+import { GoogleCalendarApi, UserGoogleCalendar, UserIntegration } from "@shared/api-client";
 import { createApiClient } from '../api/auth';
 
 const googleCalendarApi = createApiClient(GoogleCalendarApi);
@@ -98,7 +98,13 @@ export const integrateGoogleCalendarStatusRetrieve =
     };
   };
 
-export type GoogleCalendarUserIntegrationsResult = { success: true; integrations: unknown[] };
+// Backed by `UserIntegrationSerializer` (integrations/serializers/user.py) — the
+// timestamp field here is `created_at`, not `connected_at` (that name belongs to a
+// different endpoint, `serialize_google_calendar_status`'s response shape).
+export type GoogleCalendarUserIntegrationsResult = {
+  success: true;
+  integrations: UserIntegration[];
+};
 
 export const integrateGoogleCalendarUserIntegrations =
   async (): Promise<GoogleCalendarUserIntegrationsResult> => {
@@ -106,7 +112,7 @@ export const integrateGoogleCalendarUserIntegrations =
     const res = await api.integrationsGoogleCalendarUserIntegrationsList();
     const data = responseBody(res);
     const list = Array.isArray(data) ? data : asIntegrationList(data);
-    return { success: true, integrations: list };
+    return { success: true, integrations: list as UserIntegration[] };
   };
 
 export const integrateGoogleCalendarDisconnect = async (integrationId?: number): Promise<void> => {
@@ -117,4 +123,51 @@ export const integrateGoogleCalendarDisconnect = async (integrationId?: number):
   await api.integrationsGoogleCalendarDisconnectDestroy({
     data: { integration_id: integrationId },
   });
+};
+
+/**
+ * Normalize the calendars-list payload: bare array or `{ success, calendars }` — same
+ * wrapped-vs-bare mismatch as `asIntegrationList` above (the OpenAPI schema types this
+ * as a bare array since `@extend_schema` on the view declares the serializer directly,
+ * but the view actually wraps it — matches `list_user_integrations`' existing pattern).
+ */
+function asCalendarList(data: unknown): UserGoogleCalendar[] {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === 'object' && 'calendars' in data) {
+    const list = (data as { calendars?: unknown }).calendars;
+    return Array.isArray(list) ? list : [];
+  }
+  return [];
+}
+
+/** List every calendar (primary + secondary/shared) for the user's connected Google
+ * account(s), refreshed live from Google's calendarList. Pass `integrationId` to scope
+ * to one account; omit for all. */
+export const integrateGoogleCalendarListCalendars = async (
+  integrationId?: number,
+): Promise<UserGoogleCalendar[]> => {
+  const api = googleCalendarApi;
+  const res = await api.integrationsGoogleCalendarCalendarsList(
+    typeof integrationId === 'number' ? { params: { integration_id: integrationId } } : undefined,
+  );
+  return asCalendarList(responseBody(res));
+};
+
+/** Opt one calendar in or out of sync/webhooks. Turning on runs an initial full sync and
+ * creates its watch channel; turning off stops the channel but leaves already-imported
+ * events (pauses the calendar rather than disconnecting it). */
+export const integrateGoogleCalendarSelectCalendar = async (
+  calendarId: number,
+  selected: boolean,
+): Promise<UserGoogleCalendar | null> => {
+  const api = googleCalendarApi;
+  const res = await api.integrationsGoogleCalendarCalendarsSelectCreate({
+    calendar_id: calendarId,
+    selected,
+  });
+  const raw = responseBody(res) as
+    | { success?: boolean; calendar?: UserGoogleCalendar }
+    | null
+    | undefined;
+  return raw && typeof raw === 'object' ? (raw.calendar ?? null) : null;
 };

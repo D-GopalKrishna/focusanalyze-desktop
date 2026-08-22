@@ -2,6 +2,7 @@ import axios from 'axios';
 import {
   ApiApi,
   OrganizationApi,
+  type OrganizationMemberQuota,
   type OrganizationProfileUpdate,
   type OrganizationUserProfileProject,
   type OrganizationUserProfileResponse,
@@ -51,6 +52,15 @@ async function getOrganizationTeams(orgId: number): Promise<OrganizationTeam[]> 
   // Some endpoints are not strongly typed in the generated client; normalize output.
   const data = (resp?.data ?? resp) as ListResponse<OrganizationTeam>;
   return data?.results ?? [];
+}
+
+async function getOrganizationMemberQuotas(orgId: number): Promise<OrganizationMemberQuota[]> {
+  const resp = await api.apiOrganizationsMemberQuotasList(orgId);
+  return resp.data ?? [];
+}
+
+async function requestOrganizationQuotaIncrease(orgId: number, message: string): Promise<void> {
+  await api.apiOrganizationsRequestQuotaIncreaseCreate(orgId, { message });
 }
 
 async function createOrganizationTeam(orgId: number, name: string): Promise<OrganizationTeam> {
@@ -242,6 +252,8 @@ async function updateOrganizationProfile(
 
 export {
   getOrganizationTeams,
+  getOrganizationMemberQuotas,
+  requestOrganizationQuotaIncrease,
   createOrganizationTeam,
   getTeamUsers,
   getOrganizationUsers,

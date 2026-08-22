@@ -73,6 +73,14 @@ const cancelSubscription = async () => {
   return (await api.apiUserCancelSubscriptionCreate()).data;
 };
 
+const cancelPlanChange = async () => {
+  return (await api.apiUserCancelPlanChangeCreate()).data;
+};
+
+const sendBillingContactRequest = async (message: string) => {
+  return (await api.apiUserBillingContactCreate({ message })).data;
+};
+
 const startTrial = async () => {
   const userSubscription = (await api.apiUserStartTrialCreate()).data;
   return userSubscription;
@@ -121,6 +129,8 @@ export {
   createSubscription,
   verifySubscription,
   cancelSubscription,
+  cancelPlanChange,
+  sendBillingContactRequest,
   startTrial,
   startBetaTrial,
   getUserBillingDetails,

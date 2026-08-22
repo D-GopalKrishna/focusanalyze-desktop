@@ -12,11 +12,13 @@ export async function fetchLifeAreas(): Promise<LifeAreaRead[]> {
 export async function createLifeArea(body: {
   name: string;
   color?: string;
+  counts_toward_productivity?: boolean;
 }): Promise<LifeAreaRead> {
   const { data } = await api.apiLifeAreaCreate({
     name: body.name,
     color: body.color,
     sidebar_order: 0,
+    counts_toward_productivity: body.counts_toward_productivity,
   } as LifeAreaRead);
   return data;
 }

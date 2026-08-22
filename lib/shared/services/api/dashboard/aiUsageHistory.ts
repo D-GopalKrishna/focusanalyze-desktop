@@ -1,5 +1,7 @@
 import {
   ApiApi,
+  type AIUsageHistoryEntry,
+  type AIUsageHistoryGroup,
   type AIUsageHistoryItem,
   type AIUsageHistoryResponse,
 } from "@shared/api-client";
@@ -9,6 +11,8 @@ export type {
   AIUsageHistoryResponse,
   AIUsageSummary,
   AIUsageHistoryItem,
+  AIUsageHistoryGroup,
+  AIUsageHistoryEntry,
 } from "@shared/api-client";
 
 function num(v: string | number | undefined | null): number {
@@ -18,18 +22,22 @@ function num(v: string | number | undefined | null): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** Normalizes API decimals that may arrive as strings. */
-export function parseUsageItemTokens(item: AIUsageHistoryItem): number {
+/** Normalizes API decimals that may arrive as strings (items or groups). */
+export function parseUsageItemTokens(
+  item: Pick<AIUsageHistoryItem, 'tokens_used'> | Pick<AIUsageHistoryGroup, 'tokens_used'>,
+): number {
   return num(item.tokens_used);
 }
 
-export function parseUsageItemCost(item: AIUsageHistoryItem): number {
+export function parseUsageItemCost(
+  item: Pick<AIUsageHistoryItem, 'cost_estimate'> | Pick<AIUsageHistoryGroup, 'cost_estimate'>,
+): number {
   return num(item.cost_estimate);
 }
 
 /**
  * GET /api/focusgpt/ai-usage/history/
- * Monthly summary + paginated credit log for the signed-in user.
+ * Monthly summary + paginated request groups for the signed-in user.
  */
 export async function fetchAiUsageHistory(offset = 0, limit = 30): Promise<AIUsageHistoryResponse> {
   if (!process.env.NEXT_PUBLIC_API_URL) {

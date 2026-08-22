@@ -4,7 +4,7 @@ import {
   Configuration,
   NotificationApi,
   NotificationsApiListStatusEnum,
-  NotificationTypeEnum,
+  NotificationsApiListTypeEnum,
   MarkAllReadRequestActionEnum,
   MarkAllArchivedRequestActionEnum,
 } from "@shared/api-client";
@@ -129,7 +129,7 @@ export const fetchNotifications = async (
   page_size: number = 20,
   status?: NotificationsApiListStatusEnum,
   source?: SourceEnum,
-  type?: NotificationTypeEnum,
+  type?: NotificationsApiListTypeEnum,
 ): Promise<Notification[]> => {
   try {
     const response = await api.notificationsApiList(page, page_size, source, status, type);

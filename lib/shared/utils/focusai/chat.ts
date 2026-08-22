@@ -1,4 +1,5 @@
 import { toast } from '@/lib/hooks/use-toast';
+import { readFileAsDataUrl } from "@shared/utils/focusai/read-file-data-url";
 
 /** Keep in sync with focusai/utils/image_prompt_limits.py (backend). */
 export const MAX_IMAGES_PER_PROMPT = 3;
@@ -50,16 +51,9 @@ function validateImageFile(file: File, currentCount: number): boolean {
   return true;
 }
 
-export function readImagePreview(file: File): Promise<FocusAISelectedImage | null> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result;
-      resolve(result ? { file, preview: result as string } : null);
-    };
-    reader.onerror = () => resolve(null);
-    reader.readAsDataURL(file);
-  });
+export async function readImagePreview(file: File): Promise<FocusAISelectedImage | null> {
+  const preview = await readFileAsDataUrl(file);
+  return preview ? { file, preview } : null;
 }
 
 /** Add up to MAX_IMAGES_PER_PROMPT image files (file picker, paste, drag-drop). */

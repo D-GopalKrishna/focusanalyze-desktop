@@ -16,6 +16,8 @@ export function buildCreateEventPayloadFromEvent(event: Event): CreateEvent {
     start_datetime: event.start_datetime,
     end_datetime: event.end_datetime,
     is_all_day: event.is_all_day,
+    all_day_start_date: event.all_day_start_date,
+    all_day_end_date: event.all_day_end_date,
     type: event.type,
     recurrence_rule: event.recurrence_rule ?? null,
     occurrences: event.occurrences ?? '[]',

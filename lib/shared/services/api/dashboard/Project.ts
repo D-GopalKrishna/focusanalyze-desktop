@@ -24,14 +24,30 @@ import {
   ProjectTrackCompleteRequest,
   ProjectTrackCompleteResponse,
   PaginatedProjectTrackList,
+  Release,
+  ReleaseApi,
+  ReleaseStatusEnum,
+  PatchedRelease,
+  PaginatedReleaseList,
+  Goal,
+  GoalApi,
+  GoalStatusEnum,
+  PatchedGoal,
+  PaginatedGoalList,
+  KeyResult,
+  KeyResultApi,
+  PatchedKeyResult,
+  PaginatedKeyResultList,
   ApiProjectInviteCreateRequestAccessLevelEnum,
-  type ApiProjectInviteCreate201Response,
+  type ApiJournalDayUploadEditorImageCreate400Response,
   type ApiProjectInviteCreateRequest,
   type PatchedProjectSharePermissionUpdate,
   type UserAccess,
   type GroupAccess,
   type ProjectHistoryTimeline,
   type ProjectRestoreResult,
+  type RevertResponse,
+  EntityTypeEnum,
 } from "@shared/api-client";
 import {
   bearerAuthorizationHeader,
@@ -49,6 +65,12 @@ const labelApi = createApiClient(ProjectLabelsApi);
 const statusApi = createApiClient(ProjectColumnApi);
 
 const trackApi = createApiClient(ProjectTrackApi);
+
+const releaseApi = createApiClient(ReleaseApi);
+
+const goalApi = createApiClient(GoalApi);
+
+const keyResultApi = createApiClient(KeyResultApi);
 
 /**
  * Maps DRF/OpenAPI `{ detail: string }` axios errors from project endpoints to a user-visible message.
@@ -408,6 +430,126 @@ async function completeProjectTrack(
   return response.data;
 }
 
+export type CreateReleaseData = {
+  project: number;
+  name: string;
+  description?: string;
+  target_date?: string | null;
+  status?: ReleaseStatusEnum;
+};
+
+async function createNewRelease(payload: CreateReleaseData): Promise<Release> {
+  const response = await releaseApi.apiReleaseCreate(payload as unknown as Release);
+  return response.data;
+}
+
+async function updateRelease(
+  releaseId: number,
+  payload: {
+    name?: string;
+    description?: string;
+    target_date?: string | null;
+    status?: ReleaseStatusEnum;
+    order?: number;
+  },
+): Promise<Release> {
+  const patched: PatchedRelease = { ...payload };
+  const response = await releaseApi.apiReleasePartialUpdate(releaseId, patched);
+  return response.data;
+}
+
+async function deleteRelease(releaseId: number): Promise<void> {
+  await releaseApi.apiReleaseDestroy(releaseId);
+}
+
+/** All releases for a project. */
+async function getReleases(projectId: number): Promise<Release[]> {
+  const limit = 10_000;
+  const response = await releaseApi.apiReleaseList(limit, 0, projectId);
+  const data = response.data as PaginatedReleaseList;
+  return Array.isArray(data?.results) ? data.results : [];
+}
+
+async function getRelease(releaseId: number): Promise<Release> {
+  const response = await releaseApi.apiReleaseRetrieve(releaseId);
+  return response.data;
+}
+
+export type CreateGoalData = {
+  project: number;
+  name: string;
+  description?: string;
+  status?: GoalStatusEnum;
+  target_date?: string | null;
+  track?: number | null;
+  release?: number | null;
+};
+
+async function createNewGoal(payload: CreateGoalData): Promise<Goal> {
+  const response = await goalApi.apiGoalCreate(payload as unknown as Goal);
+  return response.data;
+}
+
+async function updateGoal(
+  goalId: number,
+  payload: {
+    name?: string;
+    description?: string;
+    status?: GoalStatusEnum;
+    target_date?: string | null;
+    track?: number | null;
+    release?: number | null;
+    order?: number;
+  },
+): Promise<Goal> {
+  const patched: PatchedGoal = { ...payload };
+  const response = await goalApi.apiGoalPartialUpdate(goalId, patched);
+  return response.data;
+}
+
+async function deleteGoal(goalId: number): Promise<void> {
+  await goalApi.apiGoalDestroy(goalId);
+}
+
+/** All goals for a project. */
+async function getGoals(projectId: number): Promise<Goal[]> {
+  const limit = 10_000;
+  const response = await goalApi.apiGoalList(limit, 0, projectId);
+  const data = response.data as PaginatedGoalList;
+  return Array.isArray(data?.results) ? data.results : [];
+}
+
+async function getGoal(goalId: number): Promise<Goal> {
+  const response = await goalApi.apiGoalRetrieve(goalId);
+  return response.data;
+}
+
+export type CreateKeyResultData = {
+  goal: number;
+  name: string;
+  target_value: number;
+  current_value?: number;
+  unit?: string;
+};
+
+async function createNewKeyResult(payload: CreateKeyResultData): Promise<KeyResult> {
+  const response = await keyResultApi.apiKeyResultCreate(payload as unknown as KeyResult);
+  return response.data;
+}
+
+async function updateKeyResult(
+  keyResultId: number,
+  payload: { name?: string; target_value?: number; current_value?: number; unit?: string; order?: number },
+): Promise<KeyResult> {
+  const patched: PatchedKeyResult = { ...payload };
+  const response = await keyResultApi.apiKeyResultPartialUpdate(keyResultId, patched);
+  return response.data;
+}
+
+async function deleteKeyResult(keyResultId: number): Promise<void> {
+  await keyResultApi.apiKeyResultDestroy(keyResultId);
+}
+
 export type ProjectSharingInfo = {
   can_manage_sharing: boolean;
   cannot_share_reason: string | null;
@@ -415,7 +557,7 @@ export type ProjectSharingInfo = {
   project_owned_by_organization_admin: boolean;
 };
 
-export type InviteProjectCollaboratorsResponse = ApiProjectInviteCreate201Response & {
+export type InviteProjectCollaboratorsResponse = ApiJournalDayUploadEditorImageCreate400Response & {
   validation_notes?: Array<{ message?: string; code?: string }>;
 };
 
@@ -524,6 +666,34 @@ async function restoreProjectToTimestamp(
   return (await api.apiProjectRestoreCreate(projectId, { target_at: targetAt })).data;
 }
 
+/** Preview or apply Action Revert for a single task/track history row (never a full project restore). */
+async function previewProjectHistoryRevert(
+  projectId: number,
+  entityType: EntityTypeEnum,
+  historyId: number,
+): Promise<RevertResponse> {
+  return (
+    await api.apiProjectHistoryRevertCreate(projectId, {
+      history_id: historyId,
+      entity_type: entityType,
+      preview: true,
+    })
+  ).data;
+}
+
+async function revertProjectHistory(
+  projectId: number,
+  entityType: EntityTypeEnum,
+  historyId: number,
+): Promise<RevertResponse> {
+  return (
+    await api.apiProjectHistoryRevertCreate(projectId, {
+      history_id: historyId,
+      entity_type: entityType,
+    })
+  ).data;
+}
+
 export {
   createNewProject,
   getAllProjects,
@@ -557,6 +727,19 @@ export {
   deleteProjectTrack,
   getProjectTracks,
   completeProjectTrack,
+  createNewRelease,
+  updateRelease,
+  deleteRelease,
+  getReleases,
+  getRelease,
+  createNewGoal,
+  updateGoal,
+  deleteGoal,
+  getGoals,
+  getGoal,
+  createNewKeyResult,
+  updateKeyResult,
+  deleteKeyResult,
   getProjectSharingInfo,
   getProjectCollaborators,
   inviteProjectCollaborators,
@@ -566,4 +749,6 @@ export {
   updateProjectGroupSharePermission,
   getProjectHistory,
   restoreProjectToTimestamp,
+  previewProjectHistoryRevert,
+  revertProjectHistory,
 };

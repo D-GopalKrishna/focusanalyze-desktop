@@ -34,3 +34,14 @@ export function noteToEditorHtml(note: string | null | undefined): string {
 export function journalNotesEqual(a: string, b: string): boolean {
   return normalizeJournalNoteHtml(a) === normalizeJournalNoteHtml(b);
 }
+
+/** Plain-text snippet for history list rows (strips HTML). */
+export function journalNotePreview(note: string | null | undefined, maxLen = 60): string {
+  if (!note?.trim()) return 'Empty note';
+  const text = note
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!text) return 'Empty note';
+  return text.length > maxLen ? `${text.slice(0, maxLen)}…` : text;
+}

@@ -6,7 +6,7 @@ const api = createApiClient(ProjectsApi);
 export interface GlobalSearchParams {
   page?: number;
   pageSize?: number;
-  type?: string; // comma-separated: task, project, project-track, event
+  type?: string; // comma-separated search kinds (task, journal, task_comment, …)
   sort?: string; // title_asc, title_desc, created_asc, created_desc, updated_asc, updated_desc
 }
 
