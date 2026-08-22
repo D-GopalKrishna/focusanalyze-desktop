@@ -24,21 +24,45 @@ struct KeycloakTokenResponse {
 }
 
 fn post_form(token_url: &str, body: &str) -> Result<String, String> {
-    let response = ureq::post(token_url)
+    eprintln!(
+        "[focusanalyze-desktop] POST {token_url} body_len={} thread={:?}",
+        body.len(),
+        std::thread::current().id()
+    );
+
+    // ureq treats any non-2xx response as `Err(ureq::Error::Status(..))`, not a normal
+    // `Response` — reading `.status()`/`.into_string()` off the Ok path (as this used to)
+    // never sees the actual failure body, which is exactly what explains a Keycloak 500.
+    // ureq's default agent has no connect/read timeout, so a stale pooled connection
+    // (or a partial/never-completing response) hangs the request forever — exactly what
+    // made this look like a stuck "500" instead of a fast, diagnosable error.
+    let outcome = ureq::post(token_url)
         .set("Content-Type", "application/x-www-form-urlencoded")
-        .send_string(body)
-        .map_err(|e| format!("Token request failed: {e}"))?;
+        .timeout(Duration::from_secs(15))
+        .send_string(body);
 
-    let status = response.status();
-    let text = response
-        .into_string()
-        .map_err(|e| format!("Failed to read token response: {e}"))?;
+    eprintln!("[focusanalyze-desktop] send_string returned (ok={})", outcome.is_ok());
 
-    if status != 200 {
-        return Err(format!("Token exchange failed: {status} - {text}"));
+    match outcome {
+        Ok(response) => {
+            let text = response
+                .into_string()
+                .map_err(|e| format!("Failed to read token response: {e}"))?;
+            eprintln!("[focusanalyze-desktop] read response body, len={}", text.len());
+            Ok(text)
+        }
+        Err(ureq::Error::Status(code, response)) => {
+            let text = response
+                .into_string()
+                .unwrap_or_else(|_| "<unreadable body>".to_string());
+            eprintln!("[focusanalyze-desktop] Keycloak token request failed: {code} - {text}");
+            Err(format!("Token exchange failed: {code} - {text}"))
+        }
+        Err(e) => {
+            eprintln!("[focusanalyze-desktop] Token request transport error: {e}");
+            Err(format!("Token request failed: {e}"))
+        }
     }
-
-    Ok(text)
 }
 
 #[tauri::command]
@@ -199,9 +223,12 @@ fn listen_for_oauth_callback(expected_state: String) -> Result<OAuthCallbackResu
         }
 
         match listener.accept() {
-            Ok((mut stream, _)) => {
+            Ok((mut stream, addr)) => {
                 let result = handle_oauth_request(&mut stream, &expected_state);
                 let success = result.is_ok();
+                if let Err(ref e) = result {
+                    eprintln!("[focusanalyze-desktop] loopback connection from {addr}: {e}");
+                }
                 let _ = write_oauth_response(&mut stream, success);
                 if success {
                     return result;
@@ -272,11 +299,67 @@ fn handle_oauth_request(
     Ok(OAuthCallbackResult { code })
 }
 
+macro_rules! oauth_callback_style {
+    () => {
+        r#"
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #0a0a0a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      color: #f5f5f5;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      padding: 40px 32px;
+      border-radius: 16px;
+      background: #141414;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 20px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .icon.success { background: rgba(52, 199, 89, 0.15); }
+    .icon.failure { background: rgba(255, 69, 58, 0.15); }
+    h1 { font-size: 18px; font-weight: 600; margin: 0 0 8px; }
+    p { font-size: 14px; line-height: 1.5; color: #9a9a9a; margin: 0; }
+"#
+    };
+}
+
+const OAUTH_CALLBACK_SUCCESS_HTML: &str = concat!(
+    "<!doctype html><html><head><meta charset=\"utf-8\"><title>FocusAnalyze</title><style>",
+    oauth_callback_style!(),
+    "</style></head><body><div class=\"card\"><div class=\"icon success\"><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#34c759\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"></polyline></svg></div><h1>Signed in to FocusAnalyze</h1><p>You can close this tab and return to the desktop app.</p></div><script>setTimeout(function(){ window.close(); }, 1200);</script></body></html>"
+);
+
+const OAUTH_CALLBACK_FAILURE_HTML: &str = concat!(
+    "<!doctype html><html><head><meta charset=\"utf-8\"><title>FocusAnalyze</title><style>",
+    oauth_callback_style!(),
+    "</style></head><body><div class=\"card\"><div class=\"icon failure\"><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#ff453a\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"18\" y1=\"6\" x2=\"6\" y2=\"18\"></line><line x1=\"6\" y1=\"6\" x2=\"18\" y2=\"18\"></line></svg></div><h1>Sign-in didn't complete</h1><p>Return to FocusAnalyze Desktop and try again.</p></div></body></html>"
+);
+
 fn write_oauth_response(stream: &mut std::net::TcpStream, success: bool) -> Result<(), String> {
     let body = if success {
-        "<html><body style=\"font-family: system-ui, sans-serif; text-align: center; padding: 48px;\"><h1>Signed in</h1><p>You can close this tab and return to FocusAnalyze Desktop.</p></body></html>"
+        OAUTH_CALLBACK_SUCCESS_HTML
     } else {
-        "<html><body style=\"font-family: system-ui, sans-serif; text-align: center; padding: 48px;\"><h1>Sign-in failed</h1><p>Return to FocusAnalyze Desktop and try again.</p></body></html>"
+        OAUTH_CALLBACK_FAILURE_HTML
     };
 
     let response = format!(

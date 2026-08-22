@@ -5,9 +5,23 @@
   "windows": [
     "main"
   ],
+  "remote": {
+    "urls": ["http://localhost:9843/*"]
+  },
   "permissions": [
     "core:default",
     "process:default",
-    "opener:default"
+    "opener:default",
+    "allow-begin-oauth-callback-listener",
+    "allow-cancel-oauth-callback-listener",
+    "allow-clear-auth-tokens",
+    "allow-exchange-oauth-code",
+    "allow-export-processes-to-csv",
+    "allow-get-active-window-title",
+    "allow-get-processes",
+    "allow-load-auth-tokens",
+    "allow-refresh-oauth-tokens",
+    "allow-save-auth-tokens",
+    "allow-wait-oauth-callback"
   ]
 }

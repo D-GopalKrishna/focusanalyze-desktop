@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-exchange-oauth-code"
+description = "Enables the exchange_oauth_code command without any pre-configured scope."
+commands.allow = ["exchange_oauth_code"]
+
+[[permission]]
+identifier = "deny-exchange-oauth-code"
+description = "Denies the exchange_oauth_code command without any pre-configured scope."
+commands.deny = ["exchange_oauth_code"]

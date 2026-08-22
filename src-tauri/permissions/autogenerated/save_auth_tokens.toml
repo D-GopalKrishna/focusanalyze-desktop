@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-save-auth-tokens"
+description = "Enables the save_auth_tokens command without any pre-configured scope."
+commands.allow = ["save_auth_tokens"]
+
+[[permission]]
+identifier = "deny-save-auth-tokens"
+description = "Denies the save_auth_tokens command without any pre-configured scope."
+commands.deny = ["save_auth_tokens"]

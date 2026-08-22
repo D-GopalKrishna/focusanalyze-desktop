@@ -18,7 +18,8 @@
     "tauri:dev:remote": "NEXT_PUBLIC_API_URL=https://mind.focusanalyze.com NEXT_PUBLIC_KEYCLOAK_URL=https://accounts.focusanalyze.com NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=focusanalyze-desktop tauri dev",
     "tauri:dev:fe": "node scripts/sync-frontend-shared.js --update-local && tauri dev --config src-tauri/tauri.fe.conf.json",
     "tauri:build": "tauri build",
-    "tauri:build:fe": "node scripts/sync-frontend-shared.js --update-local && tauri build --config src-tauri/tauri.fe.conf.json"
+    "tauri:build:fe": "node scripts/sync-frontend-shared.js --update-local && tauri build --config src-tauri/tauri.fe.conf.json",
+    "tauri:build:remote": "NEXT_PUBLIC_API_URL=https://mind.focusanalyze.com NEXT_PUBLIC_KEYCLOAK_URL=https://accounts.focusanalyze.com NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=focusanalyze-desktop npm run tauri:build:fe"
   },
   "dependencies": {
     "@emotion/react": "^11.13.5",

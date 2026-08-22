@@ -1,4 +1,5 @@
 mod auth;
+mod local_server;
 
 use std::collections::HashMap;
 use std::io::Cursor;
@@ -6,6 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 use sysinfo::System;
+use tauri::Manager;
 use x_win::get_active_window;
 
 #[derive(serde::Serialize, Default, Clone)]
@@ -122,6 +124,15 @@ fn track_focus_time(focus_times: Arc<Mutex<HashMap<String, u64>>>) {
     }
 }
 
+// macOS's WKWebView blocks `fetch()` to custom URL schemes like `tauri://` at the engine
+// level — a long-standing, still-open Tauri/WKWebView limitation (no app-side CSP/config
+// fixes it: https://github.com/tauri-apps/tauri/issues/12662, #946, #10249, #4113). Since
+// Next.js's client-side router uses `fetch()` for every in-app navigation (not just
+// prefetch), the FE build serves over a real `http://localhost` origin instead of the
+// custom protocol — `fetch()` against a genuine http(s) origin isn't affected by this
+// restriction at all. See tauri.fe.conf.json's window `url`, which must match this port.
+const LOCALHOST_PORT: u16 = 9843;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let focus_times = Arc::new(Mutex::new(HashMap::new()));
@@ -137,6 +148,53 @@ pub fn run() {
                         .level(log::LevelFilter::Info)
                         .build(),
                 )?;
+            }
+
+            // Replaces tauri-plugin-localhost, which has no fallback for the dynamic-ID
+            // routes' placeholder files (see local_server.rs) — clicking into a real
+            // project/task/goal/etc. 500'd because the plugin only does exact-path lookups.
+            local_server::spawn(app.handle().clone(), "localhost", LOCALHOST_PORT);
+
+            // No browser chrome means no reload button and no Cmd+R by default — the only
+            // way to recover from a stuck/blank page was quitting and relaunching. Add a
+            // real menu with a Reload item (and keep standard Edit items so copy/paste still
+            // work in text fields, which a from-scratch menu would otherwise drop).
+            {
+                use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, SubmenuBuilder};
+
+                let reload_item =
+                    MenuItem::with_id(app, "reload", "Reload", true, Some("CmdOrCtrl+R"))?;
+                let app_menu = SubmenuBuilder::new(app, "FocusAnalyze")
+                    .item(&PredefinedMenuItem::about(app, None, None)?)
+                    .separator()
+                    .item(&PredefinedMenuItem::quit(app, None)?)
+                    .build()?;
+                let edit_menu = SubmenuBuilder::new(app, "Edit")
+                    .item(&PredefinedMenuItem::undo(app, None)?)
+                    .item(&PredefinedMenuItem::redo(app, None)?)
+                    .separator()
+                    .item(&PredefinedMenuItem::cut(app, None)?)
+                    .item(&PredefinedMenuItem::copy(app, None)?)
+                    .item(&PredefinedMenuItem::paste(app, None)?)
+                    .item(&PredefinedMenuItem::select_all(app, None)?)
+                    .build()?;
+                let view_menu = SubmenuBuilder::new(app, "View")
+                    .item(&reload_item)
+                    .build()?;
+                let window_menu = SubmenuBuilder::new(app, "Window")
+                    .item(&PredefinedMenuItem::minimize(app, None)?)
+                    .item(&PredefinedMenuItem::close_window(app, None)?)
+                    .build()?;
+                let menu = Menu::with_items(app, &[&app_menu, &edit_menu, &view_menu, &window_menu])?;
+                app.set_menu(menu)?;
+
+                app.on_menu_event(move |app_handle, event| {
+                    if event.id() == "reload" {
+                        if let Some(window) = app_handle.get_webview_window("main") {
+                            let _ = window.eval("window.location.reload()");
+                        }
+                    }
+                });
             }
 
             thread::spawn(move || {

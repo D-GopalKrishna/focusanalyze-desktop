@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-wait-oauth-callback"
+description = "Enables the wait_oauth_callback command without any pre-configured scope."
+commands.allow = ["wait_oauth_callback"]
+
+[[permission]]
+identifier = "deny-wait-oauth-callback"
+description = "Denies the wait_oauth_callback command without any pre-configured scope."
+commands.deny = ["wait_oauth_callback"]

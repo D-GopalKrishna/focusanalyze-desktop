@@ -13,6 +13,7 @@
     "windows": [
       {
         "title": "FocusAnalyze",
+        "url": "http://localhost:9843/desktop-auth.html",
         "width": 1280,
         "height": 800,
         "resizable": true,

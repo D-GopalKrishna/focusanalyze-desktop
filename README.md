@@ -83,11 +83,29 @@ npm run dev
 
 ## Build
 
+Same two-shell split as dev — **use the `:fe` command**, not the bare one, to get the real app:
+
 ```bash
-npm run tauri:build
+npm run tauri:build:fe
 ```
 
-Built artifacts are in `src-tauri/target/release/`.
+`npm run tauri:build` (no `:fe`) builds the *other* config — the legacy native shell in `src/`, not focusanalyze-fe. It's easy to run the wrong one by habit; if the resulting `.app` shows a bare system-analytics prototype instead of the FocusAnalyze dashboard, that's why.
+
+Built artifacts are in `src-tauri/target/release/bundle/` (`.app` + `.dmg` on macOS).
+
+### Tauri production build scope
+
+`tauri:build:fe` runs `scripts/build-fe.js`, which does `IS_TAURI=true next build` inside `focusanalyze-fe` (its `next.config.js` sets `output: 'export'` under `IS_TAURI=true`). Next's static export requires every route to be statically renderable — `focusanalyze-fe` is a full web app (marketing site + auth + dashboard), and plenty of its routes aren't: real dynamic API routes (cookies, POST bodies, secrets), a Sanity Studio CMS mount, and DB-ID path params Next can't know at build time.
+
+The desktop app only ever shows the **authenticated dashboard** post-login (see "Development" above — login is Tauri's own system-browser OAuth flow, no in-app signup), so `build-fe.js` scopes the build to that instead of trying to export the whole site:
+
+1. Before `next build`, it reads `scripts/tauri-build-scope.json` (paths relative to `focusanalyze-fe/`) and `fs.renameSync`s each one out of `app/` into a temp stash dir. This excludes the marketing site (`(non-auth)`, `(embed)`), the Sanity Studio route, the dead/unused API routes, and a handful of legacy redirect-only dashboard routes (`habits/[habit_id]`, `task/[task_id]`, `tracks/[track_id]`, `settings/[setting]`) that exist solely so old external links still resolve — irrelevant to a fresh desktop install.
+2. Runs `next build` against what's left.
+3. Restores every excluded path in a `finally` (plus `SIGINT`/`SIGTERM` handlers), so `focusanalyze-fe`'s working tree is untouched once the script exits, success or failure.
+
+**Genuinely dynamic dashboard routes** (project/goal/release/team/user IDs — not excludable, real active UI) get `generateStaticParams()` returning a single `'placeholder'` value instead. This works because every one of those pages is a client component that resolves its real ID from the browser URL at runtime via `useParams()`/`use(params)` — which static HTML shell Next served is irrelevant to what renders; the placeholder param just satisfies the export requirement. (Caveat: a hard reload while sitting on one of these deep URLs would 404, since only the placeholder path has a matching static file — client-side navigation, which is how the app is normally used, isn't affected.)
+
+If you add a new dashboard route with a dynamic `[param]` segment, it needs the same treatment (`generateStaticParams` with a placeholder) or the Tauri build will fail with `Page "..." is missing "generateStaticParams()"`. If you add a new marketing-only or genuinely server-dynamic route, add it to `tauri-build-scope.json` instead. See [.claude/plan/in-progress/desktop-dashboard-scoped-build/plan.md](../.claude/plan/in-progress/desktop-dashboard-scoped-build/plan.md) for the full route-by-route rationale.
 
 ## Architecture
 

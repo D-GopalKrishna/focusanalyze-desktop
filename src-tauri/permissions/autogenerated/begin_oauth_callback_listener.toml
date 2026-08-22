@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-begin-oauth-callback-listener"
+description = "Enables the begin_oauth_callback_listener command without any pre-configured scope."
+commands.allow = ["begin_oauth_callback_listener"]
+
+[[permission]]
+identifier = "deny-begin-oauth-callback-listener"
+description = "Denies the begin_oauth_callback_listener command without any pre-configured scope."
+commands.deny = ["begin_oauth_callback_listener"]

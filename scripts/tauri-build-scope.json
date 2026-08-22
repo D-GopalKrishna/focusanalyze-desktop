@@ -1,0 +1,22 @@
+{
+  "_comment": "Paths (relative to focusanalyze-fe root) temporarily moved out of app/ before the Tauri production build (scripts/build-fe.js) and restored after. These are marketing-site / web-only routes that either (a) aren't reachable from the authenticated dashboard the desktop app shows, or (b) use dynamic server APIs incompatible with `next build --output export`. Keep this in sync with focusanalyze-fe's app/ structure — see focusanalyze-desktop/README.md#tauri-production-build-scope for the full rationale.",
+  "excludePaths": [
+    "app/(non-auth)/(landing)",
+    "app/(non-auth)/changelog",
+    "app/(non-auth)/company",
+    "app/(non-auth)/error",
+    "app/(non-auth)/invitation",
+    "app/(non-auth)/launching-soon",
+    "app/(non-auth)/product",
+    "app/(non-auth)/not-found.tsx",
+    "app/(other)",
+    "app/(auth)/(other)",
+    "app/(embed)",
+    "app/api",
+    "app/robots.ts",
+    "app/sitemap.ts",
+    "app/(auth)/(dashboard)/dashboard/habits/[habit_id]",
+    "app/(auth)/(dashboard)/dashboard/projects/focusanalyze/[project_id]/task/[task_id]",
+    "app/(auth)/(dashboard)/dashboard/projects/focusanalyze/[project_id]/tracks/[track_id]"
+  ]
+}
