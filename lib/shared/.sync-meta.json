@@ -1,10 +1,10 @@
 {
-  "syncedAt": "2026-08-22T22:28:53.891Z",
+  "syncedAt": "2026-08-23T07:34:41.811Z",
   "repoUrl": "git@github.com:D-GopalKrishna/focusanalyze-fe.git",
   "source": "/Users/dgk.mac/A/dgk-labs/focusanalyze/focusanalyze-fe",
   "localPath": "/Users/dgk.mac/A/dgk-labs/focusanalyze/focusanalyze-fe",
   "branch": "develop",
-  "commit": "53cfc73e9db724e5d149f82287cafeb4e28b484c",
+  "commit": "c6d5a75fda27bb145fd965d49ea6d3c248d1d699",
   "copied": [
     {
       "source": "lib/rest_client_backend",

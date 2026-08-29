@@ -289,12 +289,20 @@ export async function savePlanDraft(payload: {
 }
 
 export async function deletePlanDraft(scope: PlanScope, date?: string): Promise<void> {
-  await api.apiPlanSessionsDraftDestroy(
-    scope === 'weekly'
-      ? ApiPlanSessionsDraftDestroyScopeEnum.Weekly
-      : ApiPlanSessionsDraftDestroyScopeEnum.Daily,
-    date,
-  );
+  try {
+    await api.apiPlanSessionsDraftDestroy(
+      scope === 'weekly'
+        ? ApiPlanSessionsDraftDestroyScopeEnum.Weekly
+        : ApiPlanSessionsDraftDestroyScopeEnum.Daily,
+      date,
+    );
+  } catch (err) {
+    // No matching draft server-side (e.g. it was already discarded, or the
+    // period_start the row was listed under no longer resolves the same way)
+    // — nothing left to delete, so this isn't a failure from the caller's POV.
+    if ((err as { response?: { status?: number } })?.response?.status === 404) return;
+    throw err;
+  }
 }
 
 /**
