@@ -155,10 +155,11 @@ const WIDGET_TIMER_LABEL: &str = "timer-widget";
 const WIDGET_TIMER_ROUTE: &str = "desktop-widget/timer";
 const WIDGET_TODAY_LABEL: &str = "today-widget";
 const WIDGET_TODAY_ROUTE: &str = "desktop-widget/today";
-/// Matches the web Day Journal dialog's own size constants (`JOURNAL_DIALOG_WIDTH_PX`/
-/// `JOURNAL_DIALOG_MAX_HEIGHT_PX` in journal-dialog-frame.tsx) so the tray popover looks
-/// like the same component, because it renders the same component.
-const TODAY_WIDGET_WIDTH: f64 = 440.0;
+/// Wider than the web Day Journal dialog's own size constants (`JOURNAL_DIALOG_WIDTH_PX`/
+/// `JOURNAL_DIALOG_MAX_HEIGHT_PX` in journal-dialog-frame.tsx) — the desktop widget adds a
+/// left-hand day-agenda column (today/page.tsx's `TodayAgendaColumn`) alongside the same
+/// journal content the web dialog renders single-pane, so it needs the extra ~220px width.
+const TODAY_WIDGET_WIDTH: f64 = 660.0;
 const TODAY_WIDGET_HEIGHT: f64 = 600.0;
 
 /// Holds the built tray icon so commands invoked later (e.g. the live timer countdown) can
