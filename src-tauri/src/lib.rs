@@ -171,14 +171,19 @@ enum WidgetOrigin {
     /// Bottom-right corner of the primary monitor's work area, offset upward by `stack_index`
     /// widget-heights so the corner-docked widgets don't stack exactly on top of each other.
     MonitorCorner { stack_index: f64 },
-    /// Top-right corner of the primary monitor's work area, just under the menu bar — used
-    /// for the tray icon's click popover. Originally tried anchoring to the tray click
-    /// event's own `rect`, but its coordinates didn't line up with Tauri's window-position
-    /// coordinate space in practice (popover landed far below-and-left of the actual icon,
-    /// live-tested) — likely an AppKit bottom-left-origin vs. top-left-origin mismatch this
-    /// crate version doesn't normalize. Not worth chasing blind (can't inspect the real
-    /// values from here); a fixed, always-correct corner beats a precise-when-it-works one.
-    TopRightCorner,
+    /// Top-right corner of the work area of whichever monitor the tray click happened on, just
+    /// under the menu bar. Originally hardcoded to the *primary* monitor unconditionally — on a
+    /// multi-monitor setup (reported live: 3 external displays + laptop), clicking the tray icon
+    /// on a secondary display still opened the widget on the primary one, nowhere near the
+    /// click. Fine-grained anchoring under the tray icon's own `rect` was tried before that and
+    /// abandoned (its coordinates didn't line up with Tauri's window-position space — popover
+    /// landed far below-and-left of the actual icon, live-tested; likely an AppKit
+    /// bottom-left-origin vs. top-left-origin mismatch this crate version doesn't normalize).
+    /// This only needs coarse monitor *membership*, not per-pixel accuracy, so it sidesteps that
+    /// mismatch: resolve which monitor contains the click point via `monitor_from_point`, then
+    /// use that monitor's safe, always-correct top-right corner — falls back to the primary
+    /// monitor if the point can't be resolved to any display.
+    TopRightCornerNearClick(tauri::PhysicalPosition<f64>),
 }
 
 /// Create (positioned per `origin`) or toggle-show/hide an existing widget window.
@@ -226,10 +231,11 @@ fn toggle_widget_window(
                 })
                 .unwrap_or((margin, margin))
         }
-        WidgetOrigin::TopRightCorner => app
-            .primary_monitor()
+        WidgetOrigin::TopRightCornerNearClick(click_point) => app
+            .monitor_from_point(click_point.x, click_point.y)
             .ok()
             .flatten()
+            .or_else(|| app.primary_monitor().ok().flatten())
             .map(|monitor| {
                 let scale = monitor.scale_factor();
                 let work_area = monitor.work_area();
@@ -505,6 +511,7 @@ pub fn run() {
                                 if let TrayIconEvent::Click {
                                     button: tauri::tray::MouseButton::Left,
                                     button_state: tauri::tray::MouseButtonState::Up,
+                                    position,
                                     ..
                                 } = event
                                 {
@@ -516,7 +523,7 @@ pub fn run() {
                                         WIDGET_TODAY_ROUTE,
                                         TODAY_WIDGET_WIDTH,
                                         TODAY_WIDGET_HEIGHT,
-                                        WidgetOrigin::TopRightCorner,
+                                        WidgetOrigin::TopRightCornerNearClick(position),
                                     );
                                 }
                             })
