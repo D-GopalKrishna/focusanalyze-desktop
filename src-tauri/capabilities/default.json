@@ -3,7 +3,9 @@
   "identifier": "default",
   "description": "enables the default permissions",
   "windows": [
-    "main"
+    "main",
+    "timer-widget",
+    "today-widget"
   ],
   "remote": {
     "urls": [
@@ -16,8 +18,11 @@
   },
   "permissions": [
     "core:default",
+    "core:event:default",
     "process:default",
+    "process:allow-restart",
     "opener:default",
+    "updater:default",
     "allow-begin-oauth-callback-listener",
     "allow-cancel-oauth-callback-listener",
     "allow-clear-auth-tokens",
@@ -28,6 +33,11 @@
     "allow-load-auth-tokens",
     "allow-refresh-oauth-tokens",
     "allow-save-auth-tokens",
-    "allow-wait-oauth-callback"
+    "allow-wait-oauth-callback",
+    "allow-toggle-timer-widget",
+    "allow-toggle-today-widget",
+    "allow-set-tray-timer-text",
+    "allow-focus-main-window",
+    "core:tray:default"
   ]
 }

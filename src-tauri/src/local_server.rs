@@ -101,13 +101,55 @@ pub fn spawn(app: AppHandle, host: &str, candidate_ports: &[u16]) -> u16 {
                 .map(|uri| uri.path().to_string())
                 .unwrap_or_else(|_| req.url().to_string());
 
+            // Next.js's own `<Link>` prefetching (and any other code that navigates by the
+            // plain pretty path, no `.html`) requests e.g. `/dashboard/habits` — this static
+            // export only has `dashboard/habits.html` on disk, so that 404s every time even
+            // though the page genuinely exists. A real Next.js server normalizes this
+            // transparently; this hand-rolled one didn't. Only try it for extension-less
+            // paths (no `.` in the last segment) so real asset requests (`.js`, `.css`,
+            // `.png`, the route's own `.txt` flight-data payload, …) aren't affected.
+            let html_fallback_path = |p: &str| {
+                let last_segment = p.rsplit('/').next().unwrap_or("");
+                if last_segment.contains('.') {
+                    None
+                } else {
+                    Some(format!("{}.html", p.trim_end_matches('/')))
+                }
+            };
+
+            // A real dynamic-ID URL (e.g. `/dashboard/projects/focusanalyze/9`) needs BOTH
+            // normalizations composed, not tried independently: `rewrite_dynamic_id_path`
+            // maps it to `.../placeholder` (still no `.html`), which itself only exists on
+            // disk as `.../placeholder.html`. Trying `html_fallback_path` against the
+            // *original* path alone (`.../9.html`) can never find that file — only the
+            // rewritten path does. Try, in order: exact match, `.html` on the exact path,
+            // the dynamic-ID rewrite exact, then `.html` on the rewritten path.
+            let rewritten = rewrite_dynamic_id_path(&path);
             let asset = asset_resolver
                 .get(path.clone())
-                .or_else(|| rewrite_dynamic_id_path(&path).and_then(|p| asset_resolver.get(p)));
+                .or_else(|| html_fallback_path(&path).and_then(|p| asset_resolver.get(p)))
+                .or_else(|| rewritten.clone().and_then(|p| asset_resolver.get(p)))
+                .or_else(|| {
+                    rewritten
+                        .and_then(|p| html_fallback_path(&p))
+                        .and_then(|p| asset_resolver.get(p))
+                });
 
             match asset {
                 Some(asset) => {
-                    let mut response = HttpResponse::from_data(asset.bytes);
+                    // tiny_http defaults to switching a response over to chunked
+                    // Transfer-Encoding once its body exceeds 32KB (`chunked_threshold`),
+                    // even though the full length is already known here (`asset.bytes` is
+                    // fully in memory). Any exported page with real content — the projects
+                    // list, performance views, a populated calendar — easily crosses that,
+                    // and WebKit's HTTP client apparently doesn't get along with this
+                    // library's specific chunked framing: curl parses the exact same bytes
+                    // fine, but the app's own webview reports "an error occurred trying to
+                    // load the resource" for anything past that size. There's no reason to
+                    // ever chunk a fully-buffered static asset, so raise the threshold high
+                    // enough that a real Content-Length header is always sent instead.
+                    let mut response =
+                        HttpResponse::from_data(asset.bytes).with_chunked_threshold(usize::MAX);
                     if let Ok(h) =
                         Header::from_bytes(b"Content-Type".as_slice(), asset.mime_type.as_bytes())
                     {

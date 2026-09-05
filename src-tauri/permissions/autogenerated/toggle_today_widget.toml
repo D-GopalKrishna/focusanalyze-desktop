@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-toggle-today-widget"
+description = "Enables the toggle_today_widget command without any pre-configured scope."
+commands.allow = ["toggle_today_widget"]
+
+[[permission]]
+identifier = "deny-toggle-today-widget"
+description = "Denies the toggle_today_widget command without any pre-configured scope."
+commands.deny = ["toggle_today_widget"]

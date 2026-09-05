@@ -21,6 +21,7 @@
         "minHeight": 400
       }
     ],
+    "macOSPrivateApi": true,
     "security": {
       "csp": null
     }

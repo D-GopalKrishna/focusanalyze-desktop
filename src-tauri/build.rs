@@ -10,6 +10,10 @@ const COMMANDS: &[&str] = &[
     "begin_oauth_callback_listener",
     "cancel_oauth_callback_listener",
     "wait_oauth_callback",
+    "toggle_timer_widget",
+    "toggle_today_widget",
+    "set_tray_timer_text",
+    "focus_main_window",
 ];
 
 fn main() {
