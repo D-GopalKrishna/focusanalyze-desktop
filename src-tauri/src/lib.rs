@@ -186,32 +186,17 @@ enum WidgetOrigin {
     TopRightCornerNearClick(tauri::PhysicalPosition<f64>),
 }
 
-/// Create (positioned per `origin`) or toggle-show/hide an existing widget window.
-fn toggle_widget_window(
+/// Resolve where a widget window should sit for the given origin, re-computed fresh on every
+/// call (not just at window-creation time) — see `toggle_widget_window`'s call sites for why
+/// that matters on a multi-monitor setup.
+fn resolve_widget_position(
     app: &tauri::AppHandle,
-    port: u16,
-    label: &str,
-    route: &str,
     width: f64,
     height: f64,
-    origin: WidgetOrigin,
-) -> tauri::Result<()> {
-    if let Some(window) = app.get_webview_window(label) {
-        if window.is_visible().unwrap_or(false) {
-            window.hide()?;
-        } else {
-            window.show()?;
-            window.set_focus()?;
-        }
-        return Ok(());
-    }
-
-    let url = format!("http://localhost:{port}/{route}.html")
-        .parse()
-        .expect("invalid widget window URL");
-
+    origin: &WidgetOrigin,
+) -> (f64, f64) {
     let margin = 24.0;
-    let (x, y) = match origin {
+    match *origin {
         WidgetOrigin::MonitorCorner { stack_index } => {
             let stack_offset = stack_index * (height + 16.0);
             app.primary_monitor()
@@ -242,10 +227,52 @@ fn toggle_widget_window(
                 let work_x = work_area.position.x as f64 / scale;
                 let work_y = work_area.position.y as f64 / scale;
                 let work_w = work_area.size.width as f64 / scale;
-                (work_x + work_w - width - margin, work_y + 8.0)
+                // Center the popover under the actual click point (converted to the same
+                // logical-pixel space as the work area) instead of always pinning it to the
+                // monitor's right edge — a tray icon anywhere but the far right (e.g. the far
+                // left, as reported live) previously opened the popover nowhere near it.
+                // Clamped so it never runs off either edge of the monitor's work area.
+                let click_x = click_point.x / scale;
+                let target_x = click_x - width / 2.0;
+                let clamped_x = target_x.max(work_x).min(work_x + work_w - width);
+                (clamped_x, work_y + 8.0)
             })
             .unwrap_or((margin, margin)),
-    };
+    }
+}
+
+/// Create (positioned per `origin`) or toggle-show/hide an existing widget window. Re-resolves
+/// and applies the position every time the window transitions from hidden to shown — not just
+/// on first creation — so re-clicking the tray icon on a *different* monitor than last time
+/// actually moves the (already-created) popover there, instead of leaving it stuck wherever it
+/// first appeared (reported live: opening it once on one display, then clicking the tray icon
+/// on another display, kept showing it on the first one).
+fn toggle_widget_window(
+    app: &tauri::AppHandle,
+    port: u16,
+    label: &str,
+    route: &str,
+    width: f64,
+    height: f64,
+    origin: WidgetOrigin,
+) -> tauri::Result<()> {
+    if let Some(window) = app.get_webview_window(label) {
+        if window.is_visible().unwrap_or(false) {
+            window.hide()?;
+        } else {
+            let (x, y) = resolve_widget_position(app, width, height, &origin);
+            let _ = window.set_position(tauri::LogicalPosition::new(x, y));
+            window.show()?;
+            window.set_focus()?;
+        }
+        return Ok(());
+    }
+
+    let url = format!("http://localhost:{port}/{route}.html")
+        .parse()
+        .expect("invalid widget window URL");
+
+    let (x, y) = resolve_widget_position(app, width, height, &origin);
 
     let window = tauri::WebviewWindowBuilder::new(app, label, tauri::WebviewUrl::External(url))
         .title("FocusAnalyze")
