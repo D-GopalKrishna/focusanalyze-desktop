@@ -22,17 +22,11 @@ function num(v: string | number | undefined | null): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** Normalizes API decimals that may arrive as strings (items or groups). */
-export function parseUsageItemTokens(
-  item: Pick<AIUsageHistoryItem, 'tokens_used'> | Pick<AIUsageHistoryGroup, 'tokens_used'>,
+/** Credits are an abstract, cost-pegged unit — never raw provider tokens or dollars. */
+export function parseUsageItemCredits(
+  item: Pick<AIUsageHistoryItem, 'credits'> | Pick<AIUsageHistoryGroup, 'credits'>,
 ): number {
-  return num(item.tokens_used);
-}
-
-export function parseUsageItemCost(
-  item: Pick<AIUsageHistoryItem, 'cost_estimate'> | Pick<AIUsageHistoryGroup, 'cost_estimate'>,
-): number {
-  return num(item.cost_estimate);
+  return num(item.credits);
 }
 
 /**

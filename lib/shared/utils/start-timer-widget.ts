@@ -15,6 +15,23 @@ const TIMER_WIDGET_STORAGE_KEY = 'focusanalyze.timerWidget';
 import { parseTaskWorkSessionEvents } from "@shared/utils/task-work-session";
 import { getEventById, updateEvent } from "@shared/services/api/dashboard/Calendar";
 import { Type2cdEnum, ChangeTypeEnum } from "@shared/api-client";
+import { isTauriRuntime } from '@/lib/tauri/auth/tauri-store';
+
+/**
+ * A separate Tauri `timer-widget` WebviewWindow (see
+ * focusanalyze-desktop/src-tauri/src/lib.rs) can't see this page's own
+ * `window.dispatchEvent(CustomEvent)` — that only reaches listeners in the same webview.
+ * Broadcast the same payload via Tauri's app-wide event bus too, so the native widget
+ * window stays in sync with whatever started/stopped the timer from the main window.
+ * No-op outside Tauri; best-effort (the in-page CustomEvent path still covers the main
+ * window's own in-page overlay either way).
+ */
+function emitToTauriWidget(eventName: string, detail: unknown): void {
+  if (!isTauriRuntime()) return;
+  import('@tauri-apps/api/event')
+    .then(({ emit }) => emit(eventName, detail))
+    .catch(() => {});
+}
 
 export type TimerWidgetAnchor = {
   x: number;
@@ -67,19 +84,17 @@ export function startTimerWidget(args: StartTimerWidgetArgs): boolean {
   const secondsLeft = Math.max(0, Math.floor((end.getTime() - Date.now()) / 1000));
   if (secondsLeft <= 0) return false;
 
-  window.dispatchEvent(
-    new CustomEvent(TIMER_WIDGET_START_EVENT, {
-      detail: {
-        seconds: secondsLeft,
-        title: args.title,
-        startAtIso: args.startAtIso,
-        endAtIso: args.endAtIso,
-        eventId: args.eventId,
-        taskId: args.taskId,
-        anchor: args.anchor,
-      },
-    }),
-  );
+  const detail = {
+    seconds: secondsLeft,
+    title: args.title,
+    startAtIso: args.startAtIso,
+    endAtIso: args.endAtIso,
+    eventId: args.eventId,
+    taskId: args.taskId,
+    anchor: args.anchor,
+  };
+  window.dispatchEvent(new CustomEvent(TIMER_WIDGET_START_EVENT, { detail }));
+  emitToTauriWidget(TIMER_WIDGET_START_EVENT, detail);
   return true;
 }
 
@@ -87,6 +102,7 @@ export function startTimerWidget(args: StartTimerWidgetArgs): boolean {
 export function stopTimerWidget(args: StopTimerWidgetArgs = {}): void {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent(TIMER_WIDGET_STOP_EVENT, { detail: args }));
+  emitToTauriWidget(TIMER_WIDGET_STOP_EVENT, args);
 }
 
 /** Stop the timer when a task is deleted (matches by task id and/or linked event ids). */

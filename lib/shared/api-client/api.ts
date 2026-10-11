@@ -78,6 +78,12 @@ export interface AICreditsLog {
      */
     'response'?: string | null;
     /**
+     * per-intent-telemetry (.claude/plan/todo/focus-ai-performance/plan.md): the real classified tool_scope for an agent chat turn (e.g. \'tasks\', \'calendar\'), or the invoke_simple_completion caller\'s `source` label for a one-off completion (e.g. \'intent_classification\', \'daily_report_generation\') -- without this, \'which intents/features cost the most\' was unanswerable from this table alone. Blank for older rows and any call site not yet updated to pass one.
+     * @type {string}
+     * @memberof AICreditsLog
+     */
+    'tool_scope'?: string;
+    /**
      * 
      * @type {number}
      * @memberof AICreditsLog
@@ -115,17 +121,11 @@ export interface AIUsageHistoryEntry {
      */
     'model': string;
     /**
-     * Token count (input + output). Prefer provider usage when available.
-     * @type {string}
+     * 
+     * @type {number}
      * @memberof AIUsageHistoryEntry
      */
-    'tokens_used': string;
-    /**
-     * Cost in USD from rate card × tokens (not a provider invoice line).
-     * @type {string}
-     * @memberof AIUsageHistoryEntry
-     */
-    'cost_estimate': string;
+    'credits': number;
     /**
      * 
      * @type {string}
@@ -195,16 +195,10 @@ export interface AIUsageHistoryGroup {
     'conversation_title': string | null;
     /**
      * 
-     * @type {string}
+     * @type {number}
      * @memberof AIUsageHistoryGroup
      */
-    'tokens_used': string;
-    /**
-     * 
-     * @type {string}
-     * @memberof AIUsageHistoryGroup
-     */
-    'cost_estimate': string;
+    'credits': number;
     /**
      * 
      * @type {Array<string>}
@@ -231,7 +225,7 @@ export interface AIUsageHistoryGroup {
     'entries': Array<AIUsageHistoryEntry>;
 }
 /**
- * Single credit-log row (no raw prompt/response payload).
+ * Single credit-log row (no raw prompt/response payload, no raw tokens/cost — those would expose COGS; see ``apis.utils.ai_credits``).
  * @export
  * @interface AIUsageHistoryItem
  */
@@ -255,17 +249,11 @@ export interface AIUsageHistoryItem {
      */
     'model': string;
     /**
-     * Token count (input + output). Prefer provider usage when available.
-     * @type {string}
+     * 
+     * @type {number}
      * @memberof AIUsageHistoryItem
      */
-    'tokens_used': string;
-    /**
-     * Cost in USD from rate card × tokens (not a provider invoice line).
-     * @type {string}
-     * @memberof AIUsageHistoryItem
-     */
-    'cost_estimate': string;
+    'credits': number;
     /**
      * 
      * @type {string}
@@ -335,7 +323,7 @@ export interface AIUsageHistoryResponse {
     'offset': number;
 }
 /**
- * Monthly token totals aligned with FocusAI per-user entitlement.
+ * Monthly usage totals in credits (an abstract, cost-pegged unit — never raw provider tokens or dollars) aligned with FocusAI per-user entitlement.
  * @export
  * @interface AIUsageSummary
  */
@@ -345,25 +333,31 @@ export interface AIUsageSummary {
      * @type {number}
      * @memberof AIUsageSummary
      */
-    'tokens_used_this_month': number;
+    'credits_used_this_month': number;
     /**
      * 
      * @type {number}
      * @memberof AIUsageSummary
      */
-    'tokens_limit_month': number;
+    'credits_limit_month': number;
     /**
      * 
      * @type {number}
      * @memberof AIUsageSummary
      */
-    'tokens_remaining': number;
+    'credits_remaining': number;
     /**
      * 
      * @type {number}
      * @memberof AIUsageSummary
      */
-    'tokens_topup_remaining': number;
+    'credits_topup_remaining': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof AIUsageSummary
+     */
+    'usage_percent': number;
     /**
      * 
      * @type {number}
@@ -397,6 +391,31 @@ export interface AIUsageSummary {
 }
 
 
+/**
+ * ``password`` is only needed when the invitee has no account *and* is not already signed in. After \"Continue with Google\" the request carries a Bearer token instead and this body is empty.
+ * @export
+ * @interface AcceptInvitation
+ */
+export interface AcceptInvitation {
+    /**
+     * 
+     * @type {string}
+     * @memberof AcceptInvitation
+     */
+    'password'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof AcceptInvitation
+     */
+    'first_name'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof AcceptInvitation
+     */
+    'last_name'?: string;
+}
 /**
  * * `view` - View * `edit` - Edit * `admin` - Admin
  * @export
@@ -862,6 +881,20 @@ export interface AdminUserTaskHour {
     'hours': number;
 }
 /**
+ * * `project` - project * `group` - group
+ * @export
+ * @enum {string}
+ */
+
+export const AfterTypeEnum = {
+    Project: 'project',
+    Group: 'group'
+} as const;
+
+export type AfterTypeEnum = typeof AfterTypeEnum[keyof typeof AfterTypeEnum];
+
+
+/**
  * Body for ``POST .../conversation/{uuid}/agent-resume/``.
  * @export
  * @interface AgentResume
@@ -1165,6 +1198,21 @@ export interface BranchConversation {
      */
     'anchor_message_id': number;
 }
+/**
+ * * `never` - Never * `always` - Always * `only_if_completed` - Only if completed
+ * @export
+ * @enum {string}
+ */
+
+export const BreakCountingModeEnum = {
+    Never: 'never',
+    Always: 'always',
+    OnlyIfCompleted: 'only_if_completed'
+} as const;
+
+export type BreakCountingModeEnum = typeof BreakCountingModeEnum[keyof typeof BreakCountingModeEnum];
+
+
 /**
  * * `project` - project * `life_area` - life_area
  * @export
@@ -2580,6 +2628,97 @@ export interface CreateEvent {
 
 
 /**
+ * Accepts either a single ``email`` or a list of ``emails`` (bulk invite, FA-772). At least one must be present.
+ * @export
+ * @interface CreateInvitation
+ */
+export interface CreateInvitation {
+    /**
+     * 
+     * @type {string}
+     * @memberof CreateInvitation
+     */
+    'email'?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof CreateInvitation
+     */
+    'emails'?: Array<string>;
+    /**
+     * 
+     * @type {number}
+     * @memberof CreateInvitation
+     */
+    'organization_group_id'?: number | null;
+    /**
+     * 
+     * @type {CreateInvitationRoleEnum}
+     * @memberof CreateInvitation
+     */
+    'role'?: CreateInvitationRoleEnum;
+}
+
+
+/**
+ * 
+ * @export
+ * @interface CreateInvitationResponse
+ */
+export interface CreateInvitationResponse {
+    /**
+     * 
+     * @type {Array<CreateInvitationResult>}
+     * @memberof CreateInvitationResponse
+     */
+    'created': Array<CreateInvitationResult>;
+    /**
+     * 
+     * @type {Array<CreateInvitationResult>}
+     * @memberof CreateInvitationResponse
+     */
+    'failed': Array<CreateInvitationResult>;
+}
+/**
+ * Per-address outcome, so one bad address in a bulk paste doesn\'t sink the rest.
+ * @export
+ * @interface CreateInvitationResult
+ */
+export interface CreateInvitationResult {
+    /**
+     * 
+     * @type {string}
+     * @memberof CreateInvitationResult
+     */
+    'email': string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof CreateInvitationResult
+     */
+    'created': boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof CreateInvitationResult
+     */
+    'detail'?: string;
+}
+/**
+ * * `member` - Member * `team_admin` - Team admin
+ * @export
+ * @enum {string}
+ */
+
+export const CreateInvitationRoleEnum = {
+    Member: 'member',
+    TeamAdmin: 'team_admin'
+} as const;
+
+export type CreateInvitationRoleEnum = typeof CreateInvitationRoleEnum[keyof typeof CreateInvitationRoleEnum];
+
+
+/**
  * 
  * @export
  * @interface CreateMcpAccessToken
@@ -2692,6 +2831,49 @@ export interface CreateTopUpOrder {
 }
 
 
+/**
+ * 
+ * @export
+ * @interface CreditTopUpPurchase
+ */
+export interface CreditTopUpPurchase {
+    /**
+     * 
+     * @type {number}
+     * @memberof CreditTopUpPurchase
+     */
+    'id': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof CreditTopUpPurchase
+     */
+    'bundle_key': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof CreditTopUpPurchase
+     */
+    'credits_purchased': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof CreditTopUpPurchase
+     */
+    'credits_remaining': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof CreditTopUpPurchase
+     */
+    'amount_paid_usd': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CreditTopUpPurchase
+     */
+    'purchased_at': string;
+}
 /**
  * Read + write serializer for a user\'s custom themes (FA-948).
  * @export
@@ -3502,20 +3684,6 @@ export type DifficultyEnum = typeof DifficultyEnum[keyof typeof DifficultyEnum];
 
 
 /**
- * * `work` - Work * `life` - Life
- * @export
- * @enum {string}
- */
-
-export const DomainEnum = {
-    Work: 'work',
-    Life: 'life'
-} as const;
-
-export type DomainEnum = typeof DomainEnum[keyof typeof DomainEnum];
-
-
-/**
  * Dynamic serializer that uses different serializers based on the message role. - For \'user\' role: Uses basic MessageSerializer - For \'focusgpt\' role: Uses FocusGPTResponseSerializer with intent/scope fields
  * @export
  * @interface DynamicMessage
@@ -3649,7 +3817,7 @@ export type EffectiveSourceEnum = typeof EffectiveSourceEnum[keyof typeof Effect
 
 
 /**
- * Serializer for the effective subscription (personal or organization). Accepts either UserSubscription or OrganizationSubscription.
+ * Serializer for the effective subscription (personal or organization). Accepts either UserSubscription or OrganizationSubscription.  ``credits_*`` fields are the only meter — the FE reads them exclusively (AIUsageHistorySection, SettingsBillingSection).
  * @export
  * @interface EffectiveSubscription
  */
@@ -3695,25 +3863,25 @@ export interface EffectiveSubscription {
      * @type {number}
      * @memberof EffectiveSubscription
      */
-    'remaining_ai_requests': number | null;
+    'credits_limit_month'?: number | null;
     /**
      * 
      * @type {number}
      * @memberof EffectiveSubscription
      */
-    'monthly_remaining_ai_requests'?: number | null;
+    'credits_used_this_month'?: number | null;
     /**
      * 
      * @type {number}
      * @memberof EffectiveSubscription
      */
-    'topup_remaining_ai_requests'?: number | null;
+    'credits_remaining'?: number | null;
     /**
      * 
      * @type {number}
      * @memberof EffectiveSubscription
      */
-    'max_ai_requests_tokens_per_month': number;
+    'credits_topup_remaining'?: number | null;
     /**
      * 
      * @type {boolean}
@@ -3740,7 +3908,7 @@ export interface EffectiveSubscription {
     'organization_name'?: string | null;
 }
 /**
- * * `capacity` - Capacity * `habits` - Habits * `companion_cat` - Companion: Cat * `companion_dog` - Companion: Dog * `companion_tora` - Companion: Tora * `companion_maia` - Companion: Maia
+ * * `capacity` - Capacity * `habits` - Habits * `companion_cat` - Companion: Cat * `companion_dog` - Companion: Dog * `companion_tora` - Companion: Tora * `companion_maia` - Companion: Maia * `recurring_tasks` - Recurring Tasks
  * @export
  * @enum {string}
  */
@@ -3751,7 +3919,8 @@ export const EnabledFeaturesEnum = {
     CompanionCat: 'companion_cat',
     CompanionDog: 'companion_dog',
     CompanionTora: 'companion_tora',
-    CompanionMaia: 'companion_maia'
+    CompanionMaia: 'companion_maia',
+    RecurringTasks: 'recurring_tasks'
 } as const;
 
 export type EnabledFeaturesEnum = typeof EnabledFeaturesEnum[keyof typeof EnabledFeaturesEnum];
@@ -4053,6 +4222,12 @@ export interface Event {
      */
     'series_start_datetime': string;
     /**
+     * Id of the recurring master this row belongs to — its own id for a master or a non-recurring event, the parent\'s id for a materialized single-occurrence override. Clients keying series-level data off the row id (e.g. the calendar\'s habit lookup) must use this, since an edited \'this event only\' occurrence is serialized under its own child id and would otherwise look like an unrelated plain event.
+     * @type {number}
+     * @memberof Event
+     */
+    'series_event_id': number;
+    /**
      * When true, this event is omitted from performance reports but still shown on the calendar.
      * @type {boolean}
      * @memberof Event
@@ -4342,6 +4517,12 @@ export interface EventDetail {
      * @memberof EventDetail
      */
     'series_start_datetime': string;
+    /**
+     * Id of the recurring master this row belongs to — its own id for a master or a non-recurring event, the parent\'s id for a materialized single-occurrence override. Clients keying series-level data off the row id (e.g. the calendar\'s habit lookup) must use this, since an edited \'this event only\' occurrence is serialized under its own child id and would otherwise look like an unrelated plain event.
+     * @type {number}
+     * @memberof EventDetail
+     */
+    'series_event_id': number;
     /**
      * When true, this event is omitted from performance reports but still shown on the calendar.
      * @type {boolean}
@@ -4932,7 +5113,7 @@ export interface FocusGPTPreference {
     'confidence': number;
 }
 /**
- * * `propose_create_event_tool` - Create event * `propose_update_event_tool` - Update event * `propose_delete_event_tool` - Delete event * `propose_duplicate_event_tool` - Duplicate event * `propose_bulk_create_events_tool` - Bulk create events * `propose_bulk_update_events_tool` - Bulk update events * `propose_bulk_patch_events_tool` - Bulk patch events * `propose_bulk_delete_events_tool` - Bulk delete events * `propose_plan_blocks_tool` - Propose plan blocks * `propose_commit_plan_tool` - Commit plan * `propose_dismiss_plan_tool` - Dismiss plan * `propose_save_plan_draft_tool` - Save plan draft * `propose_update_day_journal_note_tool` - Update day journal note * `propose_update_week_journal_note_tool` - Update week journal note * `propose_generate_daily_report_tool` - Generate daily report * `propose_generate_weekly_report_tool` - Generate weekly report * `propose_generate_monthly_report_tool` - Generate monthly report * `propose_create_project_tool` - Create project * `propose_create_track_tool` - Create track * `propose_update_track_tool` - Update track * `propose_delete_track_tool` - Delete track * `propose_create_life_area_tool` - Create life area * `propose_partial_update_life_area_tool` - Update life area * `propose_delete_life_area_tool` - Delete life area * `propose_set_capacity_budget_tool` - Set capacity budget * `propose_create_habit_tool` - Create habit * `propose_update_habit_tool` - Update habit * `propose_delete_habit_tool` - Delete habit * `propose_schedule_habit_on_calendar_tool` - Schedule habit on calendar * `propose_unlink_habit_from_calendar_tool` - Unlink habit from calendar * `propose_change_habit_cadence_tool` - Change habit recurrence * `propose_check_in_habit_tool` - Check in habit * `propose_undo_habit_check_in_tool` - Undo habit check-in * `propose_create_task_tool` - Create task * `propose_bulk_create_tasks_tool` - Bulk create tasks * `propose_update_task_tool` - Update task * `propose_delete_task_tool` - Delete task * `propose_add_task_comment_tool` - Add task comment * `propose_bulk_update_tasks_tool` - Bulk update tasks * `propose_bulk_delete_tasks_tool` - Bulk delete tasks * `propose_create_task_priority_tool` - Create task priority * `propose_partial_update_task_priority_tool` - Update task priority * `propose_delete_task_priority_tool` - Delete task priority * `propose_create_task_type_tool` - Create task type * `propose_partial_update_task_type_tool` - Update task type * `propose_delete_task_type_tool` - Delete task type * `propose_create_organization_team_tool` - Create organization team * `propose_add_user_to_organization_tool` - Add user to organization * `propose_remove_organization_member_tool` - Remove organization member * `propose_update_organization_profile_tool` - Update organization profile * `propose_add_user_to_team_tool` - Add user to team * `propose_remove_user_from_team_tool` - Remove user from team * `propose_assign_team_admin_tool` - Assign team admin * `propose_ask_clarification_tool` - Ask clarifying question * `propose_update_notification_status_tool` - Update notification status * `propose_bulk_update_notification_status_tool` - Bulk update notification status * `propose_mark_all_notifications_tool` - Mark all notifications
+ * * `propose_create_event_tool` - Create event * `propose_update_event_tool` - Update event * `propose_delete_event_tool` - Delete event * `propose_duplicate_event_tool` - Duplicate event * `propose_bulk_create_events_tool` - Bulk create events * `propose_bulk_update_events_tool` - Bulk update events * `propose_bulk_patch_events_tool` - Bulk patch events * `propose_bulk_delete_events_tool` - Bulk delete events * `propose_plan_blocks_tool` - Propose plan blocks * `propose_commit_plan_tool` - Commit plan * `propose_dismiss_plan_tool` - Dismiss plan * `propose_save_plan_draft_tool` - Save plan draft * `propose_update_day_journal_note_tool` - Update day journal note * `propose_check_off_journal_item_tool` - Check off journal item * `propose_update_week_journal_note_tool` - Update week journal note * `propose_generate_daily_report_tool` - Generate daily report * `propose_generate_weekly_report_tool` - Generate weekly report * `propose_generate_monthly_report_tool` - Generate monthly report * `propose_create_project_tool` - Create project * `propose_create_track_tool` - Create track * `propose_update_track_tool` - Update track * `propose_delete_track_tool` - Delete track * `propose_create_life_area_tool` - Create life area * `propose_partial_update_life_area_tool` - Update life area * `propose_delete_life_area_tool` - Delete life area * `propose_set_capacity_budget_tool` - Set capacity budget * `propose_create_habit_tool` - Create habit * `propose_update_habit_tool` - Update habit * `propose_delete_habit_tool` - Delete habit * `propose_schedule_habit_on_calendar_tool` - Schedule habit on calendar * `propose_unlink_habit_from_calendar_tool` - Unlink habit from calendar * `propose_change_habit_cadence_tool` - Change habit recurrence * `propose_check_in_habit_tool` - Check in habit * `propose_undo_habit_check_in_tool` - Undo habit check-in * `propose_create_task_tool` - Create task * `propose_bulk_create_tasks_tool` - Bulk create tasks * `propose_update_task_tool` - Update task * `propose_delete_task_tool` - Delete task * `propose_add_task_comment_tool` - Add task comment * `propose_bulk_update_tasks_tool` - Bulk update tasks * `propose_bulk_delete_tasks_tool` - Bulk delete tasks * `propose_create_task_priority_tool` - Create task priority * `propose_partial_update_task_priority_tool` - Update task priority * `propose_delete_task_priority_tool` - Delete task priority * `propose_create_task_type_tool` - Create task type * `propose_partial_update_task_type_tool` - Update task type * `propose_delete_task_type_tool` - Delete task type * `propose_create_organization_team_tool` - Create organization team * `propose_add_user_to_organization_tool` - Add user to organization * `propose_remove_organization_member_tool` - Remove organization member * `propose_update_organization_profile_tool` - Update organization profile * `propose_add_user_to_team_tool` - Add user to team * `propose_remove_user_from_team_tool` - Remove user from team * `propose_assign_team_admin_tool` - Assign team admin * `propose_ask_clarification_tool` - Ask clarifying question * `propose_update_notification_status_tool` - Update notification status * `propose_bulk_update_notification_status_tool` - Bulk update notification status * `propose_mark_all_notifications_tool` - Mark all notifications
  * @export
  * @enum {string}
  */
@@ -4951,6 +5132,7 @@ export const FocusGPTProposeToolNameEnum = {
     ProposeDismissPlanTool: 'propose_dismiss_plan_tool',
     ProposeSavePlanDraftTool: 'propose_save_plan_draft_tool',
     ProposeUpdateDayJournalNoteTool: 'propose_update_day_journal_note_tool',
+    ProposeCheckOffJournalItemTool: 'propose_check_off_journal_item_tool',
     ProposeUpdateWeekJournalNoteTool: 'propose_update_week_journal_note_tool',
     ProposeGenerateDailyReportTool: 'propose_generate_daily_report_tool',
     ProposeGenerateWeeklyReportTool: 'propose_generate_weekly_report_tool',
@@ -5420,6 +5602,12 @@ export interface Goal {
      */
     'description'?: string;
     /**
+     * Lucide icon name shown on the goal card (see lib/config/entity-icons.tsx). Blank falls back to the default Goal icon.
+     * @type {string}
+     * @memberof Goal
+     */
+    'icon'?: string;
+    /**
      * 
      * @type {GoalStatusEnum}
      * @memberof Goal
@@ -5845,6 +6033,12 @@ export interface HabitRead {
      */
     'last_check_in_date': string | null;
     /**
+     * Local date (YYYY-MM-DD, in the user\'s timezone) of this habit\'s next calendar occurrence on or after today, skipping cancelled ones and following moved ones. Null when the habit isn\'t scheduled or its series has ended.
+     * @type {string}
+     * @memberof HabitRead
+     */
+    'next_occurrence_date': string;
+    /**
      * 
      * @type {string}
      * @memberof HabitRead
@@ -6134,6 +6328,154 @@ export interface IntegrationsStatusResponse {
      * @memberof IntegrationsStatusResponse
      */
     'google_calendar': GoogleCalendarStatusEmbedded;
+}
+/**
+ * 
+ * @export
+ * @interface Invitation
+ */
+export interface Invitation {
+    /**
+     * 
+     * @type {number}
+     * @memberof Invitation
+     */
+    'id': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof Invitation
+     */
+    'email': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Invitation
+     */
+    'status': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Invitation
+     */
+    'role': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Invitation
+     */
+    'expires_at': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Invitation
+     */
+    'created_at': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Invitation
+     */
+    'invited_by_email': string | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof Invitation
+     */
+    'team_id': number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof Invitation
+     */
+    'team_name': string | null;
+}
+/**
+ * Body for resend / revoke — the address identifies the invitation.
+ * @export
+ * @interface InvitationEmailAction
+ */
+export interface InvitationEmailAction {
+    /**
+     * 
+     * @type {string}
+     * @memberof InvitationEmailAction
+     */
+    'email': string;
+}
+/**
+ * 
+ * @export
+ * @interface InvitationListResponse
+ */
+export interface InvitationListResponse {
+    /**
+     * 
+     * @type {Array<Invitation>}
+     * @memberof InvitationListResponse
+     */
+    'results': Array<Invitation>;
+}
+/**
+ * Public, token-scoped view shown on the accept page before the invitee acts.
+ * @export
+ * @interface InvitationPreview
+ */
+export interface InvitationPreview {
+    /**
+     * 
+     * @type {string}
+     * @memberof InvitationPreview
+     */
+    'email': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof InvitationPreview
+     */
+    'organization_name': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof InvitationPreview
+     */
+    'team_name': string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof InvitationPreview
+     */
+    'invited_by_name': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof InvitationPreview
+     */
+    'status': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof InvitationPreview
+     */
+    'expires_at': string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof InvitationPreview
+     */
+    'is_actionable': boolean;
+    /**
+     * True when this address already has an account — the page should ask them to sign in rather than choose a password.
+     * @type {boolean}
+     * @memberof InvitationPreview
+     */
+    'account_exists': boolean;
+    /**
+     * Whether to offer \'Continue with Google\' (Keycloak login with kc_idp_hint=google, returning to this page).
+     * @type {boolean}
+     * @memberof InvitationPreview
+     */
+    'google_login_enabled': boolean;
 }
 /**
  * 
@@ -7035,7 +7377,7 @@ export interface MySubscriptionOverview {
      * @type {number}
      * @memberof MySubscriptionOverview
      */
-    'topup_remaining_ai_requests': number;
+    'topup_remaining_ai_credits': number;
 }
 
 
@@ -8424,6 +8766,37 @@ export interface PaginatedProjectColumnList {
 /**
  * 
  * @export
+ * @interface PaginatedProjectGroupReadList
+ */
+export interface PaginatedProjectGroupReadList {
+    /**
+     * 
+     * @type {number}
+     * @memberof PaginatedProjectGroupReadList
+     */
+    'count': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedProjectGroupReadList
+     */
+    'next'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedProjectGroupReadList
+     */
+    'previous'?: string | null;
+    /**
+     * 
+     * @type {Array<ProjectGroupRead>}
+     * @memberof PaginatedProjectGroupReadList
+     */
+    'results': Array<ProjectGroupRead>;
+}
+/**
+ * 
+ * @export
  * @interface PaginatedProjectLabelList
  */
 export interface PaginatedProjectLabelList {
@@ -8544,6 +8917,37 @@ export interface PaginatedProjectTrackList {
      * @memberof PaginatedProjectTrackList
      */
     'results': Array<ProjectTrack>;
+}
+/**
+ * 
+ * @export
+ * @interface PaginatedRecurringTaskTemplateReadList
+ */
+export interface PaginatedRecurringTaskTemplateReadList {
+    /**
+     * 
+     * @type {number}
+     * @memberof PaginatedRecurringTaskTemplateReadList
+     */
+    'count': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedRecurringTaskTemplateReadList
+     */
+    'next'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaginatedRecurringTaskTemplateReadList
+     */
+    'previous'?: string | null;
+    /**
+     * 
+     * @type {Array<RecurringTaskTemplateRead>}
+     * @memberof PaginatedRecurringTaskTemplateReadList
+     */
+    'results': Array<RecurringTaskTemplateRead>;
 }
 /**
  * 
@@ -8921,6 +9325,12 @@ export interface PatchedAICreditsLog {
      * @memberof PatchedAICreditsLog
      */
     'response'?: string | null;
+    /**
+     * per-intent-telemetry (.claude/plan/todo/focus-ai-performance/plan.md): the real classified tool_scope for an agent chat turn (e.g. \'tasks\', \'calendar\'), or the invoke_simple_completion caller\'s `source` label for a one-off completion (e.g. \'intent_classification\', \'daily_report_generation\') -- without this, \'which intents/features cost the most\' was unanswerable from this table alone. Blank for older rows and any call site not yet updated to pass one.
+     * @type {string}
+     * @memberof PatchedAICreditsLog
+     */
+    'tool_scope'?: string;
     /**
      * 
      * @type {number}
@@ -9545,6 +9955,12 @@ export interface PatchedEvent {
      */
     'series_start_datetime'?: string;
     /**
+     * Id of the recurring master this row belongs to — its own id for a master or a non-recurring event, the parent\'s id for a materialized single-occurrence override. Clients keying series-level data off the row id (e.g. the calendar\'s habit lookup) must use this, since an edited \'this event only\' occurrence is serialized under its own child id and would otherwise look like an unrelated plain event.
+     * @type {number}
+     * @memberof PatchedEvent
+     */
+    'series_event_id'?: number;
+    /**
      * When true, this event is omitted from performance reports but still shown on the calendar.
      * @type {boolean}
      * @memberof PatchedEvent
@@ -9622,6 +10038,12 @@ export interface PatchedGoal {
      * @memberof PatchedGoal
      */
     'description'?: string;
+    /**
+     * Lucide icon name shown on the goal card (see lib/config/entity-icons.tsx). Blank falls back to the default Goal icon.
+     * @type {string}
+     * @memberof PatchedGoal
+     */
+    'icon'?: string;
     /**
      * 
      * @type {GoalStatusEnum}
@@ -9763,6 +10185,12 @@ export interface PatchedHabitRead {
      * @memberof PatchedHabitRead
      */
     'last_check_in_date'?: string | null;
+    /**
+     * Local date (YYYY-MM-DD, in the user\'s timezone) of this habit\'s next calendar occurrence on or after today, skipping cancelled ones and following moved ones. Null when the habit isn\'t scheduled or its series has ended.
+     * @type {string}
+     * @memberof PatchedHabitRead
+     */
+    'next_occurrence_date'?: string;
     /**
      * 
      * @type {string}
@@ -10065,6 +10493,12 @@ export interface PatchedProject {
     'has_track'?: boolean;
     /**
      * 
+     * @type {WorkflowEnum}
+     * @memberof PatchedProject
+     */
+    'workflow'?: WorkflowEnum;
+    /**
+     * 
      * @type {number}
      * @memberof PatchedProject
      */
@@ -10112,11 +10546,11 @@ export interface PatchedProject {
      */
     'color'?: string;
     /**
-     * 
-     * @type {DomainEnum}
+     * The owner\'s sidebar group id. Groups are personal, so non-owners never see it.
+     * @type {number}
      * @memberof PatchedProject
      */
-    'domain'?: DomainEnum;
+    'group'?: number;
     /**
      * 
      * @type {ProjectTypeEnum}
@@ -10141,12 +10575,6 @@ export interface PatchedProject {
      * @memberof PatchedProject
      */
     'category'?: number | null;
-    /**
-     * 
-     * @type {Array<number>}
-     * @memberof PatchedProject
-     */
-    'labels'?: Array<number>;
     /**
      * 
      * @type {string}
@@ -10314,6 +10742,25 @@ export interface PatchedProjectCustomFieldCreate {
 
 
 /**
+ * Create / rename / change icon. Position is changed through the move endpoints.
+ * @export
+ * @interface PatchedProjectGroupWrite
+ */
+export interface PatchedProjectGroupWrite {
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedProjectGroupWrite
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedProjectGroupWrite
+     */
+    'icon'?: string | null;
+}
+/**
  * Project Label
  * @export
  * @interface PatchedProjectLabel
@@ -10337,6 +10784,18 @@ export interface PatchedProjectLabel {
      * @memberof PatchedProjectLabel
      */
     'color'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedProjectLabel
+     */
+    'order'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedProjectLabel
+     */
+    'project'?: number;
 }
 /**
  * Update collaborator share tier (invite UI: read vs edit only; legacy admin rows normalize to edit).
@@ -10441,6 +10900,129 @@ export interface PatchedProjectTrack {
 /**
  * 
  * @export
+ * @interface PatchedRecurringTaskTemplateRead
+ */
+export interface PatchedRecurringTaskTemplateRead {
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'id'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'project'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'project_track'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'task_type'?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'priority'?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'assignee'?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'description'?: string | null;
+    /**
+     * Hours estimate applied to every generated instance (one-time-effort estimate, not cumulative).
+     * @type {number}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'estimate'?: number;
+    /**
+     * 
+     * @type {CadenceTypeEnum}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'cadence_type'?: CadenceTypeEnum;
+    /**
+     * 0=Mon..6=Sun; used for WEEKLY_DAYS cadence.
+     * @type {any}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'weekdays'?: any;
+    /**
+     * Used for N_PER_WEEK cadence.
+     * @type {number}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'times_per_week'?: number | null;
+    /**
+     * Used for EVERY_N_DAYS cadence.
+     * @type {number}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'interval_days'?: number | null;
+    /**
+     * Paused templates stop generating new instances.
+     * @type {boolean}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'is_paused'?: boolean;
+    /**
+     * When set, each generated instance also gets its own single (non-recurring) calendar Event via Event.task, created/removed alongside that instance. Deliberately not a recurring Event series — see the recurring-tasks plan\'s \'why not a recurring event\' section for why the two clocks (calendar RRULE vs completion-driven regeneration) can\'t share one series.
+     * @type {boolean}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'show_on_calendar'?: boolean;
+    /**
+     * \'HH:MM\' (24h, in the user\'s own profile timezone), or blank for a dateless midnight default. Required by the write serializer when show_on_calendar is set (a calendar event needs a real time slot) — sets the time component of each instance\'s due_date and, when show_on_calendar is set, its Event\'s start.
+     * @type {string}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'time_of_day'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'created_at'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'last_updated'?: string;
+    /**
+     * 
+     * @type {Task}
+     * @memberof PatchedRecurringTaskTemplateRead
+     */
+    'first_instance'?: Task | null;
+}
+
+
+/**
+ * 
+ * @export
  * @interface PatchedRelease
  */
 export interface PatchedRelease {
@@ -10474,6 +11056,12 @@ export interface PatchedRelease {
      * @memberof PatchedRelease
      */
     'description'?: string;
+    /**
+     * Lucide icon name shown on the release card (see lib/config/entity-icons.tsx). Blank falls back to the default Release icon.
+     * @type {string}
+     * @memberof PatchedRelease
+     */
+    'icon'?: string;
     /**
      * 
      * @type {string}
@@ -10569,6 +11157,12 @@ export interface PatchedTaskCreate {
      * @memberof PatchedTaskCreate
      */
     'status_id'?: number | null;
+    /**
+     * Completion flag for CHECKLIST-workflow projects (no board columns to derive done-ness from). Ignored for BOARD-workflow projects, which derive completion from status.role == FINISH instead — see Task.finished_at / mark_completed.
+     * @type {boolean}
+     * @memberof PatchedTaskCreate
+     */
+    'is_completed'?: boolean;
     /**
      * 
      * @type {number}
@@ -12128,6 +12722,12 @@ export interface Project {
     'has_track': boolean;
     /**
      * 
+     * @type {WorkflowEnum}
+     * @memberof Project
+     */
+    'workflow': WorkflowEnum;
+    /**
+     * 
      * @type {number}
      * @memberof Project
      */
@@ -12175,11 +12775,11 @@ export interface Project {
      */
     'color'?: string;
     /**
-     * 
-     * @type {DomainEnum}
+     * The owner\'s sidebar group id. Groups are personal, so non-owners never see it.
+     * @type {number}
      * @memberof Project
      */
-    'domain'?: DomainEnum;
+    'group': number;
     /**
      * 
      * @type {ProjectTypeEnum}
@@ -12204,12 +12804,6 @@ export interface Project {
      * @memberof Project
      */
     'category'?: number | null;
-    /**
-     * 
-     * @type {Array<number>}
-     * @memberof Project
-     */
-    'labels'?: Array<number>;
     /**
      * 
      * @type {string}
@@ -12311,6 +12905,12 @@ export interface ProjectAllTracks {
     'has_track': boolean;
     /**
      * 
+     * @type {WorkflowEnum}
+     * @memberof ProjectAllTracks
+     */
+    'workflow': WorkflowEnum;
+    /**
+     * 
      * @type {number}
      * @memberof ProjectAllTracks
      */
@@ -12358,11 +12958,11 @@ export interface ProjectAllTracks {
      */
     'color'?: string;
     /**
-     * 
-     * @type {DomainEnum}
+     * The owner\'s sidebar group id. Groups are personal, so non-owners never see it.
+     * @type {number}
      * @memberof ProjectAllTracks
      */
-    'domain'?: DomainEnum;
+    'group': number;
     /**
      * 
      * @type {ProjectTypeEnum}
@@ -12387,12 +12987,6 @@ export interface ProjectAllTracks {
      * @memberof ProjectAllTracks
      */
     'category'?: number | null;
-    /**
-     * 
-     * @type {Array<number>}
-     * @memberof ProjectAllTracks
-     */
-    'labels'?: Array<number>;
     /**
      * 
      * @type {string}
@@ -12506,6 +13100,12 @@ export interface ProjectBoard {
     'has_track': boolean;
     /**
      * 
+     * @type {WorkflowEnum}
+     * @memberof ProjectBoard
+     */
+    'workflow': WorkflowEnum;
+    /**
+     * 
      * @type {number}
      * @memberof ProjectBoard
      */
@@ -12553,11 +13153,11 @@ export interface ProjectBoard {
      */
     'color'?: string;
     /**
-     * 
-     * @type {DomainEnum}
+     * The owner\'s sidebar group id. Groups are personal, so non-owners never see it.
+     * @type {number}
      * @memberof ProjectBoard
      */
-    'domain'?: DomainEnum;
+    'group': number;
     /**
      * 
      * @type {ProjectTypeEnum}
@@ -12582,12 +13182,6 @@ export interface ProjectBoard {
      * @memberof ProjectBoard
      */
     'category'?: number | null;
-    /**
-     * 
-     * @type {Array<number>}
-     * @memberof ProjectBoard
-     */
-    'labels'?: Array<number>;
     /**
      * 
      * @type {string}
@@ -12740,6 +13334,87 @@ export interface ProjectColumn {
 
 
 /**
+ * Serializer for creating a project
+ * @export
+ * @interface ProjectCreate
+ */
+export interface ProjectCreate {
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectCreate
+     */
+    'id': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectCreate
+     */
+    'name': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectCreate
+     */
+    'description'?: string | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectCreate
+     */
+    'owner': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectCreate
+     */
+    'created_by': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectCreate
+     */
+    'color'?: string;
+    /**
+     * 
+     * @type {ProjectTypeEnum}
+     * @memberof ProjectCreate
+     */
+    'type'?: ProjectTypeEnum;
+    /**
+     * Return the image URL from the UserUploadedImage ForeignKey, using the backend `/media/` URL instead of any direct MinIO/S3 endpoint.
+     * @type {string}
+     * @memberof ProjectCreate
+     */
+    'project_icon_image': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectCreate
+     */
+    'category'?: number | null;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ProjectCreate
+     */
+    'has_track': boolean;
+    /**
+     * True for a CHECKLIST-workflow project (flat todo/completed list, no board). Set once at creation, immutable.
+     * @type {boolean}
+     * @memberof ProjectCreate
+     */
+    'is_checklist'?: boolean;
+    /**
+     * Optional: create the project inside one of the user\'s sidebar groups. Omit for the top level.
+     * @type {number}
+     * @memberof ProjectCreate
+     */
+    'group_id'?: number | null;
+}
+
+
+/**
  * 
  * @export
  * @interface ProjectCustomFieldCreate
@@ -12805,6 +13480,83 @@ export interface ProjectCustomFieldDefinition {
 }
 
 
+/**
+ * Move a group within the top level.
+ * @export
+ * @interface ProjectGroupMove
+ */
+export interface ProjectGroupMove {
+    /**
+     * Kind of the sibling to place after. Inside a group only \'project\' is valid.  * `project` - project * `group` - group
+     * @type {AfterTypeEnum}
+     * @memberof ProjectGroupMove
+     */
+    'after_type'?: AfterTypeEnum;
+    /**
+     * Id of the sibling to place right after. Null/omitted places the item first.
+     * @type {number}
+     * @memberof ProjectGroupMove
+     */
+    'after_id'?: number | null;
+}
+
+
+/**
+ * List, create and update response bodies.
+ * @export
+ * @interface ProjectGroupRead
+ */
+export interface ProjectGroupRead {
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectGroupRead
+     */
+    'id': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectGroupRead
+     */
+    'name': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectGroupRead
+     */
+    'icon': string | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectGroupRead
+     */
+    'sidebar_order': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectGroupRead
+     */
+    'created_at': string;
+}
+/**
+ * Create / rename / change icon. Position is changed through the move endpoints.
+ * @export
+ * @interface ProjectGroupWrite
+ */
+export interface ProjectGroupWrite {
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectGroupWrite
+     */
+    'name': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectGroupWrite
+     */
+    'icon'?: string | null;
+}
 /**
  * One row in the project history timeline. ``entity`` discriminates which id/name pair is populated: \"task\" (default, back-compat) -> task_id/task_name, \"track\" -> track_id/track_name, \"project\" -> project_id/project_name (not revertible).
  * @export
@@ -12990,6 +13742,18 @@ export interface ProjectLabel {
      * @memberof ProjectLabel
      */
     'color': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectLabel
+     */
+    'order'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectLabel
+     */
+    'project': number;
 }
 /**
  * Project
@@ -13021,6 +13785,12 @@ export interface ProjectList {
      * @memberof ProjectList
      */
     'has_track': boolean;
+    /**
+     * 
+     * @type {WorkflowEnum}
+     * @memberof ProjectList
+     */
+    'workflow': WorkflowEnum;
     /**
      * 
      * @type {number}
@@ -13070,11 +13840,11 @@ export interface ProjectList {
      */
     'color'?: string;
     /**
-     * 
-     * @type {DomainEnum}
+     * The owner\'s sidebar group id. Groups are personal, so non-owners never see it.
+     * @type {number}
      * @memberof ProjectList
      */
-    'domain'?: DomainEnum;
+    'group': number;
     /**
      * 
      * @type {ProjectTypeEnum}
@@ -13099,12 +13869,6 @@ export interface ProjectList {
      * @memberof ProjectList
      */
     'category'?: number | null;
-    /**
-     * 
-     * @type {Array<number>}
-     * @memberof ProjectList
-     */
-    'labels'?: Array<number>;
     /**
      * 
      * @type {string}
@@ -13186,6 +13950,58 @@ export interface ProjectList {
 }
 
 
+/**
+ * Move an owned project into a group (or back to the top level) at a position.
+ * @export
+ * @interface ProjectMove
+ */
+export interface ProjectMove {
+    /**
+     * Kind of the sibling to place after. Inside a group only \'project\' is valid.  * `project` - project * `group` - group
+     * @type {AfterTypeEnum}
+     * @memberof ProjectMove
+     */
+    'after_type'?: AfterTypeEnum;
+    /**
+     * Id of the sibling to place right after. Null/omitted places the item first.
+     * @type {number}
+     * @memberof ProjectMove
+     */
+    'after_id'?: number | null;
+    /**
+     * Destination group id. Null/omitted moves the project to the top level.
+     * @type {number}
+     * @memberof ProjectMove
+     */
+    'group_id'?: number | null;
+}
+
+
+/**
+ * Where the project ended up after a move.
+ * @export
+ * @interface ProjectMoveResult
+ */
+export interface ProjectMoveResult {
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectMoveResult
+     */
+    'id': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectMoveResult
+     */
+    'group': number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectMoveResult
+     */
+    'sidebar_order': number;
+}
 /**
  * * `propose_create_project_tool` - Create project * `propose_create_track_tool` - Create track * `propose_delete_track_tool` - Delete track * `propose_update_track_tool` - Update track
  * @export
@@ -13734,6 +14550,129 @@ export type RazorpaySubscriptionStatusEnum = typeof RazorpaySubscriptionStatusEn
 /**
  * 
  * @export
+ * @interface RecurringTaskTemplateRead
+ */
+export interface RecurringTaskTemplateRead {
+    /**
+     * 
+     * @type {number}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'id': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'project': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'project_track': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'task_type'?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'priority'?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'assignee'?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'name': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'description'?: string | null;
+    /**
+     * Hours estimate applied to every generated instance (one-time-effort estimate, not cumulative).
+     * @type {number}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'estimate'?: number;
+    /**
+     * 
+     * @type {CadenceTypeEnum}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'cadence_type'?: CadenceTypeEnum;
+    /**
+     * 0=Mon..6=Sun; used for WEEKLY_DAYS cadence.
+     * @type {any}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'weekdays'?: any;
+    /**
+     * Used for N_PER_WEEK cadence.
+     * @type {number}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'times_per_week'?: number | null;
+    /**
+     * Used for EVERY_N_DAYS cadence.
+     * @type {number}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'interval_days'?: number | null;
+    /**
+     * Paused templates stop generating new instances.
+     * @type {boolean}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'is_paused'?: boolean;
+    /**
+     * When set, each generated instance also gets its own single (non-recurring) calendar Event via Event.task, created/removed alongside that instance. Deliberately not a recurring Event series — see the recurring-tasks plan\'s \'why not a recurring event\' section for why the two clocks (calendar RRULE vs completion-driven regeneration) can\'t share one series.
+     * @type {boolean}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'show_on_calendar'?: boolean;
+    /**
+     * \'HH:MM\' (24h, in the user\'s own profile timezone), or blank for a dateless midnight default. Required by the write serializer when show_on_calendar is set (a calendar event needs a real time slot) — sets the time component of each instance\'s due_date and, when show_on_calendar is set, its Event\'s start.
+     * @type {string}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'time_of_day'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'created_at': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'last_updated': string;
+    /**
+     * 
+     * @type {Task}
+     * @memberof RecurringTaskTemplateRead
+     */
+    'first_instance': Task | null;
+}
+
+
+/**
+ * 
+ * @export
  * @interface RefreshTarget
  */
 export interface RefreshTarget {
@@ -13804,6 +14743,12 @@ export interface Release {
      */
     'description'?: string;
     /**
+     * Lucide icon name shown on the release card (see lib/config/entity-icons.tsx). Blank falls back to the default Release icon.
+     * @type {string}
+     * @memberof Release
+     */
+    'icon'?: string;
+    /**
      * 
      * @type {string}
      * @memberof Release
@@ -13850,6 +14795,21 @@ export const ReleaseStatusEnum = {
 } as const;
 
 export type ReleaseStatusEnum = typeof ReleaseStatusEnum[keyof typeof ReleaseStatusEnum];
+
+
+/**
+ * * `never` - Never * `always` - Always * `only_if_completed` - Only if completed
+ * @export
+ * @enum {string}
+ */
+
+export const ReminderCountingModeEnum = {
+    Never: 'never',
+    Always: 'always',
+    OnlyIfCompleted: 'only_if_completed'
+} as const;
+
+export type ReminderCountingModeEnum = typeof ReminderCountingModeEnum[keyof typeof ReminderCountingModeEnum];
 
 
 /**
@@ -14175,6 +15135,24 @@ export interface SearchResult {
      * @memberof SearchResult
      */
     'task_id'?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof SearchResult
+     */
+    'project_name'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof SearchResult
+     */
+    'project_color'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof SearchResult
+     */
+    'project_icon'?: string | null;
     /**
      * 
      * @type {number}
@@ -14662,11 +15640,23 @@ export interface Task {
      */
     'external_source': ExternalSourceEnum | null;
     /**
-     * 
+     * True/false done state — Task.is_completed for CHECKLIST-workflow projects, status.role == FINISH for BOARD-workflow projects. See Task.is_done.
      * @type {boolean}
      * @memberof Task
      */
     'workflow_done': boolean;
+    /**
+     * Completion flag for CHECKLIST-workflow projects (no board columns to derive done-ness from). Ignored for BOARD-workflow projects, which derive completion from status.role == FINISH instead — see Task.finished_at / mark_completed.
+     * @type {boolean}
+     * @memberof Task
+     */
+    'is_completed'?: boolean;
+    /**
+     * When this task most recently entered a FINISH-role status — see Task.finished_at. None if never done (or unresolvable). Distinct from the day it was *planned* for.
+     * @type {string}
+     * @memberof Task
+     */
+    'finished_at': string;
     /**
      * Mirrors TaskViewSet.destroy: owner or edit-tier collaborator may delete. Without an authenticated ``request`` in context, defaults to True (legacy payloads).  The permission check is the same for every task on the same project, so the result is memoized on ``self.context`` per project id — without this, listing N tasks on one project re-derives the identical answer via 2-3 queries N times.
      * @type {boolean}
@@ -14865,6 +15855,12 @@ export interface Task {
      * @memberof Task
      */
     'duplicated_by': { [key: string]: any; };
+    /**
+     * Set when this task was generated from a RecurringTaskTemplate. Independent of the treebeard parent/subtask relation above.
+     * @type {number}
+     * @memberof Task
+     */
+    'recurring_template': number | null;
     /**
      * Tasks related to this task (symmetric).
      * @type {{ [key: string]: any; }}
@@ -15137,6 +16133,12 @@ export interface TaskCreate {
      * @memberof TaskCreate
      */
     'status_id'?: number | null;
+    /**
+     * Completion flag for CHECKLIST-workflow projects (no board columns to derive done-ness from). Ignored for BOARD-workflow projects, which derive completion from status.role == FINISH instead — see Task.finished_at / mark_completed.
+     * @type {boolean}
+     * @memberof TaskCreate
+     */
+    'is_completed'?: boolean;
     /**
      * 
      * @type {number}
@@ -15463,6 +16465,18 @@ export interface TaskFileAttachment {
      * @memberof TaskFileAttachment
      */
     'source_message_attachment_id': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TaskFileAttachment
+     */
+    'title': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TaskFileAttachment
+     */
+    'thumbnail': string;
 }
 /**
  * Body for ``POST /api/task/search/nl/`` (FocusGPT natural-language task search).
@@ -15688,11 +16702,23 @@ export interface TaskSearch {
      */
     'external_source': ExternalSourceEnum | null;
     /**
-     * 
+     * True/false done state — Task.is_completed for CHECKLIST-workflow projects, status.role == FINISH for BOARD-workflow projects. See Task.is_done.
      * @type {boolean}
      * @memberof TaskSearch
      */
     'workflow_done': boolean;
+    /**
+     * Completion flag for CHECKLIST-workflow projects (no board columns to derive done-ness from). Ignored for BOARD-workflow projects, which derive completion from status.role == FINISH instead — see Task.finished_at / mark_completed.
+     * @type {boolean}
+     * @memberof TaskSearch
+     */
+    'is_completed'?: boolean;
+    /**
+     * When this task most recently entered a FINISH-role status — see Task.finished_at. None if never done (or unresolvable). Distinct from the day it was *planned* for.
+     * @type {string}
+     * @memberof TaskSearch
+     */
+    'finished_at': string;
     /**
      * Mirrors TaskViewSet.destroy: owner or edit-tier collaborator may delete. Without an authenticated ``request`` in context, defaults to True (legacy payloads).  The permission check is the same for every task on the same project, so the result is memoized on ``self.context`` per project id — without this, listing N tasks on one project re-derives the identical answer via 2-3 queries N times.
      * @type {boolean}
@@ -15892,6 +16918,12 @@ export interface TaskSearch {
      */
     'duplicated_by': { [key: string]: any; };
     /**
+     * Set when this task was generated from a RecurringTaskTemplate. Independent of the treebeard parent/subtask relation above.
+     * @type {number}
+     * @memberof TaskSearch
+     */
+    'recurring_template': number | null;
+    /**
      * Tasks related to this task (symmetric).
      * @type {{ [key: string]: any; }}
      * @memberof TaskSearch
@@ -15998,6 +17030,12 @@ export interface TaskType {
      * @memberof TaskType
      */
     'icon'?: string | null;
+    /**
+     * Marks this type as reserved for subtasks (requires a parent task); set once at seed time (see DEFAULT_PROJECT_TASK_TYPES) and not exposed for edit via the task-type CRUD API, so renaming/duplicating a type can\'t gain or lose this meaning.
+     * @type {boolean}
+     * @memberof TaskType
+     */
+    'is_subtask_type': boolean;
     /**
      * 
      * @type {string}
@@ -16190,49 +17228,6 @@ export interface TodoistStatusResponse {
 /**
  * 
  * @export
- * @interface TokenTopUpPurchase
- */
-export interface TokenTopUpPurchase {
-    /**
-     * 
-     * @type {number}
-     * @memberof TokenTopUpPurchase
-     */
-    'id': number;
-    /**
-     * 
-     * @type {string}
-     * @memberof TokenTopUpPurchase
-     */
-    'bundle_key': string;
-    /**
-     * 
-     * @type {number}
-     * @memberof TokenTopUpPurchase
-     */
-    'tokens_purchased': number;
-    /**
-     * 
-     * @type {number}
-     * @memberof TokenTopUpPurchase
-     */
-    'tokens_remaining': number;
-    /**
-     * 
-     * @type {string}
-     * @memberof TokenTopUpPurchase
-     */
-    'amount_paid_usd': string;
-    /**
-     * 
-     * @type {string}
-     * @memberof TokenTopUpPurchase
-     */
-    'purchased_at': string;
-}
-/**
- * 
- * @export
  * @interface ToolResultLink
  */
 export interface ToolResultLink {
@@ -16355,7 +17350,7 @@ export type Type2cdEnum = typeof Type2cdEnum[keyof typeof Type2cdEnum];
 
 
 /**
- * 
+ * Write-side serializer for ``ConversationViewSet.update``.  Deliberately narrower than ``ConversationSerializer``: ``user`` is absent, so a request body cannot re-parent someone else\'s conversation onto another account. Everything a client is genuinely allowed to change stays writable — dropping ``is_pinned`` / ``is_archived`` / ``metadata`` here would make them unreachable through the only endpoint that can set them, and DRF silently ignores unknown keys, so such a request would return 200 while changing nothing.
  * @export
  * @interface UpdateConversation
  */
@@ -16366,6 +17361,24 @@ export interface UpdateConversation {
      * @memberof UpdateConversation
      */
     'title'?: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof UpdateConversation
+     */
+    'is_pinned'?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof UpdateConversation
+     */
+    'is_archived'?: boolean;
+    /**
+     * 
+     * @type {any}
+     * @memberof UpdateConversation
+     */
+    'metadata'?: any;
 }
 /**
  * Create Event with exactly one optional link: task, project, or life area.
@@ -16765,6 +17778,18 @@ export interface UpdateUserSetting {
      * @memberof UpdateUserSetting
      */
     'calendar_timer_widget_style'?: CalendarTimerWidgetStyleEnum;
+    /**
+     * Whether reminder occurrences count toward productivity/planning scores.  * `never` - Never * `always` - Always * `only_if_completed` - Only if completed
+     * @type {ReminderCountingModeEnum}
+     * @memberof UpdateUserSetting
+     */
+    'reminder_counting_mode'?: ReminderCountingModeEnum;
+    /**
+     * Whether break occurrences count toward productivity/planning scores.  * `never` - Never * `always` - Always * `only_if_completed` - Only if completed
+     * @type {BreakCountingModeEnum}
+     * @memberof UpdateUserSetting
+     */
+    'break_counting_mode'?: BreakCountingModeEnum;
     /**
      * Null = not yet asked; True = accepted; False = declined.
      * @type {boolean}
@@ -17402,6 +18427,18 @@ export interface UserSetting {
      */
     'calendar_timer_widget_style'?: CalendarTimerWidgetStyleEnum;
     /**
+     * Whether reminder occurrences count toward productivity/planning scores.  * `never` - Never * `always` - Always * `only_if_completed` - Only if completed
+     * @type {ReminderCountingModeEnum}
+     * @memberof UserSetting
+     */
+    'reminder_counting_mode'?: ReminderCountingModeEnum;
+    /**
+     * Whether break occurrences count toward productivity/planning scores.  * `never` - Never * `always` - Always * `only_if_completed` - Only if completed
+     * @type {BreakCountingModeEnum}
+     * @memberof UserSetting
+     */
+    'break_counting_mode'?: BreakCountingModeEnum;
+    /**
      * FocusGPT-specific preferences and learned settings (structured JSON).
      * @type {any}
      * @memberof UserSetting
@@ -17625,29 +18662,29 @@ export interface UserSubscription {
      */
     'is_trial_available': boolean;
     /**
-     * Total remaining (monthly + top-up) for personal subscriptions.
+     * 
      * @type {number}
      * @memberof UserSubscription
      */
-    'remaining_ai_requests': number;
+    'credits_limit_month': number;
     /**
      * 
      * @type {number}
      * @memberof UserSubscription
      */
-    'monthly_remaining_ai_requests': number;
+    'credits_used_this_month': number;
     /**
      * 
      * @type {number}
      * @memberof UserSubscription
      */
-    'topup_remaining_ai_requests': number;
+    'credits_remaining': number;
     /**
      * 
      * @type {number}
      * @memberof UserSubscription
      */
-    'max_ai_requests_tokens_per_month': number;
+    'credits_topup_remaining': number;
     /**
      * Check if the current subscription is a free trial
      * @type {boolean}
@@ -18176,6 +19213,51 @@ export const WeeklySummaryDeliverOnEnum = {
 } as const;
 
 export type WeeklySummaryDeliverOnEnum = typeof WeeklySummaryDeliverOnEnum[keyof typeof WeeklySummaryDeliverOnEnum];
+
+
+/**
+ * JSON body for creating/autosaving/renaming a whiteboard scene attachment.  ``scene_json`` is required when creating (``attachment_id`` omitted); omit it on an update to rename in place without re-uploading the scene.
+ * @export
+ * @interface WhiteboardSceneUpsert
+ */
+export interface WhiteboardSceneUpsert {
+    /**
+     * 
+     * @type {number}
+     * @memberof WhiteboardSceneUpsert
+     */
+    'attachment_id'?: number | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof WhiteboardSceneUpsert
+     */
+    'scene_json'?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof WhiteboardSceneUpsert
+     */
+    'title'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof WhiteboardSceneUpsert
+     */
+    'thumbnail'?: string | null;
+}
+/**
+ * * `BOARD` - Board * `CHECKLIST` - Checklist
+ * @export
+ * @enum {string}
+ */
+
+export const WorkflowEnum = {
+    Board: 'BOARD',
+    Checklist: 'CHECKLIST'
+} as const;
+
+export type WorkflowEnum = typeof WorkflowEnum[keyof typeof WorkflowEnum];
 
 
 
@@ -18943,13 +20025,11 @@ export const ApiApiAxiosParamCreator = function (configuration?: Configuration) 
         },
         /**
          * Create a new conversation: not allowed - instead create using a new message
-         * @param {Conversation} conversation 
+         * @param {Conversation} [conversation] 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiFocusgptConversationCreate: async (conversation: Conversation, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'conversation' is not null or undefined
-            assertParamExists('apiFocusgptConversationCreate', 'conversation', conversation)
+        apiFocusgptConversationCreate: async (conversation?: Conversation, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/focusgpt/conversation/`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -19222,7 +20302,7 @@ export const ApiApiAxiosParamCreator = function (configuration?: Configuration) 
             };
         },
         /**
-         * Update a conversation (e.g., title, metadata)
+         * Update a conversation\'s title, pin/archive state or metadata.  Bound to ``UpdateConversationSerializer`` rather than ``ConversationSerializer`` so ``user`` is not in the writable field set — a request body cannot re-parent the thread onto another account.
          * @param {number} id A unique integer value identifying this conversation.
          * @param {UpdateConversation} [updateConversation] 
          * @param {*} [options] Override http request option.
@@ -20196,6 +21276,152 @@ export const ApiApiAxiosParamCreator = function (configuration?: Configuration) 
             };
         },
         /**
+         * Goal (OKR-style objective) ViewSet.  Progress is derived from the goal\'s KeyResults (or, absent any, from linked task completion) — see ReleaseSerializer/GoalSerializer.get_progress.
+         * @param {Goal} goal 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiGoalReorderCreate: async (goal: Goal, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'goal' is not null or undefined
+            assertParamExists('apiGoalReorderCreate', 'goal', goal)
+            const localVarPath = `/api/goal/reorder/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(goal, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Accept an invitation.  Authentication is **optional**, not absent: the default Keycloak authenticator returns None when there\'s no Bearer header, so this one endpoint serves both the not-yet-registered invitee (who posts a password) and the already-signed-in one (who arrived back here after \"Continue with Google\" and posts nothing).
+         * @param {string} token 
+         * @param {AcceptInvitation} [acceptInvitation] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiInvitationsAcceptCreate: async (token: string, acceptInvitation?: AcceptInvitation, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'token' is not null or undefined
+            assertParamExists('apiInvitationsAcceptCreate', 'token', token)
+            const localVarPath = `/api/invitations/{token}/accept/`
+                .replace(`{${"token"}}`, encodeURIComponent(String(token)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(acceptInvitation, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @param {string} token 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiInvitationsDeclineCreate: async (token: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'token' is not null or undefined
+            assertParamExists('apiInvitationsDeclineCreate', 'token', token)
+            const localVarPath = `/api/invitations/{token}/decline/`
+                .replace(`{${"token"}}`, encodeURIComponent(String(token)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Public preview of an invitation, keyed by its token.
+         * @param {string} token 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiInvitationsRetrieve: async (token: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'token' is not null or undefined
+            assertParamExists('apiInvitationsRetrieve', 'token', token)
+            const localVarPath = `/api/invitations/{token}/`
+                .replace(`{${"token"}}`, encodeURIComponent(String(token)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -20700,6 +21926,170 @@ export const ApiApiAxiosParamCreator = function (configuration?: Configuration) 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * List open invitations, or create one/many.
+         * @param {number} orgId 
+         * @param {CreateInvitation} [createInvitation] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiOrganizationsInvitationsCreate: async (orgId: number, createInvitation?: CreateInvitation, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'orgId' is not null or undefined
+            assertParamExists('apiOrganizationsInvitationsCreate', 'orgId', orgId)
+            const localVarPath = `/api/organizations/{org_id}/invitations/`
+                .replace(`{${"org_id"}}`, encodeURIComponent(String(orgId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(createInvitation, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @param {number} orgId 
+         * @param {InvitationEmailAction} invitationEmailAction 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiOrganizationsInvitationsResendCreate: async (orgId: number, invitationEmailAction: InvitationEmailAction, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'orgId' is not null or undefined
+            assertParamExists('apiOrganizationsInvitationsResendCreate', 'orgId', orgId)
+            // verify required parameter 'invitationEmailAction' is not null or undefined
+            assertParamExists('apiOrganizationsInvitationsResendCreate', 'invitationEmailAction', invitationEmailAction)
+            const localVarPath = `/api/organizations/{org_id}/invitations/resend/`
+                .replace(`{${"org_id"}}`, encodeURIComponent(String(orgId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(invitationEmailAction, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * List open invitations, or create one/many.
+         * @param {number} orgId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiOrganizationsInvitationsRetrieve: async (orgId: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'orgId' is not null or undefined
+            assertParamExists('apiOrganizationsInvitationsRetrieve', 'orgId', orgId)
+            const localVarPath = `/api/organizations/{org_id}/invitations/`
+                .replace(`{${"org_id"}}`, encodeURIComponent(String(orgId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @param {number} orgId 
+         * @param {InvitationEmailAction} invitationEmailAction 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiOrganizationsInvitationsRevokeCreate: async (orgId: number, invitationEmailAction: InvitationEmailAction, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'orgId' is not null or undefined
+            assertParamExists('apiOrganizationsInvitationsRevokeCreate', 'orgId', orgId)
+            // verify required parameter 'invitationEmailAction' is not null or undefined
+            assertParamExists('apiOrganizationsInvitationsRevokeCreate', 'invitationEmailAction', invitationEmailAction)
+            const localVarPath = `/api/organizations/{org_id}/invitations/revoke/`
+                .replace(`{${"org_id"}}`, encodeURIComponent(String(orgId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(invitationEmailAction, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -21538,7 +22928,7 @@ export const ApiApiAxiosParamCreator = function (configuration?: Configuration) 
             };
         },
         /**
-         * List of project labels
+         * List labels for projects visible to the user (optionally ?project=)
          * @param {number} [limit] Number of results to return per page.
          * @param {number} [offset] The initial index from which to return the results.
          * @param {*} [options] Override http request option.
@@ -21622,7 +23012,7 @@ export const ApiApiAxiosParamCreator = function (configuration?: Configuration) 
             };
         },
         /**
-         * Reorder multiple labels at once
+         * Reorder multiple labels at once, within a single project
          * @param {ProjectLabel} projectLabel 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -22041,6 +23431,45 @@ export const ApiApiAxiosParamCreator = function (configuration?: Configuration) 
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(taskTypeUpsert, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Release ViewSet  Allows creating, updating and deleting releases that belong to a project. A release groups tasks (optionally spanning multiple ProjectTracks/sprints) toward a shippable milestone.
+         * @param {Release} release 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiReleaseReorderCreate: async (release: Release, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'release' is not null or undefined
+            assertParamExists('apiReleaseReorderCreate', 'release', release)
+            const localVarPath = `/api/release/reorder/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(release, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -23470,11 +24899,11 @@ export const ApiApiFp = function(configuration?: Configuration) {
         },
         /**
          * Create a new conversation: not allowed - instead create using a new message
-         * @param {Conversation} conversation 
+         * @param {Conversation} [conversation] 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiFocusgptConversationCreate(conversation: Conversation, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Conversation>> {
+        async apiFocusgptConversationCreate(conversation?: Conversation, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Conversation>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.apiFocusgptConversationCreate(conversation, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ApiApi.apiFocusgptConversationCreate']?.[localVarOperationServerIndex]?.url;
@@ -23557,7 +24986,7 @@ export const ApiApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Update a conversation (e.g., title, metadata)
+         * Update a conversation\'s title, pin/archive state or metadata.  Bound to ``UpdateConversationSerializer`` rather than ``ConversationSerializer`` so ``user`` is not in the writable field set — a request body cannot re-parent the thread onto another account.
          * @param {number} id A unique integer value identifying this conversation.
          * @param {UpdateConversation} [updateConversation] 
          * @param {*} [options] Override http request option.
@@ -23872,6 +25301,55 @@ export const ApiApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Goal (OKR-style objective) ViewSet.  Progress is derived from the goal\'s KeyResults (or, absent any, from linked task completion) — see ReleaseSerializer/GoalSerializer.get_progress.
+         * @param {Goal} goal 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiGoalReorderCreate(goal: Goal, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Goal>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiGoalReorderCreate(goal, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiGoalReorderCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Accept an invitation.  Authentication is **optional**, not absent: the default Keycloak authenticator returns None when there\'s no Bearer header, so this one endpoint serves both the not-yet-registered invitee (who posts a password) and the already-signed-in one (who arrived back here after \"Continue with Google\" and posts nothing).
+         * @param {string} token 
+         * @param {AcceptInvitation} [acceptInvitation] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiInvitationsAcceptCreate(token: string, acceptInvitation?: AcceptInvitation, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<InvitationPreview>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiInvitationsAcceptCreate(token, acceptInvitation, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiInvitationsAcceptCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 
+         * @param {string} token 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiInvitationsDeclineCreate(token: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<InvitationPreview>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiInvitationsDeclineCreate(token, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiInvitationsDeclineCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Public preview of an invitation, keyed by its token.
+         * @param {string} token 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiInvitationsRetrieve(token: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<InvitationPreview>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiInvitationsRetrieve(token, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiInvitationsRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -24031,6 +25509,57 @@ export const ApiApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.apiOrganizationsGroupsUsersRetrieve(groupId, orgId, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ApiApi.apiOrganizationsGroupsUsersRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * List open invitations, or create one/many.
+         * @param {number} orgId 
+         * @param {CreateInvitation} [createInvitation] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiOrganizationsInvitationsCreate(orgId: number, createInvitation?: CreateInvitation, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CreateInvitationResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiOrganizationsInvitationsCreate(orgId, createInvitation, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiOrganizationsInvitationsCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 
+         * @param {number} orgId 
+         * @param {InvitationEmailAction} invitationEmailAction 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiOrganizationsInvitationsResendCreate(orgId: number, invitationEmailAction: InvitationEmailAction, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Invitation>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiOrganizationsInvitationsResendCreate(orgId, invitationEmailAction, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiOrganizationsInvitationsResendCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * List open invitations, or create one/many.
+         * @param {number} orgId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiOrganizationsInvitationsRetrieve(orgId: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<InvitationListResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiOrganizationsInvitationsRetrieve(orgId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiOrganizationsInvitationsRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 
+         * @param {number} orgId 
+         * @param {InvitationEmailAction} invitationEmailAction 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiOrganizationsInvitationsRevokeCreate(orgId: number, invitationEmailAction: InvitationEmailAction, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Invitation>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiOrganizationsInvitationsRevokeCreate(orgId, invitationEmailAction, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiOrganizationsInvitationsRevokeCreate']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -24295,7 +25824,7 @@ export const ApiApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * List of project labels
+         * List labels for projects visible to the user (optionally ?project=)
          * @param {number} [limit] Number of results to return per page.
          * @param {number} [offset] The initial index from which to return the results.
          * @param {*} [options] Override http request option.
@@ -24321,7 +25850,7 @@ export const ApiApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Reorder multiple labels at once
+         * Reorder multiple labels at once, within a single project
          * @param {ProjectLabel} projectLabel 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -24449,6 +25978,18 @@ export const ApiApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectsTaskTypesUpdate(id, projectPk, taskTypeUpsert, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ApiApi.apiProjectsTaskTypesUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Release ViewSet  Allows creating, updating and deleting releases that belong to a project. A release groups tasks (optionally spanning multiple ProjectTracks/sprints) toward a shippable milestone.
+         * @param {Release} release 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiReleaseReorderCreate(release: Release, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Release>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiReleaseReorderCreate(release, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ApiApi.apiReleaseReorderCreate']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -24924,11 +26465,11 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
         },
         /**
          * Create a new conversation: not allowed - instead create using a new message
-         * @param {Conversation} conversation 
+         * @param {Conversation} [conversation] 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiFocusgptConversationCreate(conversation: Conversation, options?: RawAxiosRequestConfig): AxiosPromise<Conversation> {
+        apiFocusgptConversationCreate(conversation?: Conversation, options?: RawAxiosRequestConfig): AxiosPromise<Conversation> {
             return localVarFp.apiFocusgptConversationCreate(conversation, options).then((request) => request(axios, basePath));
         },
         /**
@@ -24990,7 +26531,7 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
             return localVarFp.apiFocusgptConversationRetrieve(id, options).then((request) => request(axios, basePath));
         },
         /**
-         * Update a conversation (e.g., title, metadata)
+         * Update a conversation\'s title, pin/archive state or metadata.  Bound to ``UpdateConversationSerializer`` rather than ``ConversationSerializer`` so ``user`` is not in the writable field set — a request body cannot re-parent the thread onto another account.
          * @param {number} id A unique integer value identifying this conversation.
          * @param {UpdateConversation} [updateConversation] 
          * @param {*} [options] Override http request option.
@@ -25233,6 +26774,43 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
             return localVarFp.apiFocusgptSttCreate(options).then((request) => request(axios, basePath));
         },
         /**
+         * Goal (OKR-style objective) ViewSet.  Progress is derived from the goal\'s KeyResults (or, absent any, from linked task completion) — see ReleaseSerializer/GoalSerializer.get_progress.
+         * @param {Goal} goal 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiGoalReorderCreate(goal: Goal, options?: RawAxiosRequestConfig): AxiosPromise<Goal> {
+            return localVarFp.apiGoalReorderCreate(goal, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Accept an invitation.  Authentication is **optional**, not absent: the default Keycloak authenticator returns None when there\'s no Bearer header, so this one endpoint serves both the not-yet-registered invitee (who posts a password) and the already-signed-in one (who arrived back here after \"Continue with Google\" and posts nothing).
+         * @param {string} token 
+         * @param {AcceptInvitation} [acceptInvitation] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiInvitationsAcceptCreate(token: string, acceptInvitation?: AcceptInvitation, options?: RawAxiosRequestConfig): AxiosPromise<InvitationPreview> {
+            return localVarFp.apiInvitationsAcceptCreate(token, acceptInvitation, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @param {string} token 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiInvitationsDeclineCreate(token: string, options?: RawAxiosRequestConfig): AxiosPromise<InvitationPreview> {
+            return localVarFp.apiInvitationsDeclineCreate(token, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Public preview of an invitation, keyed by its token.
+         * @param {string} token 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiInvitationsRetrieve(token: string, options?: RawAxiosRequestConfig): AxiosPromise<InvitationPreview> {
+            return localVarFp.apiInvitationsRetrieve(token, options).then((request) => request(axios, basePath));
+        },
+        /**
          * 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -25354,6 +26932,45 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
          */
         apiOrganizationsGroupsUsersRetrieve(groupId: number, orgId: number, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.apiOrganizationsGroupsUsersRetrieve(groupId, orgId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * List open invitations, or create one/many.
+         * @param {number} orgId 
+         * @param {CreateInvitation} [createInvitation] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiOrganizationsInvitationsCreate(orgId: number, createInvitation?: CreateInvitation, options?: RawAxiosRequestConfig): AxiosPromise<CreateInvitationResponse> {
+            return localVarFp.apiOrganizationsInvitationsCreate(orgId, createInvitation, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @param {number} orgId 
+         * @param {InvitationEmailAction} invitationEmailAction 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiOrganizationsInvitationsResendCreate(orgId: number, invitationEmailAction: InvitationEmailAction, options?: RawAxiosRequestConfig): AxiosPromise<Invitation> {
+            return localVarFp.apiOrganizationsInvitationsResendCreate(orgId, invitationEmailAction, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * List open invitations, or create one/many.
+         * @param {number} orgId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiOrganizationsInvitationsRetrieve(orgId: number, options?: RawAxiosRequestConfig): AxiosPromise<InvitationListResponse> {
+            return localVarFp.apiOrganizationsInvitationsRetrieve(orgId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @param {number} orgId 
+         * @param {InvitationEmailAction} invitationEmailAction 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiOrganizationsInvitationsRevokeCreate(orgId: number, invitationEmailAction: InvitationEmailAction, options?: RawAxiosRequestConfig): AxiosPromise<Invitation> {
+            return localVarFp.apiOrganizationsInvitationsRevokeCreate(orgId, invitationEmailAction, options).then((request) => request(axios, basePath));
         },
         /**
          * Per-member AI token quota/usage for every active member of an org.  Organization admins only (billing-adjacent data — see can_view_organization_member_quotas for why group-admins are excluded).
@@ -25554,7 +27171,7 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
             return localVarFp.apiProjectLabelsDestroy(id, options).then((request) => request(axios, basePath));
         },
         /**
-         * List of project labels
+         * List labels for projects visible to the user (optionally ?project=)
          * @param {number} [limit] Number of results to return per page.
          * @param {number} [offset] The initial index from which to return the results.
          * @param {*} [options] Override http request option.
@@ -25574,7 +27191,7 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
             return localVarFp.apiProjectLabelsPartialUpdate(id, patchedProjectLabel, options).then((request) => request(axios, basePath));
         },
         /**
-         * Reorder multiple labels at once
+         * Reorder multiple labels at once, within a single project
          * @param {ProjectLabel} projectLabel 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -25673,6 +27290,15 @@ export const ApiApiFactory = function (configuration?: Configuration, basePath?:
          */
         apiProjectsTaskTypesUpdate(id: number, projectPk: string, taskTypeUpsert: TaskTypeUpsert, options?: RawAxiosRequestConfig): AxiosPromise<TaskType> {
             return localVarFp.apiProjectsTaskTypesUpdate(id, projectPk, taskTypeUpsert, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Release ViewSet  Allows creating, updating and deleting releases that belong to a project. A release groups tasks (optionally spanning multiple ProjectTracks/sprints) toward a shippable milestone.
+         * @param {Release} release 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiReleaseReorderCreate(release: Release, options?: RawAxiosRequestConfig): AxiosPromise<Release> {
+            return localVarFp.apiReleaseReorderCreate(release, options).then((request) => request(axios, basePath));
         },
         /**
          * Search for tasks, projects, events, project tracks, habits, life areas, notifications, journals, reports, plans, and task comments via Elasticsearch. Supports type filter and sort.
@@ -26051,12 +27677,12 @@ export class ApiApi extends BaseAPI {
 
     /**
      * Create a new conversation: not allowed - instead create using a new message
-     * @param {Conversation} conversation 
+     * @param {Conversation} [conversation] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ApiApi
      */
-    public apiFocusgptConversationCreate(conversation: Conversation, options?: RawAxiosRequestConfig) {
+    public apiFocusgptConversationCreate(conversation?: Conversation, options?: RawAxiosRequestConfig) {
         return ApiApiFp(this.configuration).apiFocusgptConversationCreate(conversation, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -26131,7 +27757,7 @@ export class ApiApi extends BaseAPI {
     }
 
     /**
-     * Update a conversation (e.g., title, metadata)
+     * Update a conversation\'s title, pin/archive state or metadata.  Bound to ``UpdateConversationSerializer`` rather than ``ConversationSerializer`` so ``user`` is not in the writable field set — a request body cannot re-parent the thread onto another account.
      * @param {number} id A unique integer value identifying this conversation.
      * @param {UpdateConversation} [updateConversation] 
      * @param {*} [options] Override http request option.
@@ -26422,6 +28048,51 @@ export class ApiApi extends BaseAPI {
     }
 
     /**
+     * Goal (OKR-style objective) ViewSet.  Progress is derived from the goal\'s KeyResults (or, absent any, from linked task completion) — see ReleaseSerializer/GoalSerializer.get_progress.
+     * @param {Goal} goal 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiGoalReorderCreate(goal: Goal, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiGoalReorderCreate(goal, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Accept an invitation.  Authentication is **optional**, not absent: the default Keycloak authenticator returns None when there\'s no Bearer header, so this one endpoint serves both the not-yet-registered invitee (who posts a password) and the already-signed-in one (who arrived back here after \"Continue with Google\" and posts nothing).
+     * @param {string} token 
+     * @param {AcceptInvitation} [acceptInvitation] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiInvitationsAcceptCreate(token: string, acceptInvitation?: AcceptInvitation, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiInvitationsAcceptCreate(token, acceptInvitation, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @param {string} token 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiInvitationsDeclineCreate(token: string, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiInvitationsDeclineCreate(token, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Public preview of an invitation, keyed by its token.
+     * @param {string} token 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiInvitationsRetrieve(token: string, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiInvitationsRetrieve(token, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -26568,6 +28239,53 @@ export class ApiApi extends BaseAPI {
      */
     public apiOrganizationsGroupsUsersRetrieve(groupId: number, orgId: number, options?: RawAxiosRequestConfig) {
         return ApiApiFp(this.configuration).apiOrganizationsGroupsUsersRetrieve(groupId, orgId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * List open invitations, or create one/many.
+     * @param {number} orgId 
+     * @param {CreateInvitation} [createInvitation] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiOrganizationsInvitationsCreate(orgId: number, createInvitation?: CreateInvitation, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiOrganizationsInvitationsCreate(orgId, createInvitation, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @param {number} orgId 
+     * @param {InvitationEmailAction} invitationEmailAction 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiOrganizationsInvitationsResendCreate(orgId: number, invitationEmailAction: InvitationEmailAction, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiOrganizationsInvitationsResendCreate(orgId, invitationEmailAction, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * List open invitations, or create one/many.
+     * @param {number} orgId 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiOrganizationsInvitationsRetrieve(orgId: number, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiOrganizationsInvitationsRetrieve(orgId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @param {number} orgId 
+     * @param {InvitationEmailAction} invitationEmailAction 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiOrganizationsInvitationsRevokeCreate(orgId: number, invitationEmailAction: InvitationEmailAction, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiOrganizationsInvitationsRevokeCreate(orgId, invitationEmailAction, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -26811,7 +28529,7 @@ export class ApiApi extends BaseAPI {
     }
 
     /**
-     * List of project labels
+     * List labels for projects visible to the user (optionally ?project=)
      * @param {number} [limit] Number of results to return per page.
      * @param {number} [offset] The initial index from which to return the results.
      * @param {*} [options] Override http request option.
@@ -26835,7 +28553,7 @@ export class ApiApi extends BaseAPI {
     }
 
     /**
-     * Reorder multiple labels at once
+     * Reorder multiple labels at once, within a single project
      * @param {ProjectLabel} projectLabel 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -26953,6 +28671,17 @@ export class ApiApi extends BaseAPI {
      */
     public apiProjectsTaskTypesUpdate(id: number, projectPk: string, taskTypeUpsert: TaskTypeUpsert, options?: RawAxiosRequestConfig) {
         return ApiApiFp(this.configuration).apiProjectsTaskTypesUpdate(id, projectPk, taskTypeUpsert, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Release ViewSet  Allows creating, updating and deleting releases that belong to a project. A release groups tasks (optionally spanning multiple ProjectTracks/sprints) toward a shippable milestone.
+     * @param {Release} release 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ApiApi
+     */
+    public apiReleaseReorderCreate(release: Release, options?: RawAxiosRequestConfig) {
+        return ApiApiFp(this.configuration).apiReleaseReorderCreate(release, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -43086,14 +44815,15 @@ export const ProjectApiAxiosParamCreator = function (configuration?: Configurati
             };
         },
         /**
-         * Create a project
-         * @param {Project} project 
+         * Accepts `is_checklist` (bool, default False) to choose the workflow at creation — not `workflow` directly, which is read-only on the general Project serializer and has no create-time write path.
+         * @summary Create a project
+         * @param {ProjectCreate} projectCreate 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiProjectCreate: async (project: Project, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'project' is not null or undefined
-            assertParamExists('apiProjectCreate', 'project', project)
+        apiProjectCreate: async (projectCreate: ProjectCreate, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectCreate' is not null or undefined
+            assertParamExists('apiProjectCreate', 'projectCreate', projectCreate)
             const localVarPath = `/api/project/`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -43117,7 +44847,7 @@ export const ProjectApiAxiosParamCreator = function (configuration?: Configurati
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(project, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(projectCreate, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -43647,6 +45377,48 @@ export const ProjectApiAxiosParamCreator = function (configuration?: Configurati
             };
         },
         /**
+         * Place an owned project into one of the user\'s groups (or the top level) right after a sibling. Omit `after_id` for first position. Only the moved project\'s row changes.
+         * @summary Move a project in the sidebar
+         * @param {number} id A unique integer value identifying this project.
+         * @param {ProjectMove} [projectMove] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectMoveCreate: async (id: number, projectMove?: ProjectMove, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiProjectMoveCreate', 'id', id)
+            const localVarPath = `/api/project/{id}/move/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(projectMove, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Project ViewSet
          * @param {number} id A unique integer value identifying this project.
          * @param {PatchedProject} [patchedProject] 
@@ -43719,46 +45491,6 @@ export const ProjectApiAxiosParamCreator = function (configuration?: Configurati
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Persist the per-user sidebar ordering of projects. The payload is a full ordered list.
-         * @summary Reorder projects for sidebar
-         * @param {ProjectReorder} projectReorder 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        apiProjectReorderCreate: async (projectReorder: ProjectReorder, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projectReorder' is not null or undefined
-            assertParamExists('apiProjectReorderCreate', 'projectReorder', projectReorder)
-            const localVarPath = `/api/project/reorder/`;
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication KeycloakAuthentication required
-            // http bearer authentication required
-            await setBearerAuthToObject(localVarHeaderParameter, configuration)
-
-
-    
-            localVarHeaderParameter['Content-Type'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(projectReorder, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -44303,13 +46035,14 @@ export const ProjectApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Create a project
-         * @param {Project} project 
+         * Accepts `is_checklist` (bool, default False) to choose the workflow at creation — not `workflow` directly, which is read-only on the general Project serializer and has no create-time write path.
+         * @summary Create a project
+         * @param {ProjectCreate} projectCreate 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiProjectCreate(project: Project, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Project>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectCreate(project, options);
+        async apiProjectCreate(projectCreate: ProjectCreate, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Project>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectCreate(projectCreate, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ProjectApi.apiProjectCreate']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -44477,6 +46210,20 @@ export const ProjectApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Place an owned project into one of the user\'s groups (or the top level) right after a sibling. Omit `after_id` for first position. Only the moved project\'s row changes.
+         * @summary Move a project in the sidebar
+         * @param {number} id A unique integer value identifying this project.
+         * @param {ProjectMove} [projectMove] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiProjectMoveCreate(id: number, projectMove?: ProjectMove, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ProjectMoveResult>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectMoveCreate(id, projectMove, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ProjectApi.apiProjectMoveCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Project ViewSet
          * @param {number} id A unique integer value identifying this project.
          * @param {PatchedProject} [patchedProject] 
@@ -44500,19 +46247,6 @@ export const ProjectApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectRemoveIconDestroy(id, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ProjectApi.apiProjectRemoveIconDestroy']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Persist the per-user sidebar ordering of projects. The payload is a full ordered list.
-         * @summary Reorder projects for sidebar
-         * @param {ProjectReorder} projectReorder 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async apiProjectReorderCreate(projectReorder: ProjectReorder, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectReorderCreate(projectReorder, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['ProjectApi.apiProjectReorderCreate']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -44702,13 +46436,14 @@ export const ProjectApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.apiProjectCollaboratorsRetrieve(id, options).then((request) => request(axios, basePath));
         },
         /**
-         * Create a project
-         * @param {Project} project 
+         * Accepts `is_checklist` (bool, default False) to choose the workflow at creation — not `workflow` directly, which is read-only on the general Project serializer and has no create-time write path.
+         * @summary Create a project
+         * @param {ProjectCreate} projectCreate 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiProjectCreate(project: Project, options?: RawAxiosRequestConfig): AxiosPromise<Project> {
-            return localVarFp.apiProjectCreate(project, options).then((request) => request(axios, basePath));
+        apiProjectCreate(projectCreate: ProjectCreate, options?: RawAxiosRequestConfig): AxiosPromise<Project> {
+            return localVarFp.apiProjectCreate(projectCreate, options).then((request) => request(axios, basePath));
         },
         /**
          * List custom field definitions for this project.
@@ -44837,6 +46572,17 @@ export const ProjectApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.apiProjectListViewRetrieve(id, filters, status, taskQ, options).then((request) => request(axios, basePath));
         },
         /**
+         * Place an owned project into one of the user\'s groups (or the top level) right after a sibling. Omit `after_id` for first position. Only the moved project\'s row changes.
+         * @summary Move a project in the sidebar
+         * @param {number} id A unique integer value identifying this project.
+         * @param {ProjectMove} [projectMove] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectMoveCreate(id: number, projectMove?: ProjectMove, options?: RawAxiosRequestConfig): AxiosPromise<ProjectMoveResult> {
+            return localVarFp.apiProjectMoveCreate(id, projectMove, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Project ViewSet
          * @param {number} id A unique integer value identifying this project.
          * @param {PatchedProject} [patchedProject] 
@@ -44855,16 +46601,6 @@ export const ProjectApiFactory = function (configuration?: Configuration, basePa
          */
         apiProjectRemoveIconDestroy(id: number, options?: RawAxiosRequestConfig): AxiosPromise<ApiJournalDayUploadEditorImageCreate400Response> {
             return localVarFp.apiProjectRemoveIconDestroy(id, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Persist the per-user sidebar ordering of projects. The payload is a full ordered list.
-         * @summary Reorder projects for sidebar
-         * @param {ProjectReorder} projectReorder 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        apiProjectReorderCreate(projectReorder: ProjectReorder, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.apiProjectReorderCreate(projectReorder, options).then((request) => request(axios, basePath));
         },
         /**
          * Persist the per-user sidebar ordering of projects shared with the viewer (not owned by them). The payload is a full ordered list.
@@ -45024,14 +46760,15 @@ export class ProjectApi extends BaseAPI {
     }
 
     /**
-     * Create a project
-     * @param {Project} project 
+     * Accepts `is_checklist` (bool, default False) to choose the workflow at creation — not `workflow` directly, which is read-only on the general Project serializer and has no create-time write path.
+     * @summary Create a project
+     * @param {ProjectCreate} projectCreate 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ProjectApi
      */
-    public apiProjectCreate(project: Project, options?: RawAxiosRequestConfig) {
-        return ProjectApiFp(this.configuration).apiProjectCreate(project, options).then((request) => request(this.axios, this.basePath));
+    public apiProjectCreate(projectCreate: ProjectCreate, options?: RawAxiosRequestConfig) {
+        return ProjectApiFp(this.configuration).apiProjectCreate(projectCreate, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -45185,6 +46922,19 @@ export class ProjectApi extends BaseAPI {
     }
 
     /**
+     * Place an owned project into one of the user\'s groups (or the top level) right after a sibling. Omit `after_id` for first position. Only the moved project\'s row changes.
+     * @summary Move a project in the sidebar
+     * @param {number} id A unique integer value identifying this project.
+     * @param {ProjectMove} [projectMove] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ProjectApi
+     */
+    public apiProjectMoveCreate(id: number, projectMove?: ProjectMove, options?: RawAxiosRequestConfig) {
+        return ProjectApiFp(this.configuration).apiProjectMoveCreate(id, projectMove, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Project ViewSet
      * @param {number} id A unique integer value identifying this project.
      * @param {PatchedProject} [patchedProject] 
@@ -45206,18 +46956,6 @@ export class ProjectApi extends BaseAPI {
      */
     public apiProjectRemoveIconDestroy(id: number, options?: RawAxiosRequestConfig) {
         return ProjectApiFp(this.configuration).apiProjectRemoveIconDestroy(id, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Persist the per-user sidebar ordering of projects. The payload is a full ordered list.
-     * @summary Reorder projects for sidebar
-     * @param {ProjectReorder} projectReorder 
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof ProjectApi
-     */
-    public apiProjectReorderCreate(projectReorder: ProjectReorder, options?: RawAxiosRequestConfig) {
-        return ProjectApiFp(this.configuration).apiProjectReorderCreate(projectReorder, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -45360,6 +47098,492 @@ export class ProjectApi extends BaseAPI {
      */
     public apiProjectUploadIconCreate(id: number, icon: File, options?: RawAxiosRequestConfig) {
         return ProjectApiFp(this.configuration).apiProjectUploadIconCreate(id, icon, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+
+/**
+ * ProjectGroupApi - axios parameter creator
+ * @export
+ */
+export const ProjectGroupApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * CRUD for the current user\'s sidebar project groups.
+         * @param {ProjectGroupWrite} projectGroupWrite 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectGroupCreate: async (projectGroupWrite: ProjectGroupWrite, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectGroupWrite' is not null or undefined
+            assertParamExists('apiProjectGroupCreate', 'projectGroupWrite', projectGroupWrite)
+            const localVarPath = `/api/project_group/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(projectGroupWrite, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Deletes the group only. Its projects move to the top level of the sidebar, in their existing order.
+         * @summary Delete a project group
+         * @param {number} id A unique integer value identifying this Project group.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectGroupDestroy: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiProjectGroupDestroy', 'id', id)
+            const localVarPath = `/api/project_group/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * CRUD for the current user\'s sidebar project groups.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectGroupList: async (limit?: number, offset?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/project_group/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Place the group right after a sibling (a group or an ungrouped project) at the top level; omit `after_id` for first position.
+         * @summary Move a group in the sidebar
+         * @param {number} id A unique integer value identifying this Project group.
+         * @param {ProjectGroupMove} [projectGroupMove] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectGroupMoveCreate: async (id: number, projectGroupMove?: ProjectGroupMove, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiProjectGroupMoveCreate', 'id', id)
+            const localVarPath = `/api/project_group/{id}/move/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(projectGroupMove, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * CRUD for the current user\'s sidebar project groups.
+         * @param {number} id A unique integer value identifying this Project group.
+         * @param {PatchedProjectGroupWrite} [patchedProjectGroupWrite] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectGroupPartialUpdate: async (id: number, patchedProjectGroupWrite?: PatchedProjectGroupWrite, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiProjectGroupPartialUpdate', 'id', id)
+            const localVarPath = `/api/project_group/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchedProjectGroupWrite, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * CRUD for the current user\'s sidebar project groups.
+         * @param {number} id A unique integer value identifying this Project group.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectGroupRetrieve: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiProjectGroupRetrieve', 'id', id)
+            const localVarPath = `/api/project_group/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * ProjectGroupApi - functional programming interface
+ * @export
+ */
+export const ProjectGroupApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = ProjectGroupApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * CRUD for the current user\'s sidebar project groups.
+         * @param {ProjectGroupWrite} projectGroupWrite 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiProjectGroupCreate(projectGroupWrite: ProjectGroupWrite, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ProjectGroupRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectGroupCreate(projectGroupWrite, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ProjectGroupApi.apiProjectGroupCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Deletes the group only. Its projects move to the top level of the sidebar, in their existing order.
+         * @summary Delete a project group
+         * @param {number} id A unique integer value identifying this Project group.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiProjectGroupDestroy(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectGroupDestroy(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ProjectGroupApi.apiProjectGroupDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * CRUD for the current user\'s sidebar project groups.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiProjectGroupList(limit?: number, offset?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedProjectGroupReadList>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectGroupList(limit, offset, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ProjectGroupApi.apiProjectGroupList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Place the group right after a sibling (a group or an ungrouped project) at the top level; omit `after_id` for first position.
+         * @summary Move a group in the sidebar
+         * @param {number} id A unique integer value identifying this Project group.
+         * @param {ProjectGroupMove} [projectGroupMove] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiProjectGroupMoveCreate(id: number, projectGroupMove?: ProjectGroupMove, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ProjectGroupRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectGroupMoveCreate(id, projectGroupMove, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ProjectGroupApi.apiProjectGroupMoveCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * CRUD for the current user\'s sidebar project groups.
+         * @param {number} id A unique integer value identifying this Project group.
+         * @param {PatchedProjectGroupWrite} [patchedProjectGroupWrite] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiProjectGroupPartialUpdate(id: number, patchedProjectGroupWrite?: PatchedProjectGroupWrite, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ProjectGroupRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectGroupPartialUpdate(id, patchedProjectGroupWrite, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ProjectGroupApi.apiProjectGroupPartialUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * CRUD for the current user\'s sidebar project groups.
+         * @param {number} id A unique integer value identifying this Project group.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiProjectGroupRetrieve(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ProjectGroupRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiProjectGroupRetrieve(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['ProjectGroupApi.apiProjectGroupRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * ProjectGroupApi - factory interface
+ * @export
+ */
+export const ProjectGroupApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = ProjectGroupApiFp(configuration)
+    return {
+        /**
+         * CRUD for the current user\'s sidebar project groups.
+         * @param {ProjectGroupWrite} projectGroupWrite 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectGroupCreate(projectGroupWrite: ProjectGroupWrite, options?: RawAxiosRequestConfig): AxiosPromise<ProjectGroupRead> {
+            return localVarFp.apiProjectGroupCreate(projectGroupWrite, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Deletes the group only. Its projects move to the top level of the sidebar, in their existing order.
+         * @summary Delete a project group
+         * @param {number} id A unique integer value identifying this Project group.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectGroupDestroy(id: number, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiProjectGroupDestroy(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * CRUD for the current user\'s sidebar project groups.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectGroupList(limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedProjectGroupReadList> {
+            return localVarFp.apiProjectGroupList(limit, offset, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Place the group right after a sibling (a group or an ungrouped project) at the top level; omit `after_id` for first position.
+         * @summary Move a group in the sidebar
+         * @param {number} id A unique integer value identifying this Project group.
+         * @param {ProjectGroupMove} [projectGroupMove] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectGroupMoveCreate(id: number, projectGroupMove?: ProjectGroupMove, options?: RawAxiosRequestConfig): AxiosPromise<ProjectGroupRead> {
+            return localVarFp.apiProjectGroupMoveCreate(id, projectGroupMove, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * CRUD for the current user\'s sidebar project groups.
+         * @param {number} id A unique integer value identifying this Project group.
+         * @param {PatchedProjectGroupWrite} [patchedProjectGroupWrite] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectGroupPartialUpdate(id: number, patchedProjectGroupWrite?: PatchedProjectGroupWrite, options?: RawAxiosRequestConfig): AxiosPromise<ProjectGroupRead> {
+            return localVarFp.apiProjectGroupPartialUpdate(id, patchedProjectGroupWrite, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * CRUD for the current user\'s sidebar project groups.
+         * @param {number} id A unique integer value identifying this Project group.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiProjectGroupRetrieve(id: number, options?: RawAxiosRequestConfig): AxiosPromise<ProjectGroupRead> {
+            return localVarFp.apiProjectGroupRetrieve(id, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * ProjectGroupApi - object-oriented interface
+ * @export
+ * @class ProjectGroupApi
+ * @extends {BaseAPI}
+ */
+export class ProjectGroupApi extends BaseAPI {
+    /**
+     * CRUD for the current user\'s sidebar project groups.
+     * @param {ProjectGroupWrite} projectGroupWrite 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ProjectGroupApi
+     */
+    public apiProjectGroupCreate(projectGroupWrite: ProjectGroupWrite, options?: RawAxiosRequestConfig) {
+        return ProjectGroupApiFp(this.configuration).apiProjectGroupCreate(projectGroupWrite, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Deletes the group only. Its projects move to the top level of the sidebar, in their existing order.
+     * @summary Delete a project group
+     * @param {number} id A unique integer value identifying this Project group.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ProjectGroupApi
+     */
+    public apiProjectGroupDestroy(id: number, options?: RawAxiosRequestConfig) {
+        return ProjectGroupApiFp(this.configuration).apiProjectGroupDestroy(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * CRUD for the current user\'s sidebar project groups.
+     * @param {number} [limit] Number of results to return per page.
+     * @param {number} [offset] The initial index from which to return the results.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ProjectGroupApi
+     */
+    public apiProjectGroupList(limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
+        return ProjectGroupApiFp(this.configuration).apiProjectGroupList(limit, offset, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Place the group right after a sibling (a group or an ungrouped project) at the top level; omit `after_id` for first position.
+     * @summary Move a group in the sidebar
+     * @param {number} id A unique integer value identifying this Project group.
+     * @param {ProjectGroupMove} [projectGroupMove] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ProjectGroupApi
+     */
+    public apiProjectGroupMoveCreate(id: number, projectGroupMove?: ProjectGroupMove, options?: RawAxiosRequestConfig) {
+        return ProjectGroupApiFp(this.configuration).apiProjectGroupMoveCreate(id, projectGroupMove, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * CRUD for the current user\'s sidebar project groups.
+     * @param {number} id A unique integer value identifying this Project group.
+     * @param {PatchedProjectGroupWrite} [patchedProjectGroupWrite] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ProjectGroupApi
+     */
+    public apiProjectGroupPartialUpdate(id: number, patchedProjectGroupWrite?: PatchedProjectGroupWrite, options?: RawAxiosRequestConfig) {
+        return ProjectGroupApiFp(this.configuration).apiProjectGroupPartialUpdate(id, patchedProjectGroupWrite, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * CRUD for the current user\'s sidebar project groups.
+     * @param {number} id A unique integer value identifying this Project group.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ProjectGroupApi
+     */
+    public apiProjectGroupRetrieve(id: number, options?: RawAxiosRequestConfig) {
+        return ProjectGroupApiFp(this.configuration).apiProjectGroupRetrieve(id, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -46162,6 +48386,486 @@ export class ProjectTrackApi extends BaseAPI {
 
 
 /**
+ * RecurringTaskTemplatesApi - axios parameter creator
+ * @export
+ */
+export const RecurringTaskTemplatesApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {RecurringTaskTemplateRead} recurringTaskTemplateRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiRecurringTaskTemplateCreate: async (recurringTaskTemplateRead: RecurringTaskTemplateRead, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'recurringTaskTemplateRead' is not null or undefined
+            assertParamExists('apiRecurringTaskTemplateCreate', 'recurringTaskTemplateRead', recurringTaskTemplateRead)
+            const localVarPath = `/api/recurring_task_template/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(recurringTaskTemplateRead, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {number} id A unique integer value identifying this recurring task template.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiRecurringTaskTemplateDestroy: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiRecurringTaskTemplateDestroy', 'id', id)
+            const localVarPath = `/api/recurring_task_template/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiRecurringTaskTemplateList: async (limit?: number, offset?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/recurring_task_template/`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {number} id A unique integer value identifying this recurring task template.
+         * @param {PatchedRecurringTaskTemplateRead} [patchedRecurringTaskTemplateRead] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiRecurringTaskTemplatePartialUpdate: async (id: number, patchedRecurringTaskTemplateRead?: PatchedRecurringTaskTemplateRead, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiRecurringTaskTemplatePartialUpdate', 'id', id)
+            const localVarPath = `/api/recurring_task_template/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchedRecurringTaskTemplateRead, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {number} id A unique integer value identifying this recurring task template.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiRecurringTaskTemplateRetrieve: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiRecurringTaskTemplateRetrieve', 'id', id)
+            const localVarPath = `/api/recurring_task_template/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {number} id A unique integer value identifying this recurring task template.
+         * @param {RecurringTaskTemplateRead} recurringTaskTemplateRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiRecurringTaskTemplateUpdate: async (id: number, recurringTaskTemplateRead: RecurringTaskTemplateRead, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiRecurringTaskTemplateUpdate', 'id', id)
+            // verify required parameter 'recurringTaskTemplateRead' is not null or undefined
+            assertParamExists('apiRecurringTaskTemplateUpdate', 'recurringTaskTemplateRead', recurringTaskTemplateRead)
+            const localVarPath = `/api/recurring_task_template/{id}/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(recurringTaskTemplateRead, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * RecurringTaskTemplatesApi - functional programming interface
+ * @export
+ */
+export const RecurringTaskTemplatesApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = RecurringTaskTemplatesApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {RecurringTaskTemplateRead} recurringTaskTemplateRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiRecurringTaskTemplateCreate(recurringTaskTemplateRead: RecurringTaskTemplateRead, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RecurringTaskTemplateRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiRecurringTaskTemplateCreate(recurringTaskTemplateRead, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RecurringTaskTemplatesApi.apiRecurringTaskTemplateCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {number} id A unique integer value identifying this recurring task template.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiRecurringTaskTemplateDestroy(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiRecurringTaskTemplateDestroy(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RecurringTaskTemplatesApi.apiRecurringTaskTemplateDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiRecurringTaskTemplateList(limit?: number, offset?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedRecurringTaskTemplateReadList>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiRecurringTaskTemplateList(limit, offset, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RecurringTaskTemplatesApi.apiRecurringTaskTemplateList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {number} id A unique integer value identifying this recurring task template.
+         * @param {PatchedRecurringTaskTemplateRead} [patchedRecurringTaskTemplateRead] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiRecurringTaskTemplatePartialUpdate(id: number, patchedRecurringTaskTemplateRead?: PatchedRecurringTaskTemplateRead, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RecurringTaskTemplateRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiRecurringTaskTemplatePartialUpdate(id, patchedRecurringTaskTemplateRead, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RecurringTaskTemplatesApi.apiRecurringTaskTemplatePartialUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {number} id A unique integer value identifying this recurring task template.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiRecurringTaskTemplateRetrieve(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RecurringTaskTemplateRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiRecurringTaskTemplateRetrieve(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RecurringTaskTemplatesApi.apiRecurringTaskTemplateRetrieve']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {number} id A unique integer value identifying this recurring task template.
+         * @param {RecurringTaskTemplateRead} recurringTaskTemplateRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiRecurringTaskTemplateUpdate(id: number, recurringTaskTemplateRead: RecurringTaskTemplateRead, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RecurringTaskTemplateRead>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiRecurringTaskTemplateUpdate(id, recurringTaskTemplateRead, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RecurringTaskTemplatesApi.apiRecurringTaskTemplateUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * RecurringTaskTemplatesApi - factory interface
+ * @export
+ */
+export const RecurringTaskTemplatesApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = RecurringTaskTemplatesApiFp(configuration)
+    return {
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {RecurringTaskTemplateRead} recurringTaskTemplateRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiRecurringTaskTemplateCreate(recurringTaskTemplateRead: RecurringTaskTemplateRead, options?: RawAxiosRequestConfig): AxiosPromise<RecurringTaskTemplateRead> {
+            return localVarFp.apiRecurringTaskTemplateCreate(recurringTaskTemplateRead, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {number} id A unique integer value identifying this recurring task template.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiRecurringTaskTemplateDestroy(id: number, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiRecurringTaskTemplateDestroy(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {number} [limit] Number of results to return per page.
+         * @param {number} [offset] The initial index from which to return the results.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiRecurringTaskTemplateList(limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedRecurringTaskTemplateReadList> {
+            return localVarFp.apiRecurringTaskTemplateList(limit, offset, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {number} id A unique integer value identifying this recurring task template.
+         * @param {PatchedRecurringTaskTemplateRead} [patchedRecurringTaskTemplateRead] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiRecurringTaskTemplatePartialUpdate(id: number, patchedRecurringTaskTemplateRead?: PatchedRecurringTaskTemplateRead, options?: RawAxiosRequestConfig): AxiosPromise<RecurringTaskTemplateRead> {
+            return localVarFp.apiRecurringTaskTemplatePartialUpdate(id, patchedRecurringTaskTemplateRead, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {number} id A unique integer value identifying this recurring task template.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiRecurringTaskTemplateRetrieve(id: number, options?: RawAxiosRequestConfig): AxiosPromise<RecurringTaskTemplateRead> {
+            return localVarFp.apiRecurringTaskTemplateRetrieve(id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+         * @param {number} id A unique integer value identifying this recurring task template.
+         * @param {RecurringTaskTemplateRead} recurringTaskTemplateRead 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiRecurringTaskTemplateUpdate(id: number, recurringTaskTemplateRead: RecurringTaskTemplateRead, options?: RawAxiosRequestConfig): AxiosPromise<RecurringTaskTemplateRead> {
+            return localVarFp.apiRecurringTaskTemplateUpdate(id, recurringTaskTemplateRead, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * RecurringTaskTemplatesApi - object-oriented interface
+ * @export
+ * @class RecurringTaskTemplatesApi
+ * @extends {BaseAPI}
+ */
+export class RecurringTaskTemplatesApi extends BaseAPI {
+    /**
+     * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+     * @param {RecurringTaskTemplateRead} recurringTaskTemplateRead 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RecurringTaskTemplatesApi
+     */
+    public apiRecurringTaskTemplateCreate(recurringTaskTemplateRead: RecurringTaskTemplateRead, options?: RawAxiosRequestConfig) {
+        return RecurringTaskTemplatesApiFp(this.configuration).apiRecurringTaskTemplateCreate(recurringTaskTemplateRead, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+     * @param {number} id A unique integer value identifying this recurring task template.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RecurringTaskTemplatesApi
+     */
+    public apiRecurringTaskTemplateDestroy(id: number, options?: RawAxiosRequestConfig) {
+        return RecurringTaskTemplatesApiFp(this.configuration).apiRecurringTaskTemplateDestroy(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+     * @param {number} [limit] Number of results to return per page.
+     * @param {number} [offset] The initial index from which to return the results.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RecurringTaskTemplatesApi
+     */
+    public apiRecurringTaskTemplateList(limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
+        return RecurringTaskTemplatesApiFp(this.configuration).apiRecurringTaskTemplateList(limit, offset, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+     * @param {number} id A unique integer value identifying this recurring task template.
+     * @param {PatchedRecurringTaskTemplateRead} [patchedRecurringTaskTemplateRead] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RecurringTaskTemplatesApi
+     */
+    public apiRecurringTaskTemplatePartialUpdate(id: number, patchedRecurringTaskTemplateRead?: PatchedRecurringTaskTemplateRead, options?: RawAxiosRequestConfig) {
+        return RecurringTaskTemplatesApiFp(this.configuration).apiRecurringTaskTemplatePartialUpdate(id, patchedRecurringTaskTemplateRead, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+     * @param {number} id A unique integer value identifying this recurring task template.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RecurringTaskTemplatesApi
+     */
+    public apiRecurringTaskTemplateRetrieve(id: number, options?: RawAxiosRequestConfig) {
+        return RecurringTaskTemplatesApiFp(this.configuration).apiRecurringTaskTemplateRetrieve(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Recurring task templates: create immediately spawns the first instance (a real Task linked back via ``Task.recurring_template``); completing an instance spawns the next one. Deleting a template does not delete or detach in-flight instances beyond ``Task.recurring_template`` following the FK\'s own ``SET_NULL``.
+     * @param {number} id A unique integer value identifying this recurring task template.
+     * @param {RecurringTaskTemplateRead} recurringTaskTemplateRead 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RecurringTaskTemplatesApi
+     */
+    public apiRecurringTaskTemplateUpdate(id: number, recurringTaskTemplateRead: RecurringTaskTemplateRead, options?: RawAxiosRequestConfig) {
+        return RecurringTaskTemplatesApiFp(this.configuration).apiRecurringTaskTemplateUpdate(id, recurringTaskTemplateRead, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+
+/**
  * ReleaseApi - axios parameter creator
  * @export
  */
@@ -46729,8 +49433,46 @@ export const TaskApiAxiosParamCreator = function (configuration?: Configuration)
             };
         },
         /**
-         * Task ViewSet
-         * @summary Download a durable task file attachment
+         * GET streams the file. DELETE removes it — any kind (whiteboard, upload, MCP doc) — used by the Attachments section\'s hover trash icon, and to clean up a whiteboard eagerly created by `/whiteboard` when the surrounding comment/description edit is discarded without saving.
+         * @summary Download or delete a durable task file attachment
+         * @param {string} attachmentId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiTaskFileAttachmentsDestroy: async (attachmentId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'attachmentId' is not null or undefined
+            assertParamExists('apiTaskFileAttachmentsDestroy', 'attachmentId', attachmentId)
+            const localVarPath = `/api/task/file-attachments/{attachment_id}/`
+                .replace(`{${"attachment_id"}}`, encodeURIComponent(String(attachmentId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * GET streams the file. DELETE removes it — any kind (whiteboard, upload, MCP doc) — used by the Attachments section\'s hover trash icon, and to clean up a whiteboard eagerly created by `/whiteboard` when the surrounding comment/description edit is discarded without saving.
+         * @summary Download or delete a durable task file attachment
          * @param {string} attachmentId 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -47053,6 +49795,48 @@ export const TaskApiAxiosParamCreator = function (configuration?: Configuration)
                 options: localVarRequestOptions,
             };
         },
+        /**
+         * Creates a new whiteboard when `attachment_id` is omitted, or replaces the scene JSON of an existing one (autosave) when it\'s provided. Distinct from the generic file-attachments upload path since whiteboards are JSON scenes with their own size ceiling, not arbitrary uploaded files.
+         * @summary Create or autosave a whiteboard scene on a task
+         * @param {string} id 
+         * @param {WhiteboardSceneUpsert} [whiteboardSceneUpsert] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiTaskWhiteboardScenesCreate: async (id: string, whiteboardSceneUpsert?: WhiteboardSceneUpsert, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiTaskWhiteboardScenesCreate', 'id', id)
+            const localVarPath = `/api/task/{id}/whiteboard-scenes/`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication KeycloakAuthentication required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(whiteboardSceneUpsert, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
     }
 };
 
@@ -47078,8 +49862,21 @@ export const TaskApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Task ViewSet
-         * @summary Download a durable task file attachment
+         * GET streams the file. DELETE removes it — any kind (whiteboard, upload, MCP doc) — used by the Attachments section\'s hover trash icon, and to clean up a whiteboard eagerly created by `/whiteboard` when the surrounding comment/description edit is discarded without saving.
+         * @summary Download or delete a durable task file attachment
+         * @param {string} attachmentId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiTaskFileAttachmentsDestroy(attachmentId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiTaskFileAttachmentsDestroy(attachmentId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['TaskApi.apiTaskFileAttachmentsDestroy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * GET streams the file. DELETE removes it — any kind (whiteboard, upload, MCP doc) — used by the Attachments section\'s hover trash icon, and to clean up a whiteboard eagerly created by `/whiteboard` when the surrounding comment/description edit is discarded without saving.
+         * @summary Download or delete a durable task file attachment
          * @param {string} attachmentId 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -47169,6 +49966,20 @@ export const TaskApiFp = function(configuration?: Configuration) {
             const localVarOperationServerBasePath = operationServerMap['TaskApi.apiTaskUploadFileAttachmentDraftCreate']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
+        /**
+         * Creates a new whiteboard when `attachment_id` is omitted, or replaces the scene JSON of an existing one (autosave) when it\'s provided. Distinct from the generic file-attachments upload path since whiteboards are JSON scenes with their own size ceiling, not arbitrary uploaded files.
+         * @summary Create or autosave a whiteboard scene on a task
+         * @param {string} id 
+         * @param {WhiteboardSceneUpsert} [whiteboardSceneUpsert] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiTaskWhiteboardScenesCreate(id: string, whiteboardSceneUpsert?: WhiteboardSceneUpsert, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TaskFileAttachment>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiTaskWhiteboardScenesCreate(id, whiteboardSceneUpsert, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['TaskApi.apiTaskWhiteboardScenesCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
     }
 };
 
@@ -47191,8 +50002,18 @@ export const TaskApiFactory = function (configuration?: Configuration, basePath?
             return localVarFp.apiTaskFileAttachmentsCreate(id, file, options).then((request) => request(axios, basePath));
         },
         /**
-         * Task ViewSet
-         * @summary Download a durable task file attachment
+         * GET streams the file. DELETE removes it — any kind (whiteboard, upload, MCP doc) — used by the Attachments section\'s hover trash icon, and to clean up a whiteboard eagerly created by `/whiteboard` when the surrounding comment/description edit is discarded without saving.
+         * @summary Download or delete a durable task file attachment
+         * @param {string} attachmentId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiTaskFileAttachmentsDestroy(attachmentId: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.apiTaskFileAttachmentsDestroy(attachmentId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * GET streams the file. DELETE removes it — any kind (whiteboard, upload, MCP doc) — used by the Attachments section\'s hover trash icon, and to clean up a whiteboard eagerly created by `/whiteboard` when the surrounding comment/description edit is discarded without saving.
+         * @summary Download or delete a durable task file attachment
          * @param {string} attachmentId 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -47264,6 +50085,17 @@ export const TaskApiFactory = function (configuration?: Configuration, basePath?
         apiTaskUploadFileAttachmentDraftCreate(file: File, project: number, options?: RawAxiosRequestConfig): AxiosPromise<TaskFileAttachment> {
             return localVarFp.apiTaskUploadFileAttachmentDraftCreate(file, project, options).then((request) => request(axios, basePath));
         },
+        /**
+         * Creates a new whiteboard when `attachment_id` is omitted, or replaces the scene JSON of an existing one (autosave) when it\'s provided. Distinct from the generic file-attachments upload path since whiteboards are JSON scenes with their own size ceiling, not arbitrary uploaded files.
+         * @summary Create or autosave a whiteboard scene on a task
+         * @param {string} id 
+         * @param {WhiteboardSceneUpsert} [whiteboardSceneUpsert] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiTaskWhiteboardScenesCreate(id: string, whiteboardSceneUpsert?: WhiteboardSceneUpsert, options?: RawAxiosRequestConfig): AxiosPromise<TaskFileAttachment> {
+            return localVarFp.apiTaskWhiteboardScenesCreate(id, whiteboardSceneUpsert, options).then((request) => request(axios, basePath));
+        },
     };
 };
 
@@ -47288,8 +50120,20 @@ export class TaskApi extends BaseAPI {
     }
 
     /**
-     * Task ViewSet
-     * @summary Download a durable task file attachment
+     * GET streams the file. DELETE removes it — any kind (whiteboard, upload, MCP doc) — used by the Attachments section\'s hover trash icon, and to clean up a whiteboard eagerly created by `/whiteboard` when the surrounding comment/description edit is discarded without saving.
+     * @summary Download or delete a durable task file attachment
+     * @param {string} attachmentId 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof TaskApi
+     */
+    public apiTaskFileAttachmentsDestroy(attachmentId: string, options?: RawAxiosRequestConfig) {
+        return TaskApiFp(this.configuration).apiTaskFileAttachmentsDestroy(attachmentId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * GET streams the file. DELETE removes it — any kind (whiteboard, upload, MCP doc) — used by the Attachments section\'s hover trash icon, and to clean up a whiteboard eagerly created by `/whiteboard` when the surrounding comment/description edit is discarded without saving.
+     * @summary Download or delete a durable task file attachment
      * @param {string} attachmentId 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -47371,6 +50215,19 @@ export class TaskApi extends BaseAPI {
      */
     public apiTaskUploadFileAttachmentDraftCreate(file: File, project: number, options?: RawAxiosRequestConfig) {
         return TaskApiFp(this.configuration).apiTaskUploadFileAttachmentDraftCreate(file, project, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Creates a new whiteboard when `attachment_id` is omitted, or replaces the scene JSON of an existing one (autosave) when it\'s provided. Distinct from the generic file-attachments upload path since whiteboards are JSON scenes with their own size ceiling, not arbitrary uploaded files.
+     * @summary Create or autosave a whiteboard scene on a task
+     * @param {string} id 
+     * @param {WhiteboardSceneUpsert} [whiteboardSceneUpsert] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof TaskApi
+     */
+    public apiTaskWhiteboardScenesCreate(id: string, whiteboardSceneUpsert?: WhiteboardSceneUpsert, options?: RawAxiosRequestConfig) {
+        return TaskApiFp(this.configuration).apiTaskWhiteboardScenesCreate(id, whiteboardSceneUpsert, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -48166,7 +51023,7 @@ export const UserApiAxiosParamCreator = function (configuration?: Configuration)
             };
         },
         /**
-         * Create a Razorpay order for a one-time AI token top-up bundle.
+         * Create a Razorpay order for a one-time AI credit top-up bundle.
          * @param {CreateTopUpOrder} createTopUpOrder 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -48770,7 +51627,7 @@ export const UserApiAxiosParamCreator = function (configuration?: Configuration)
             };
         },
         /**
-         * Verify Razorpay payment and credit token top-up balance.
+         * Verify Razorpay payment and credit the top-up balance.
          * @param {VerifyTopUpPayment} verifyTopUpPayment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -48889,7 +51746,7 @@ export const UserApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Create a Razorpay order for a one-time AI token top-up bundle.
+         * Create a Razorpay order for a one-time AI credit top-up bundle.
          * @param {CreateTopUpOrder} createTopUpOrder 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -49080,12 +51937,12 @@ export const UserApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Verify Razorpay payment and credit token top-up balance.
+         * Verify Razorpay payment and credit the top-up balance.
          * @param {VerifyTopUpPayment} verifyTopUpPayment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiUserVerifyTopupPaymentCreate(verifyTopUpPayment: VerifyTopUpPayment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TokenTopUpPurchase>> {
+        async apiUserVerifyTopupPaymentCreate(verifyTopUpPayment: VerifyTopUpPayment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CreditTopUpPurchase>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.apiUserVerifyTopupPaymentCreate(verifyTopUpPayment, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['UserApi.apiUserVerifyTopupPaymentCreate']?.[localVarOperationServerIndex]?.url;
@@ -49154,7 +52011,7 @@ export const UserApiFactory = function (configuration?: Configuration, basePath?
             return localVarFp.apiUserCreateSubscriptionCreate(createSubscription, options).then((request) => request(axios, basePath));
         },
         /**
-         * Create a Razorpay order for a one-time AI token top-up bundle.
+         * Create a Razorpay order for a one-time AI credit top-up bundle.
          * @param {CreateTopUpOrder} createTopUpOrder 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -49297,12 +52154,12 @@ export const UserApiFactory = function (configuration?: Configuration, basePath?
             return localVarFp.apiUserVerifySubscriptionCreate(verifySubscription, options).then((request) => request(axios, basePath));
         },
         /**
-         * Verify Razorpay payment and credit token top-up balance.
+         * Verify Razorpay payment and credit the top-up balance.
          * @param {VerifyTopUpPayment} verifyTopUpPayment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiUserVerifyTopupPaymentCreate(verifyTopUpPayment: VerifyTopUpPayment, options?: RawAxiosRequestConfig): AxiosPromise<TokenTopUpPurchase> {
+        apiUserVerifyTopupPaymentCreate(verifyTopUpPayment: VerifyTopUpPayment, options?: RawAxiosRequestConfig): AxiosPromise<CreditTopUpPurchase> {
             return localVarFp.apiUserVerifyTopupPaymentCreate(verifyTopUpPayment, options).then((request) => request(axios, basePath));
         },
     };
@@ -49380,7 +52237,7 @@ export class UserApi extends BaseAPI {
     }
 
     /**
-     * Create a Razorpay order for a one-time AI token top-up bundle.
+     * Create a Razorpay order for a one-time AI credit top-up bundle.
      * @param {CreateTopUpOrder} createTopUpOrder 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -49555,7 +52412,7 @@ export class UserApi extends BaseAPI {
     }
 
     /**
-     * Verify Razorpay payment and credit token top-up balance.
+     * Verify Razorpay payment and credit the top-up balance.
      * @param {VerifyTopUpPayment} verifyTopUpPayment 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}

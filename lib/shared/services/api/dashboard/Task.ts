@@ -282,7 +282,9 @@ async function bulkUpdateTasks(records: Array<Record<string, any>>): Promise<Bul
 }
 
 function maybeCheerForDoneTask(payload: Record<string, unknown> | undefined, task: Task): void {
-  if (payload?.status_id == null) return;
+  // status_id: BOARD-workflow tasks moving into a column. is_completed: CHECKLIST-workflow
+  // tasks toggled done (no status column to move into) — see Project.workflow.
+  if (payload?.status_id == null && payload?.is_completed == null) return;
   const done = task.workflow_done || task.status?.role === 'FINISH';
   if (!done) return;
   notifyCompanionTaskComplete(task.name);
@@ -404,9 +406,12 @@ export type TaskFileAttachment = {
   file_type?: string;
   file_size?: number;
   uploaded_at?: string;
-  kind?: 'image' | 'document' | string;
+  kind?: 'image' | 'document' | 'whiteboard_scene' | string;
   download_url?: string;
   source_message_attachment_id?: number | null;
+  title?: string | null;
+  /** Compressed ~200x200 data-URL, generated client-side when the whiteboard viewer closes. */
+  thumbnail?: string | null;
 };
 
 export type TaskWithFileAttachments = Task & {
@@ -461,6 +466,44 @@ async function uploadTaskFileAttachmentDraft(
     throw new Error(text || `Draft upload failed (${res.status})`);
   }
   return res.json();
+}
+
+/** Create a new whiteboard (omit `attachmentId`) or autosave an existing one's scene JSON. */
+async function upsertWhiteboardScene(
+  taskId: number,
+  params: {
+    attachmentId?: number | null;
+    sceneJson: string;
+    title?: string;
+    /** A compressed ~200x200 data-URL thumbnail; sent once on exit, not every autosave. */
+    thumbnail?: string;
+  },
+): Promise<TaskFileAttachment> {
+  const res = await taskApi.apiTaskWhiteboardScenesCreate(String(taskId), {
+    attachment_id: params.attachmentId ?? undefined,
+    scene_json: params.sceneJson,
+    title: params.title,
+    thumbnail: params.thumbnail,
+  });
+  return res.data as unknown as TaskFileAttachment;
+}
+
+/** Rename an existing whiteboard without re-uploading its (possibly large) saved scene. */
+async function renameWhiteboardScene(
+  taskId: number,
+  attachmentId: number,
+  title: string,
+): Promise<TaskFileAttachment> {
+  const res = await taskApi.apiTaskWhiteboardScenesCreate(String(taskId), {
+    attachment_id: attachmentId,
+    title,
+  });
+  return res.data as unknown as TaskFileAttachment;
+}
+
+/** Delete any TaskFileAttachment (whiteboard, upload, or MCP doc alike). */
+async function deleteTaskFileAttachment(attachmentId: number): Promise<void> {
+  await taskApi.apiTaskFileAttachmentsDestroy(String(attachmentId));
 }
 
 async function fetchTaskFileAttachmentBlob(attachmentId: number): Promise<Blob> {
@@ -607,4 +650,7 @@ export {
   uploadTaskFileAttachment,
   uploadTaskFileAttachmentDraft,
   fetchTaskFileAttachmentBlob,
+  upsertWhiteboardScene,
+  renameWhiteboardScene,
+  deleteTaskFileAttachment,
 };

@@ -1,6 +1,7 @@
-import { ICalendarView } from "@shared/types/dashboard/calendar";
+import type { ICalendarView } from "@shared/types/dashboard/calendar";
 import { addDays, addWeeks, startOfWeek, subDays } from 'date-fns';
-import { CalendarApi } from '@fullcalendar/core';
+import type { CalendarApi } from '@fullcalendar/core';
+import { debounce } from "@shared/utils/debounce";
 
 /** FullCalendar `view.type` values that map to app calendar views. */
 export const FULLCALENDAR_VIEW_IDS: readonly ICalendarView[] = [
@@ -108,51 +109,82 @@ const handleViewChange = (
   setCurrentView(view);
   setCurrentDate(calendarApi?.getDate());
 
+  // Drop any pending Prev/Next/Today fetch. Before this cancel, Next then Month
+  // within 400ms queued a week-range GET that fired after the month fetch and
+  // replaced the month payload — most events vanished from Month view.
+  debouncedNavigationFetch.cancel();
+
   // Fetch events for the new view type
   const { fromDatetime, toDatetime } = getFromAndToDatetime(calendarApi);
   fetchAllEvents(fromDatetime, toDatetime, projectId);
 };
 
+type FetchAllEvents = (fromDatetime: string, toDatetime: string, projectId?: number | null) => void;
+type PeekCalendarRange = (fromDatetime: string, toDatetime: string, projectId?: number | null) => void;
+
+// Shared across Prev/Next/Today: the calendar's own navigation (calendarApi.prev()/next()/
+// today(), setCurrentDate) stays instant on every click — only the trailing network fetch
+// waits for clicks to settle. One dispatcher (not one per handler) so rapid-firing between
+// e.g. Next then Today collapses into a single fetch for wherever the user actually landed,
+// rather than one debounce timer per button racing another's. Always called with the
+// caller's current `fetchAllEvents` reference (never captured), so it can't go stale.
+//
+// The range is read when the timer fires, not when the click is queued: a view switch
+// (or another gotoDate) in the 400ms window must fetch whatever is actually on screen,
+// not the week range that was current at the first Next/Prev click.
+const debouncedNavigationFetch = debounce(
+  (calendarApi: CalendarApi, fetchAllEvents: FetchAllEvents, projectId?: number | null) => {
+    const { fromDatetime, toDatetime } = getFromAndToDatetime(calendarApi);
+    fetchAllEvents(fromDatetime, toDatetime, projectId);
+  },
+  400,
+);
+
+// `peekCalendarRange` is called synchronously, right here — not through
+// debouncedNavigationFetch — because it's a cache read, not a network request. Gating it
+// behind the same 400ms-settle debounce as the real fetch would leave an already-visited
+// week sitting on the *previous* week's events (or blank) for up to 400ms for no reason; only
+// the network round-trip needs debouncing to avoid spamming the server on rapid clicks.
 const handlePrevClick = (
   calendarApi: CalendarApi,
   setCurrentDate: (date: Date) => void,
-  fetchAllEvents: (fromDatetime: string, toDatetime: string, projectId?: number | null) => void,
+  fetchAllEvents: FetchAllEvents,
   projectId?: number | null,
+  peekCalendarRange?: PeekCalendarRange,
 ) => {
   calendarApi?.prev();
   setCurrentDate(calendarApi?.getDate());
-
-  // Fetch events for the new date range without changing the view
   const { fromDatetime, toDatetime } = getFromAndToDatetime(calendarApi);
-  fetchAllEvents(fromDatetime, toDatetime, projectId);
+  peekCalendarRange?.(fromDatetime, toDatetime, projectId);
+  debouncedNavigationFetch(calendarApi, fetchAllEvents, projectId);
 };
 
 const handleNextClick = (
   calendarApi: CalendarApi,
   setCurrentDate: (date: Date) => void,
-  fetchAllEvents: (fromDatetime: string, toDatetime: string, projectId?: number | null) => void,
+  fetchAllEvents: FetchAllEvents,
   projectId?: number | null,
+  peekCalendarRange?: PeekCalendarRange,
 ) => {
   calendarApi?.next();
   setCurrentDate(calendarApi?.getDate());
-
-  // Fetch events for the new date range without changing the view
   const { fromDatetime, toDatetime } = getFromAndToDatetime(calendarApi);
-  fetchAllEvents(fromDatetime, toDatetime, projectId);
+  peekCalendarRange?.(fromDatetime, toDatetime, projectId);
+  debouncedNavigationFetch(calendarApi, fetchAllEvents, projectId);
 };
 
 const handleTodayClick = (
   calendarApi: CalendarApi,
   setCurrentDate: (date: Date) => void,
-  fetchAllEvents: (fromDatetime: string, toDatetime: string, projectId?: number | null) => void,
+  fetchAllEvents: FetchAllEvents,
   projectId?: number | null,
+  peekCalendarRange?: PeekCalendarRange,
 ) => {
   calendarApi?.today();
   setCurrentDate(calendarApi?.getDate());
-
-  // Fetch events for the new date range without changing the view
   const { fromDatetime, toDatetime } = getFromAndToDatetime(calendarApi);
-  fetchAllEvents(fromDatetime, toDatetime, projectId);
+  peekCalendarRange?.(fromDatetime, toDatetime, projectId);
+  debouncedNavigationFetch(calendarApi, fetchAllEvents, projectId);
 };
 
 const formatDate = (date: Date, calendarView: ICalendarView) => {

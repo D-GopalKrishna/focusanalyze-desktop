@@ -46,6 +46,11 @@ export type FocusAIContextSnapshot = {
     total_cost_usd: number;
     turn_count: number;
   } | null;
+  model?: string | null;
+  model_mode?: 'manual' | 'auto' | null;
+  /** Present only when a planning-shaped turn overrode a manually-picked model with the
+   * category default (Haiku) — drives the "Switched to Haiku for planning · Undo" banner. */
+  model_override?: { requested: string; used: string } | null;
 };
 
 export type FocusAIActivityKind =

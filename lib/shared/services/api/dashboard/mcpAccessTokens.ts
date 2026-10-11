@@ -14,11 +14,23 @@ export type {
   McpTokenProjectGrant,
 } from "@shared/api-client";
 
-/** Project-scoped MCP entity types (require a project on the grant). Task Priority
- * and Capacity Budget are dual-scope — they also appear in
+/** Project-scoped MCP entity types (require a project on the grant). Task Priority,
+ * Capacity Budget and Event are dual-scope — they also appear in
  * McpGlobalEntityType, since a token can hold both a project-scoped and a global
- * grant for the same entity type (see DUAL_SCOPE_MCP_ENTITY_TYPES in the backend). */
-export type McpProjectEntityType = 'task' | 'event' | 'comment' | 'track' | 'task_priority' | 'task_type' | 'capacity';
+ * grant for the same entity type (see DUAL_SCOPE_MCP_ENTITY_TYPES in the backend).
+ * Event's global row is the personal calendar: blocks with no project at all. */
+export type McpProjectEntityType =
+  | 'task'
+  | 'event'
+  | 'comment'
+  | 'track'
+  | 'task_priority'
+  | 'task_type'
+  | 'project_label'
+  | 'project_column'
+  | 'goal'
+  | 'release'
+  | 'capacity';
 /** Global (non-project-scoped) MCP entity types. */
 export type McpGlobalEntityType =
   | 'life_area'
@@ -28,7 +40,8 @@ export type McpGlobalEntityType =
   | 'organization'
   | 'notification'
   | 'task_priority'
-  | 'capacity';
+  | 'capacity'
+  | 'event';
 
 function apiClient(): ApiApi {
   if (!process.env.NEXT_PUBLIC_API_URL) {

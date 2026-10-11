@@ -8,11 +8,16 @@ export type MentionTrigger = {
   query: string;
 };
 
+const MAX_MENTION_QUERY_LENGTH = 60;
+
 /**
  * Finds the `@query` token immediately before the caret, if any.
  * The `@` must start the string or follow whitespace (so emails/handles inside
- * words don't trigger), and the query itself must not contain whitespace —
- * typing a space closes the mention.
+ * words don't trigger). The query is allowed to contain spaces — task/project/
+ * life-area/event names are frequently multi-word ("Demo Task 2"), and cutting the
+ * query off at the first space made it impossible to search past the first word.
+ * The mention still closes on a newline, a second `@`, or a long query — plain
+ * word-boundary spaces don't close it; Escape/selecting/clicking away do instead.
  */
 export function findMentionTrigger(value: string, caret: number): MentionTrigger | null {
   if (caret < 0 || caret > value.length) return null;
@@ -24,7 +29,9 @@ export function findMentionTrigger(value: string, caret: number): MentionTrigger
   if (boundary !== undefined && !/\s/.test(boundary)) return null;
 
   const query = upToCaret.slice(atIndex + 1);
-  if (/\s/.test(query) || query.length > 60) return null;
+  if (query.includes('@') || query.includes('\n') || query.length > MAX_MENTION_QUERY_LENGTH) {
+    return null;
+  }
 
   return { start: atIndex, end: caret, query };
 }

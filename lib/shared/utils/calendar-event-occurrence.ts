@@ -1,3 +1,5 @@
+import { localCalendarDateKey } from "@shared/utils/plan-period";
+
 /**
  * Recurring events share the same backend `id` across expanded list rows.
  * Always match by id + occurrence `start_datetime` (FullCalendar: `fullRangeStart`).
@@ -84,4 +86,36 @@ export function resolveEventForCalendarInteraction<T extends CalendarEventOccurr
   const matches = events.filter((e) => String(e.id) === idStr);
   if (matches.length === 1) return matches[0] ?? null;
   return null;
+}
+
+/**
+ * Resolve which row in an already-fetched event list is the occurrence of a recurring
+ * series that actually falls on `targetDate` — as opposed to the series' own row, whose
+ * `start_datetime` is the recurrence anchor (can be weeks/months off from any given day).
+ *
+ * Why this is keyed by series id, not `id` alone: a day that was edited with
+ * `change_type="single"` materializes as a *child* Event under its own id, with
+ * `series_event_id` pointing back at the master — see `seriesEventIdFor` in
+ * calendar-habit-lookup.ts for the same id-resolution rule applied to habit lookups. An
+ * unedited occurrence instead keeps the master's own id across every expanded row for that
+ * series, so `series_event_id` is absent there and the row's own id already equals the
+ * series id.
+ *
+ * Date comparison is by local calendar day (via `timeZone`), not exact instant — the caller
+ * only knows which day it wants opened (e.g. a habit's `next_occurrence_date`), not that
+ * occurrence's exact start time.
+ */
+export function findOccurrenceOnDate<
+  T extends CalendarEventOccurrenceLike & { series_event_id?: number | null },
+>(events: T[], seriesId: number | string, targetDate: Date, timeZone: string): T | null {
+  const seriesIdStr = String(seriesId);
+  const targetKey = localCalendarDateKey(targetDate, timeZone);
+  return (
+    events.find((e) => {
+      const eventSeriesId = e.series_event_id != null ? String(e.series_event_id) : String(e.id);
+      if (eventSeriesId !== seriesIdStr) return false;
+      if (!e.start_datetime) return false;
+      return localCalendarDateKey(new Date(e.start_datetime), timeZone) === targetKey;
+    }) ?? null
+  );
 }

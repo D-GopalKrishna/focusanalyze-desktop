@@ -88,6 +88,19 @@ export function taskStatusColumnIdFromApi(task: {
 }
 
 /**
+ * Shared "is this task done" predicate — the same check `TaskStatusInlineControl`'s own toggle
+ * uses, so other done/not-done UI (e.g. the Replan tasks button's undone count) can't drift from
+ * it. `workflow_done` wins when the API already computed it; otherwise falls back to checking
+ * the status column's workflow role directly.
+ */
+export function isTaskDone(task: {
+  status?: TaskProjectColumn | null;
+  workflow_done?: boolean | null;
+}): boolean {
+  return task.workflow_done ?? task.status?.role === 'FINISH';
+}
+
+/**
  * Nested priority when set (`TaskPriority` from the API); `null` when the task has no priority.
  */
 export function taskPriorityFromApi(task: { priority?: TaskPriority | null }): TaskPriority | null {
@@ -99,13 +112,30 @@ export function taskPriorityIdFromApi(task: { priority?: TaskPriority | null }):
   return task.priority?.id ?? null;
 }
 
-/** Prefer seeded Task / Subtask type names; fall back to the first available type. */
+/**
+ * Prefer the backend-flagged subtask type (`is_subtask_type`) when creating a subtask, else the
+ * seeded "Task" type by name; fall back to the first available type either way.
+ *
+ * `is_subtask_type` is set once at seed time and not user-editable (see `TaskTypeSerializer`),
+ * so it survives a project renaming or duplicating its "Subtask" type — a plain name match
+ * wouldn't. There's no equivalent flag for the non-subtask default, so that side still matches
+ * on the seeded name "Task".
+ */
 export function resolveDefaultTaskTypeId(
-  taskTypes: Array<{ id: number; name?: string | null }>,
+  taskTypes: Array<{ id: number; name?: string | null; is_subtask_type?: boolean | null }>,
   opts?: { forSubtask?: boolean },
 ): number | undefined {
   if (!taskTypes.length) return undefined;
+  if (opts?.forSubtask) {
+    const flagged = taskTypes.find((t) => t.is_subtask_type);
+    if (flagged) return flagged.id;
+  }
   const preferName = opts?.forSubtask ? 'Subtask' : 'Task';
   const named = taskTypes.find((t) => t.name === preferName);
   return named?.id ?? taskTypes[0]?.id;
+}
+
+/** True when this task type is reserved for subtasks and requires a parent task. */
+export function isSubtaskOnlyTaskType(taskType: { is_subtask_type?: boolean | null }): boolean {
+  return Boolean(taskType.is_subtask_type);
 }

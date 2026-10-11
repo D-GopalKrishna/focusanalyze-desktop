@@ -15,6 +15,17 @@ export type HitlPendingActionLike = {
 const PROPOSE_PLAN_BLOCKS_TOOL = 'propose_plan_blocks_tool';
 const PROPOSE_BULK_CREATE_EVENTS_TOOL = 'propose_bulk_create_events_tool';
 
+/** Display-only fields for a draft tile's hover preview — plain data (no `@/lib/rest_client_backend`
+ * types, see the file-level note above), resolved by the caller (which has the full live `Event`
+ * shape available) and handed in per block id. */
+export type DraftBlockPreviewFields = {
+  taskName?: string | null;
+  projectName?: string | null;
+  projectColor?: string | null;
+  lifeAreaName?: string | null;
+  lifeAreaColor?: string | null;
+};
+
 /**
  * `movedExistingEventIds`: blocks whose `event_id` is in this set already have a real, saved Event
  * — the user is proposing to relocate/edit it this session, not create something new. These get a
@@ -22,13 +33,18 @@ const PROPOSE_BULK_CREATE_EVENTS_TOOL = 'propose_bulk_create_events_tool';
  * of the dashed/pulsing "not real yet" style, which is reserved for genuinely new blocks
  * (`event_id == null`). Reusing the pulsing "proposed" style for your own edit of something real
  * would misleadingly read as an AI suggestion awaiting approval.
+ *
+ * `previewByBlockId`: optional resolved task/project/life-area display data per block id, shown in
+ * the tile's hover preview (draft blocks otherwise carry only ids, no display names).
  */
 export function draftBlocksToCalendarEvents(
   blocks: DraftPlanBlock[],
   movedExistingEventIds?: Set<number>,
+  previewByBlockId?: Map<string, DraftBlockPreviewFields>,
 ): EventInput[] {
   return blocks.map((b) => {
     const isMovedExisting = b.event_id != null && (movedExistingEventIds?.has(b.event_id) ?? false);
+    const preview = previewByBlockId?.get(b.id);
     return {
       id: `${DRAFT_PLAN_EVENT_PREFIX}${b.id}`,
       title: b.name,
@@ -52,7 +68,12 @@ export function draftBlocksToCalendarEvents(
         draftOccurrenceStart: b.occurrence_start ?? null,
         source: b.source,
         plannerTaskId: b.task_id,
-        taskName: b.name,
+        isMovedExisting,
+        taskName: preview?.taskName ?? null,
+        projectName: preview?.projectName ?? null,
+        projectColor: preview?.projectColor ?? null,
+        lifeAreaName: preview?.lifeAreaName ?? null,
+        lifeAreaColor: preview?.lifeAreaColor ?? null,
       },
     };
   });

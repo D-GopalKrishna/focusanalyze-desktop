@@ -327,6 +327,32 @@ export function handleCalendarKeyboardShortcuts({
     }
   }
 
+  // Alt+3 -> 3-Day view / Alt+W -> Weekday view
+  if (event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+    if (matchesShortcutKey('3', event)) {
+      event.preventDefault();
+      handleViewChange(
+        calendarApi,
+        'timeGridThreeDay',
+        setCurrentView,
+        setCurrentDate,
+        fetchAllEvents,
+      );
+      return;
+    }
+    if (matchesShortcutKey('w', event)) {
+      event.preventDefault();
+      handleViewChange(
+        calendarApi,
+        'timeGridWeekday',
+        setCurrentView,
+        setCurrentDate,
+        fetchAllEvents,
+      );
+      return;
+    }
+  }
+
   if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
 
   if (event.key === 'p') {

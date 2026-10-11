@@ -103,6 +103,48 @@ const CUSTOM_FREQ_MAP: Record<RecurrencePattern['frequency'], string> = {
   year: 'YEARLY',
 };
 
+/** RRULE BYDAY tokens indexed by `Date#getDay()` (0 = Sunday). */
+const RRULE_WEEKDAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'] as const;
+
+/**
+ * Default Custom-dialog weekday chip(s) for a start date.
+ *
+ * Must not match on date-fns `EEEEE` ("T"/"S") — those collide for Tue/Thu and
+ * Sat/Sun, so Thursday events defaulted to Tuesday and Sunday to Saturday.
+ */
+export function defaultCustomWeekDays(startDate: Date): string[] {
+  return [RRULE_WEEKDAYS[startDate.getDay()]];
+}
+
+/**
+ * Parse `<input type="date">` `YYYY-MM-DD` as a local calendar date.
+ *
+ * `new Date("YYYY-MM-DD")` is UTC midnight (ES5 date-only form). In US timezones
+ * that is the previous local evening, so the controlled input snaps back a day
+ * and UNTIL is computed from the wrong calendar date.
+ */
+export function parseDateInputLocal(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return null;
+  }
+  return date;
+}
+
+/** Inclusive local end-of-day, used as RRULE UNTIL so the selected day is kept. */
+export function inclusiveLocalEndOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
+}
+
+function untilUtcToken(date: Date): string {
+  return inclusiveLocalEndOfDay(date).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+}
+
 /**
  * Builds an RRULE string (compatible with the backend's `dateutil.rrule`) plus the
  * write-only `customEndsOn`/`customCountEndsAfter` fields from a Custom recurrence
@@ -135,10 +177,12 @@ export function buildRecurrenceFromPattern(
   let customCountEndsAfter: number | undefined;
 
   if (recurrence.ends.type === 'on' && recurrence.ends.date) {
-    // Use UTC ISO string for UNTIL
-    const until = recurrence.ends.date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    parts.push(`UNTIL=${until}`);
-    customEndsOn = recurrence.ends.date;
+    // Inclusive end of the selected *local* calendar day. Using the Date's own
+    // instant (`toISOString()` of local midnight or of `new Date("YYYY-MM-DD")`)
+    // made UNTIL midnight UTC, which drops every timed occurrence on that day.
+    const untilDate = inclusiveLocalEndOfDay(recurrence.ends.date);
+    parts.push(`UNTIL=${untilUtcToken(recurrence.ends.date)}`);
+    customEndsOn = untilDate;
   } else if (recurrence.ends.type === 'after' && recurrence.ends.occurrences) {
     parts.push(`COUNT=${recurrence.ends.occurrences}`);
     customCountEndsAfter = recurrence.ends.occurrences;

@@ -39,3 +39,23 @@ export function coerceFocusAIModel(modelId: string, options: FocusAIModelOption[
   if (options.some((o) => o.id === id)) return id;
   return 'auto';
 }
+
+// Small, static id → label map for display contexts that don't have the fetched options list
+// on hand (e.g. the model-switch banner, which only gets ids back in a context_snapshot).
+// Not the source of truth — that's the backend's MODEL_CHOICES — just enough to show a name
+// instead of a raw id for the models this app can actually route to.
+const FOCUSAI_MODEL_LABELS: Record<string, string> = {
+  auto: 'Auto',
+  'gpt-4.1': 'GPT-4.1',
+  'gpt-4o': 'GPT-4o',
+  'gpt-4o-mini': 'GPT-4o Mini',
+  'gpt-5': 'GPT-5',
+  'o4-mini': 'OpenAI o4-mini',
+  'claude-haiku-4-5': 'Claude Haiku 4.5',
+  'claude-sonnet-5': 'Claude Sonnet 5',
+};
+
+export function focusAIModelLabel(modelId: string | null | undefined): string {
+  if (!modelId) return 'Auto';
+  return FOCUSAI_MODEL_LABELS[modelId] ?? modelId;
+}

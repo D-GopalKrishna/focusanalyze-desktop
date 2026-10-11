@@ -1,6 +1,6 @@
 [package]
 name = "focusanalyze-desktop"
-version = "0.1.0"
+version = "0.1.1"
 description = "FocusAnalyze desktop system analytics and focus tracking"
 authors = ["DGK Software Solution"]
 license = ""
@@ -32,3 +32,4 @@ ureq = { version = "2.12", features = ["json"] }
 sysinfo = "0.33.0"
 csv = "1.1.6"
 x-win = "3.0.0"
+tauri-plugin-notification = "2"

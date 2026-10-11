@@ -86,10 +86,11 @@ export function apiDraftToDraftBlocks(snapshot: PlanSnapshot): DraftPlanBlock[] 
  * (draft-only, never committed — nothing to reconcile). A block WITH `event_id`:
  *
  *   - live match found (by `event_id` + `occurrence_start`, so recurring occurrences don't
- *     collapse onto whichever sibling happened to be last in `liveEvents`) → its
- *     start/end/name are OVERWRITTEN from the live Event. If the reconciled position now falls
- *     outside the plan period (the event was dragged to a different day/week outside planning
- *     mode since this draft was left), the block is DROPPED rather than kept where it would trip
+ *     collapse onto whichever sibling happened to be last in `liveEvents`) → by default its
+ *     start/end/name are OVERWRITTEN from the live Event (see `preserveDraftTiming` below for the
+ *     one caller that must NOT do this). If the reconciled position now falls outside the plan
+ *     period (the event was dragged to a different day/week outside planning mode since this
+ *     draft was left), the block is DROPPED rather than kept where it would trip
  *     `savePlanningMode`'s own out-of-period guard.
  *   - no live match, and `liveEvents` was actually supplied (i.e. we have real data to judge by)
  *     → DROPPED: orphaned, its Event was deleted independently of planning mode — nothing left
@@ -98,19 +99,36 @@ export function apiDraftToDraftBlocks(snapshot: PlanSnapshot): DraftPlanBlock[] 
  * When `liveEvents` is omitted (caller couldn't establish live data, e.g. no CalendarProvider
  * ancestor), every block is returned unchanged — we only drop or reposition a block when we
  * actually have live data to justify it.
+ *
+ * `preserveDraftTiming` (default false — "live wins", the historical/hydrate-path behavior):
+ * when true, a matched block's start/end/name are left exactly as the draft has them instead of
+ * being overwritten from `live`. **Required by `savePlanningMode`'s staleness-guard refetch**
+ * (planning.tsx): planning-mode drags of an already-saved event never touch the backend — they
+ * only ever update local `draftBlocks`, deferred until this exact commit persists them (see
+ * `updateEventTimes`'s isPlanningMode branch in CalendarView.tsx). So at save time, `live` is
+ * ALWAYS the pre-drag position, never a legitimate newer truth — overwriting from it here would
+ * (and, before this flag existed, silently did — a real reported regression: a "moved" tile's
+ * drag would vanish and the underlying real event would never actually move) discard the very
+ * edit this save is supposed to commit. "Live wins" only makes sense when reconciling a LEFTOVER
+ * draft against reality on hydrate/re-entry (nothing pending to commit yet); it is actively wrong
+ * against a draft that's about to be saved. Orphan-drop still applies either way — that's a real
+ * signal (the Event was deleted) regardless of whether timing is trusted.
  */
 export function reconcileDraftBlocksWithLive(
   blocks: DraftPlanBlock[],
   liveEvents: Event[] | undefined,
   isInPeriod: (block: DraftPlanBlock) => boolean,
+  options?: { preserveDraftTiming?: boolean },
 ): DraftPlanBlock[] {
   if (!liveEvents) return blocks;
   const liveByKey = new Map(liveEvents.map((e) => [occurrenceKey(e.id, occurrenceStartForLiveEvent(e)), e]));
+  const preserveDraftTiming = options?.preserveDraftTiming ?? false;
 
   const reconciled: (DraftPlanBlock | null)[] = blocks.map((b) => {
     if (b.event_id == null) return b;
     const live = liveByKey.get(occurrenceKey(b.event_id, b.occurrence_start ?? null));
     if (!live) return null; // orphaned: its Event was deleted outside planning mode — drop, don't fabricate
+    if (preserveDraftTiming) return b;
     const updated = normalizePlanBlock<DraftPlanBlock>({ ...b, name: live.name, start_datetime: live.start_datetime, end_datetime: live.end_datetime });
     if (!isInPeriod(updated)) return null; // moved outside the plan period since this draft was left
     return updated;

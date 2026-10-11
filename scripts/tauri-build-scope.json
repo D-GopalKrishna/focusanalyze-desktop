@@ -6,6 +6,7 @@
     "app/(non-auth)/company",
     "app/(non-auth)/error",
     "app/(non-auth)/invitation",
+    "app/(non-auth)/invitations",
     "app/(non-auth)/launching-soon",
     "app/(non-auth)/product",
     "app/(non-auth)/not-found.tsx",

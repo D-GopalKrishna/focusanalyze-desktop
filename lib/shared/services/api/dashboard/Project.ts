@@ -21,6 +21,7 @@ import {
   ProjectList,
   ProjectAllTracks,
   ProjectReorder,
+  type ProjectMoveResult,
   ProjectTrackCompleteRequest,
   ProjectTrackCompleteResponse,
   PaginatedProjectTrackList,
@@ -145,15 +146,35 @@ async function deleteProjectLabel(labelId: number): Promise<void> {
   await labelApi.apiProjectLabelsDestroy(labelId);
 }
 
+/**
+ * Fetches labels for a single project. Labels belong to exactly one project.
+ */
+/** Labels are project-scoped (created in that project's Settings), so a project's full list
+ * is expected to be small — cap at 20 rather than paginating. */
+const MAX_PROJECT_LABELS = 20;
+
 async function getAllProjectLabels(
+  projectId: number,
   limit?: number,
   offset?: number,
 ): Promise<PaginatedProjectLabelList> {
-  limit = limit || 10000;
+  limit = limit || MAX_PROJECT_LABELS;
   offset = offset || 0;
 
-  const labels = (await labelApi.apiProjectLabelsList(limit, offset)).data;
+  const labels = (
+    await labelApi.apiProjectLabelsList(limit, offset, { params: { project: projectId } })
+  ).data;
   return labels;
+}
+
+async function reorderProjectLabels(
+  projectId: number,
+  labels: { id: number; order: number }[],
+): Promise<void> {
+  await labelApi.apiProjectLabelsReorderCreate({
+    project: projectId,
+    labels,
+  } as unknown as ProjectLabel);
 }
 
 async function createNewProjectColumn(
@@ -195,14 +216,23 @@ async function getAllProjects(
   return projects;
 }
 
-async function reorderProjects(
-  projects: { id: number; order: number }[],
-): Promise<{ detail: string }> {
-  const payload: ProjectReorder = {
-    projects: projects.map((p) => ({ id: p.id, order: p.order })),
-  };
-  const response = await api.apiProjectReorderCreate(payload);
-  return response.data as any;
+/**
+ * Place an owned project in the sidebar: into `groupId` (or the top level when null) right after
+ * `after` (omit/null for first position). Only this project's row changes on the server.
+ */
+async function moveProject(
+  projectId: number,
+  destination: {
+    groupId: number | null;
+    after: { type: 'project' | 'group'; id: number } | null;
+  },
+): Promise<ProjectMoveResult> {
+  const response = await api.apiProjectMoveCreate(projectId, {
+    group_id: destination.groupId,
+    after_id: destination.after?.id ?? null,
+    after_type: destination.after?.type,
+  } as Parameters<typeof api.apiProjectMoveCreate>[1]);
+  return response.data;
 }
 
 async function reorderSharedProjects(
@@ -340,7 +370,6 @@ async function updateProject(
     description?: string;
     category?: number | null;
     labels?: number[];
-    domain?: 'work' | 'life';
     type?: 'WITH_TRACK' | 'WITHOUT_TRACK';
   },
 ): Promise<Project> {
@@ -434,6 +463,7 @@ export type CreateReleaseData = {
   project: number;
   name: string;
   description?: string;
+  icon?: string;
   target_date?: string | null;
   status?: ReleaseStatusEnum;
 };
@@ -448,6 +478,7 @@ async function updateRelease(
   payload: {
     name?: string;
     description?: string;
+    icon?: string;
     target_date?: string | null;
     status?: ReleaseStatusEnum;
     order?: number;
@@ -475,10 +506,30 @@ async function getRelease(releaseId: number): Promise<Release> {
   return response.data;
 }
 
+/**
+ * Persist a new drag-reordered sequence of releases for a project. Same
+ * drf-spectacular quirk as the pre-existing ProjectColumn/label reorder actions:
+ * this action's operation lands on the generic `ApiApi` class (aliased here as
+ * `statusApi`), not `ReleaseApi`, and its request body is typed as `Release`
+ * instead of the real accepted shape `{project, releases: [{id, order}]}` —
+ * hence the client choice and the cast.
+ */
+async function reorderReleases(
+  projectId: number,
+  releases: { id: number; order: number }[],
+): Promise<Release[]> {
+  const response = await statusApi.apiReleaseReorderCreate({
+    project: projectId,
+    releases,
+  } as any);
+  return response.data as unknown as Release[];
+}
+
 export type CreateGoalData = {
   project: number;
   name: string;
   description?: string;
+  icon?: string;
   status?: GoalStatusEnum;
   target_date?: string | null;
   track?: number | null;
@@ -495,6 +546,7 @@ async function updateGoal(
   payload: {
     name?: string;
     description?: string;
+    icon?: string;
     status?: GoalStatusEnum;
     target_date?: string | null;
     track?: number | null;
@@ -524,6 +576,22 @@ async function getGoal(goalId: number): Promise<Goal> {
   return response.data;
 }
 
+/**
+ * Persist a new drag-reordered sequence of goals for a project. Same generated-type
+ * quirk as `reorderReleases` above (lands on `statusApi`/`ApiApi`, not `GoalApi`) —
+ * real accepted shape is `{project, goals: [{id, order}]}`.
+ */
+async function reorderGoals(
+  projectId: number,
+  goals: { id: number; order: number }[],
+): Promise<Goal[]> {
+  const response = await statusApi.apiGoalReorderCreate({
+    project: projectId,
+    goals,
+  } as any);
+  return response.data as unknown as Goal[];
+}
+
 export type CreateKeyResultData = {
   goal: number;
   name: string;
@@ -539,7 +607,13 @@ async function createNewKeyResult(payload: CreateKeyResultData): Promise<KeyResu
 
 async function updateKeyResult(
   keyResultId: number,
-  payload: { name?: string; target_value?: number; current_value?: number; unit?: string; order?: number },
+  payload: {
+    name?: string;
+    target_value?: number;
+    current_value?: number;
+    unit?: string;
+    order?: number;
+  },
 ): Promise<KeyResult> {
   const patched: PatchedKeyResult = { ...payload };
   const response = await keyResultApi.apiKeyResultPartialUpdate(keyResultId, patched);
@@ -697,7 +771,7 @@ async function revertProjectHistory(
 export {
   createNewProject,
   getAllProjects,
-  reorderProjects,
+  moveProject,
   reorderSharedProjects,
   getAllProjectCategories,
   createNewProjectCategory,
@@ -711,6 +785,7 @@ export {
   createNewProjectLabel,
   updateProjectLabel,
   deleteProjectLabel,
+  reorderProjectLabels,
   createNewProjectColumn,
   getProjectColumns,
   reorderProjectColumns,
@@ -732,11 +807,13 @@ export {
   deleteRelease,
   getReleases,
   getRelease,
+  reorderReleases,
   createNewGoal,
   updateGoal,
   deleteGoal,
   getGoals,
   getGoal,
+  reorderGoals,
   createNewKeyResult,
   updateKeyResult,
   deleteKeyResult,

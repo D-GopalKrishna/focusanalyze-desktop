@@ -6,7 +6,8 @@ export type FocusAISurface =
   | 'planner'
   | 'journal'
   | 'performance'
-  | 'task_detail';
+  | 'task_detail'
+  | 'replan_task';
 
 export type FocusAISurfaceHint = {
   surface: FocusAISurface;
@@ -30,6 +31,8 @@ export function focusAISurfaceThinkingLabel(
       return 'Project';
     case 'task_detail':
       return 'Task';
+    case 'replan_task':
+      return 'Replan';
     case 'planner':
       return 'Planning';
     case 'journal':

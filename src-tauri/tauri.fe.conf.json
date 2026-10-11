@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "FocusAnalyze",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "com.focusanalyze.desktop",
   "build": {
     "frontendDist": "../../focusanalyze-fe/out",
@@ -28,7 +28,8 @@
       "icons/icon.ico"
     ],
     "macOS": {
-      "infoPlist": "Info.plist"
+      "infoPlist": "Info.plist",
+      "signingIdentity": "-"
     }
   },
   "plugins": {

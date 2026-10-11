@@ -57,7 +57,10 @@ export async function createHabit(body: HabitWritePayload): Promise<HabitRead> {
   return data;
 }
 
-export async function updateHabit(id: number, body: Partial<HabitWritePayload>): Promise<HabitRead> {
+export async function updateHabit(
+  id: number,
+  body: Partial<HabitWritePayload>,
+): Promise<HabitRead> {
   const { data } = await api.apiHabitPartialUpdate(id, body as HabitRead);
   return data;
 }
@@ -65,7 +68,10 @@ export async function updateHabit(id: number, body: Partial<HabitWritePayload>):
 export type HabitEventAction = EventActionEnum;
 export const HabitEventAction = EventActionEnum;
 
-export async function deleteHabit(id: number, eventAction: HabitEventAction = HabitEventAction.Keep): Promise<void> {
+export async function deleteHabit(
+  id: number,
+  eventAction: HabitEventAction = HabitEventAction.Keep,
+): Promise<void> {
   await api.apiHabitDestroy(id, { data: { event_action: eventAction } });
 }
 
@@ -97,7 +103,10 @@ export interface ChangeHabitCadenceInput {
   effective_date?: string;
 }
 
-export async function changeHabitCadence(habitId: number, input: ChangeHabitCadenceInput): Promise<HabitRead> {
+export async function changeHabitCadence(
+  habitId: number,
+  input: ChangeHabitCadenceInput,
+): Promise<HabitRead> {
   const { data } = await api.apiHabitChangeCadenceCreate(habitId, input);
   return data;
 }
@@ -117,7 +126,27 @@ export async function undoCheckIn(id: number, localDate: string): Promise<HabitR
   return data;
 }
 
-export async function fetchCheckIns(id: number, start: string, end: string): Promise<HabitCheckInRead[]> {
+export async function fetchCheckIns(
+  id: number,
+  start: string,
+  end: string,
+): Promise<HabitCheckInRead[]> {
   const resp = (await api.apiHabitCheckInsList(end, id, start)).data;
   return unwrapPaginatedList(resp as HabitCheckInRead[] | { results?: HabitCheckInRead[] });
+}
+
+/** Toggle a single day's check-in on the week strip / heatmap — the backend already
+ * accepts any `local_date` (not just today), so this is the one place both cell-click
+ * handlers call. `currentlyCompleted` decides undo vs. check-in, matching the "today"
+ * toggle's own completed/not-completed logic. */
+export async function toggleHabitCheckIn(
+  habitId: number,
+  dayKey: string,
+  currentlyCompleted: boolean,
+): Promise<void> {
+  if (currentlyCompleted) {
+    await undoCheckIn(habitId, dayKey);
+  } else {
+    await checkInHabit(habitId, { status: CheckInStatus.Completed, local_date: dayKey });
+  }
 }

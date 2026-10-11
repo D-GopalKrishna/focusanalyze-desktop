@@ -7,7 +7,12 @@
 export const COMPANION_TASK_COMPLETE_EVENT = 'fa-companion-task-complete';
 
 export function notifyCompanionTaskComplete(taskName?: string | null): void {
-  if (typeof window === 'undefined') return;
+  // React Native aliases `global.window = global` (see setUpGlobals.js), so the
+  // `typeof window === 'undefined'` guard alone doesn't catch that runtime — but
+  // RN has no CustomEvent/dispatchEvent global, so this would otherwise throw on
+  // every task completion on mobile. Guard both; mobile's cheer-on-complete is a
+  // separate, not-yet-built event bridge (see ui-companion-extensions/plan.md).
+  if (typeof window === 'undefined' || typeof CustomEvent === 'undefined') return;
   window.dispatchEvent(
     new CustomEvent(COMPANION_TASK_COMPLETE_EVENT, {
       detail: { taskName: taskName?.trim() || undefined },

@@ -164,5 +164,14 @@ export function contextSnapshotFromMessageMetadata(
                 : undefined,
           }
         : null,
+    model: typeof snap.model === 'string' ? snap.model : undefined,
+    model_mode: snap.model_mode === 'manual' || snap.model_mode === 'auto' ? snap.model_mode : undefined,
+    model_override:
+      snap.model_override &&
+      typeof snap.model_override === 'object' &&
+      typeof snap.model_override.requested === 'string' &&
+      typeof snap.model_override.used === 'string'
+        ? { requested: snap.model_override.requested, used: snap.model_override.used }
+        : null,
   };
 }

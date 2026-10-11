@@ -14,6 +14,12 @@ import {
   partitionStreamNotificationsByFreshness,
   shouldShowSonnerForStreamNotification,
 } from "@shared/utils/notifications";
+import { isTauriRuntime } from '@/lib/tauri/auth/tauri-store';
+import {
+  getTauriNotificationPermission,
+  requestTauriNotificationPermission,
+  sendTauriNotification,
+} from '@/lib/tauri/notifications';
 import {
   DEFAULT_TIMER_COMPLETION_SOUND,
   isTimerCompletionSoundId,
@@ -30,6 +36,8 @@ const TIMER_SOUND_STORAGE_KEY = 'focusanalyze.timerCompletionSound';
 export type BrowserNotificationPermission = 'default' | 'denied' | 'granted' | 'unsupported';
 
 export function isDesktopNotificationSupported(): boolean {
+  // Desktop app: native notifications via the Tauri plugin, regardless of the webview's DOM API.
+  if (isTauriRuntime()) return true;
   return typeof window !== 'undefined' && 'Notification' in window;
 }
 
@@ -40,6 +48,7 @@ function getBrowserNotificationCtor(): typeof window.Notification | null {
 }
 
 export function getDesktopNotificationPermission(): BrowserNotificationPermission {
+  if (isTauriRuntime()) return getTauriNotificationPermission();
   const Ctor = getBrowserNotificationCtor();
   if (!Ctor) return 'unsupported';
   return Ctor.permission as BrowserNotificationPermission;
@@ -48,6 +57,7 @@ export function getDesktopNotificationPermission(): BrowserNotificationPermissio
 function isDesktopNotificationGrantedWhenHidden(): boolean {
   if (typeof document === 'undefined') return false;
   if (document.visibilityState !== 'hidden') return false;
+  if (isTauriRuntime()) return getTauriNotificationPermission() === 'granted';
   const Ctor = getBrowserNotificationCtor();
   if (!Ctor || Ctor.permission !== 'granted') return false;
   return true;
@@ -69,6 +79,7 @@ export function setDesktopNotificationPreference(enabled: boolean): void {
 export async function requestDesktopNotificationPermission(): Promise<
   Exclude<BrowserNotificationPermission, 'unsupported'>
 > {
+  if (isTauriRuntime()) return requestTauriNotificationPermission();
   const Ctor = getBrowserNotificationCtor();
   if (!Ctor) return 'denied';
   try {
@@ -95,6 +106,10 @@ function notify(
   },
   onClick?: () => void,
 ): void {
+  if (isTauriRuntime()) {
+    sendTauriNotification(title, options.body);
+    return;
+  }
   try {
     const Ctor = getBrowserNotificationCtor();
     if (!Ctor) return;
@@ -172,6 +187,11 @@ export function showDesktopNotificationIfGranted(
   onClick?: () => void,
 ): void {
   if (typeof document === 'undefined') return;
+  if (isTauriRuntime()) {
+    if (getTauriNotificationPermission() !== 'granted') return;
+    notify(title, options, onClick);
+    return;
+  }
   const Ctor = getBrowserNotificationCtor();
   if (!Ctor || Ctor.permission !== 'granted') return;
   notify(title, options, onClick);

@@ -11,6 +11,8 @@ export type RecurringOccurrenceContext = {
   start_datetime?: string | null;
   original_occurrence_start?: string | null;
   series_start_datetime?: string | null;
+  /** Master row id (`parent_event_id ?? id`) — the one reliable series identity. */
+  series_event_id?: number | null;
   recurrence_rule?: string | null;
 };
 
@@ -62,10 +64,15 @@ export function withRecurringChange<T>(
   return payload;
 }
 
-export type BulkDeleteRecurringItem = { id: number; start_datetime?: string | null } & RecurringOccurrenceContext;
+export type BulkDeleteRecurringItem = {
+  id: number;
+  start_datetime?: string | null;
+  /** Shown in the per-series scope picker so the user can tell the decisions apart. */
+  name?: string | null;
+} & RecurringOccurrenceContext;
 
 export type BulkDeleteRecurringGroup = {
-  /** Series identity — `series_start_datetime` is stable across the master and any
+  /** Series identity — `series_event_id` (the master's id) is stable across the master and any
    *  materialized overrides of the same series, unlike `id`, which differs per row. */
   key: string;
   /** Representative event used for the dialog's copy and first/later-occurrence option gating. */
@@ -78,6 +85,22 @@ export function isRecurringEvent(event: RecurringOccurrenceContext): boolean {
   // carries original_occurrence_start — `||` is required here, not `??`, so the empty string
   // falls through to the second check instead of short-circuiting to false.
   return Boolean(event.recurrence_rule || event.original_occurrence_start);
+}
+
+/** Resolves a multi-select's selection keys to the event records a bulk delete acts on, one per
+ * distinct occurrence. Deduped on id + occurrence slot, never id alone: every virtual occurrence
+ * of a series carries the master's id, so an id-only dedupe silently drops all but one of them. */
+export function resolveBulkDeleteTargets<T extends BulkDeleteRecurringItem>(
+  keys: string[],
+  resolve: (key: string) => T | undefined,
+): T[] {
+  const byOccurrence = new Map<string, T>();
+  for (const key of keys) {
+    const ev = resolve(key);
+    if (!ev) continue;
+    byOccurrence.set(`${ev.id}|${resolveOccurrenceStartForUpdate(ev) ?? ''}`, ev);
+  }
+  return Array.from(byOccurrence.values());
 }
 
 /** Partitions a resolved multi-select into plain ids and recurring events grouped by series, so
@@ -98,7 +121,12 @@ export function buildBulkDeleteGroups<T extends BulkDeleteRecurringItem>(
       nonRecurringIds.push(ev.id);
       continue;
     }
-    const key = ev.series_start_datetime || ev.start_datetime || String(ev.id);
+    // series_event_id is the master row id; the start-time fallbacks are only for payloads that
+    // predate it, and can merge two distinct series that happen to start at the same instant.
+    const key =
+      ev.series_event_id != null
+        ? `series:${ev.series_event_id}`
+        : ev.series_start_datetime || ev.start_datetime || String(ev.id);
     const occurrenceStart = resolveOccurrenceStartForUpdate(ev);
     const existing = groupsByKey.get(key);
     if (existing) {

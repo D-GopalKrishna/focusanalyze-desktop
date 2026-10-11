@@ -269,7 +269,15 @@ fn toggle_widget_window(
         return Ok(());
     }
 
-    let url = format!("http://localhost:{port}/{route}.html")
+    // In development, use Next's live route so widget changes appear immediately after a
+    // Tauri restart. The local server below serves the last static export, which is correct
+    // for a release build but otherwise leaves a tray window looking stale until a full export.
+    // Release builds keep using the local static export for the WKWebView-safe localhost origin.
+    let url = if cfg!(debug_assertions) {
+        format!("http://localhost:3000/{route}")
+    } else {
+        format!("http://localhost:{port}/{route}.html")
+    }
         .parse()
         .expect("invalid widget window URL");
 
@@ -358,6 +366,7 @@ fn focus_main_window(app: tauri::AppHandle, path: Option<String>) -> Result<(), 
     let window = app
         .get_webview_window("main")
         .ok_or_else(|| "main window not found".to_string())?;
+    window.unminimize().map_err(|e| e.to_string())?;
     window.show().map_err(|e| e.to_string())?;
     window.set_focus().map_err(|e| e.to_string())?;
     if let Some(path) = path {
@@ -396,6 +405,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_notification::init())
         .plugin(build_updater_plugin())
         .manage(focus_times)
         .setup(move |app| {

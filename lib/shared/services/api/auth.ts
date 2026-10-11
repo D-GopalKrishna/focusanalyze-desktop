@@ -1,10 +1,19 @@
+import axios from 'axios';
 import { deleteCookie, getCookie, setCookie } from 'cookies-next';
 import { Configuration, type ConfigurationParameters } from "@shared/api-client";
 import { isAccessTokenExpired } from "@shared/utils/auth";
 import { getFreshAccessToken } from '@/lib/middleware/keycloak';
+import { stripBoundarylessMultipartContentType } from "@shared/utils/axios-multipart-formdata";
 
 const ACCESS_TOKEN_COOKIE = 'fa_access_token';
 const COOKIE_OPTIONS = { path: '/' } as const;
+
+// Every generated API class defaults to this exact axios singleton when no custom instance
+// is passed (`BaseAPI`'s `axios: AxiosInstance = globalAxios` in
+// lib/rest_client_backend/base.ts — `createApiClient` below never passes one), so this one
+// interceptor covers every multipart endpoint in the app. See
+// stripBoundarylessMultipartContentType's doc comment for why it's needed.
+axios.interceptors.request.use(stripBoundarylessMultipartContentType);
 
 /** Sync token resolver — web defaults to cookie; mobile should inject in-memory / context storage. */
 export type AccessTokenProvider = () => string | undefined;
