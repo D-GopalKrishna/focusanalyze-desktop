@@ -3,9 +3,6 @@ mod local_server;
 
 use std::collections::HashMap;
 use std::io::Cursor;
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::{Duration, Instant};
 use sysinfo::System;
 use tauri::Manager;
 use x_win::get_active_window;
@@ -21,12 +18,11 @@ struct ProcessInfo {
 }
 
 #[tauri::command]
-fn get_processes(focus_times: tauri::State<Arc<Mutex<HashMap<String, u64>>>>) -> Vec<ProcessInfo> {
-    let focus_times = focus_times.lock().unwrap();
-    collect_processes(&focus_times)
+fn get_processes() -> Vec<ProcessInfo> {
+    collect_processes()
 }
 
-fn collect_processes(focus_times: &HashMap<String, u64>) -> Vec<ProcessInfo> {
+fn collect_processes() -> Vec<ProcessInfo> {
     let mut system = System::new_all();
     system.refresh_all();
 
@@ -47,7 +43,6 @@ fn collect_processes(focus_times: &HashMap<String, u64>) -> Vec<ProcessInfo> {
             entry.cpu_usage += process.cpu_usage();
             entry.memory += process.memory();
             entry.uptime += process.run_time();
-            entry.focus_time = *focus_times.get(&entry.name).unwrap_or(&0);
         }
     }
 
@@ -59,11 +54,8 @@ fn is_target_process(process: &sysinfo::Process) -> bool {
 }
 
 #[tauri::command]
-fn export_processes_to_csv(
-    focus_times: tauri::State<Arc<Mutex<HashMap<String, u64>>>>,
-) -> Result<String, String> {
-    let focus_times = focus_times.lock().unwrap();
-    let processes = collect_processes(&focus_times);
+fn export_processes_to_csv() -> Result<String, String> {
+    let processes = collect_processes();
     let mut writer = csv::Writer::from_writer(Cursor::new(Vec::new()));
 
     writer
@@ -95,32 +87,6 @@ fn get_active_window_title() -> String {
             log::warn!("Failed to get active window: {:?}", e);
             String::new()
         }
-    }
-}
-
-fn track_focus_time(focus_times: Arc<Mutex<HashMap<String, u64>>>) {
-    let mut last_active_window = String::new();
-    let mut last_active_time = Instant::now();
-
-    loop {
-        let active_window = get_active_window_title();
-        if active_window.is_empty() {
-            thread::sleep(Duration::from_secs(1));
-            continue;
-        }
-
-        if active_window != last_active_window {
-            let duration = last_active_time.elapsed().as_secs();
-            if !last_active_window.is_empty() {
-                let mut focus_times = focus_times.lock().unwrap();
-                *focus_times.entry(last_active_window.clone()).or_insert(0) += duration;
-            }
-            log::info!("Focused on '{}' for {} seconds", last_active_window, duration);
-            last_active_window = active_window;
-            last_active_time = Instant::now();
-        }
-
-        thread::sleep(Duration::from_secs(5));
     }
 }
 
@@ -399,15 +365,11 @@ fn build_updater_plugin<R: tauri::Runtime>(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let focus_times = Arc::new(Mutex::new(HashMap::new()));
-    let focus_times_clone = Arc::clone(&focus_times);
-
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(build_updater_plugin())
-        .manage(focus_times)
         .setup(move |app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -578,10 +540,6 @@ pub fn run() {
                     }
                 }
             }
-
-            thread::spawn(move || {
-                track_focus_time(focus_times_clone);
-            });
 
             Ok(())
         })
