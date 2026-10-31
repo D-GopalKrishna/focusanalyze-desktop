@@ -1,5 +1,6 @@
 mod auth;
 mod local_server;
+mod update;
 
 use std::collections::HashMap;
 use std::io::Cursor;
@@ -194,6 +195,7 @@ fn resolve_widget_position(
                 let work_x = work_area.position.x as f64 / scale;
                 let work_y = work_area.position.y as f64 / scale;
                 let work_w = work_area.size.width as f64 / scale;
+                let work_h = work_area.size.height as f64 / scale;
                 // Center the popover under the actual click point (converted to the same
                 // logical-pixel space as the work area) instead of always pinning it to the
                 // monitor's right edge — a tray icon anywhere but the far right (e.g. the far
@@ -202,7 +204,15 @@ fn resolve_widget_position(
                 let click_x = click_point.x / scale;
                 let target_x = click_x - width / 2.0;
                 let clamped_x = target_x.max(work_x).min(work_x + work_w - width);
-                (clamped_x, work_y + 8.0)
+                // The tray sits at the top on macOS but usually at the bottom on Windows, so
+                // open towards whichever edge the click was nearest.
+                let click_y = click_point.y / scale;
+                let y = if click_y > work_y + work_h / 2.0 {
+                    work_y + work_h - height - 8.0
+                } else {
+                    work_y + 8.0
+                };
+                (clamped_x, y)
             })
             .unwrap_or((margin, margin)),
     }
@@ -316,6 +326,9 @@ fn toggle_today_widget(app: tauri::AppHandle, port: tauri::State<LocalServerPort
 /// build for some reason — a missing countdown label is not worth crashing a command over.
 #[tauri::command]
 fn set_tray_timer_text(tray: tauri::State<TrayHandle>, text: Option<String>) -> Result<(), String> {
+    // Tray titles aren't supported on Windows, so the tooltip carries the countdown there.
+    let tooltip = text.clone().unwrap_or_else(|| "FocusAnalyze".to_string());
+    tray.0.set_tooltip(Some(tooltip)).map_err(|e| e.to_string())?;
     tray.0.set_title(text).map_err(|e| e.to_string())
 }
 
@@ -344,14 +357,9 @@ fn focus_main_window(app: tauri::AppHandle, path: Option<String>) -> Result<(), 
     Ok(())
 }
 
-// focusanalyze-desktop's GitHub repo is private, so the updater's manifest fetch
-// (`releases/latest/download/latest.json`) and the artifact download that follows both need
-// an Authorization header GitHub will accept for a private repo. The token is baked in at
-// compile time (not read from the user's shell at runtime) so a plain double-click launch of
-// the built app still works — set TAURI_UPDATER_GH_TOKEN when running `tauri build`/
-// `npm run tauri:build:fe` to embed a fine-grained PAT scoped to Contents:read-only on this
-// repo. Local/dev builds simply omit it: the updater check will 401 and log, which is fine
-// since dev builds never need to self-update.
+// The repo is public, so releases need no token and scripts/release-macos.js doesn't set one.
+// TAURI_UPDATER_GH_TOKEN only matters if the repo ever goes private again: it is baked in at
+// compile time and sent as an Authorization header on the manifest and artifact downloads.
 fn build_updater_plugin<R: tauri::Runtime>(
 ) -> tauri::plugin::TauriPlugin<R, tauri_plugin_updater::Config> {
     let mut builder = tauri_plugin_updater::Builder::new();
@@ -363,6 +371,15 @@ fn build_updater_plugin<R: tauri::Runtime>(
     builder.build()
 }
 
+/// Brings the main window back after it was hidden to the tray or minimized.
+fn show_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -370,8 +387,10 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(build_updater_plugin())
+        .manage(update::PendingUpdate::default())
         .setup(move |app| {
             auth::init_token_store(app.path().app_data_dir()?);
+
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
@@ -404,7 +423,22 @@ pub fn run() {
                 .inner_size(1280.0, 800.0)
                 .min_inner_size(800.0, 600.0)
                 .resizable(true)
-                .build()?;
+                .build()?
+                .on_window_event({
+                    let handle = app.handle().clone();
+                    move |event| {
+                        // Closing hides to the tray so timers and the session keep running. If
+                        // the tray failed to build there'd be no way back, so close normally.
+                        if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                            if handle.try_state::<TrayHandle>().is_some() {
+                                api.prevent_close();
+                                if let Some(window) = handle.get_webview_window("main") {
+                                    let _ = window.hide();
+                                }
+                            }
+                        }
+                    }
+                });
 
             app.manage(LocalServerPort(port));
 
@@ -459,7 +493,11 @@ pub fn run() {
                 app.set_menu(menu)?;
 
                 app.on_menu_event(move |app_handle, event| {
-                    if event.id() == "reload" {
+                    if event.id() == "tray-open" {
+                        show_main_window(app_handle);
+                    } else if event.id() == "tray-quit" {
+                        app_handle.exit(0);
+                    } else if event.id() == "reload" {
                         if let Some(window) = app_handle.get_webview_window("main") {
                             let _ = window.eval("window.location.reload()");
                         }
@@ -498,6 +536,7 @@ pub fn run() {
             // the *entire* app — main window included — over a tray-only problem. Log and skip
             // instead so a tray issue never takes down everything else in this block.
             {
+                use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
                 use tauri::tray::{TrayIconBuilder, TrayIconEvent};
 
                 let tray_icon = app.default_window_icon().cloned();
@@ -512,9 +551,23 @@ pub fn run() {
                         // asset exists yet). Using the regular icon is less "native macOS" but
                         // avoids a garbled tray glyph; add a real template asset under icons/
                         // as a follow-up if this looks bad.
+                        // Right-click menu, handled by the app-level on_menu_event above. On
+                        // Linux tray click events never fire, so this is the only way in.
+                        let tray_menu = Menu::with_items(
+                            app,
+                            &[
+                                &MenuItem::with_id(app, "tray-open", "Open FocusAnalyze", true, None::<&str>)?,
+                                &MenuItem::with_id(app, "toggle-today-widget", "Today", true, None::<&str>)?,
+                                &MenuItem::with_id(app, "toggle-timer-widget", "Timer", true, None::<&str>)?,
+                                &PredefinedMenuItem::separator(app)?,
+                                &MenuItem::with_id(app, "tray-quit", "Quit FocusAnalyze", true, None::<&str>)?,
+                            ],
+                        )?;
                         let build_result = TrayIconBuilder::with_id("main-tray")
                             .icon(icon)
                             .tooltip("FocusAnalyze")
+                            .menu(&tray_menu)
+                            .show_menu_on_left_click(false)
                             .on_tray_icon_event(move |tray_handle, event| {
                                 if let TrayIconEvent::Click {
                                     button: tauri::tray::MouseButton::Left,
@@ -567,7 +620,15 @@ pub fn run() {
             toggle_today_widget,
             set_tray_timer_text,
             focus_main_window,
+            update::install_update_on_quit,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| match event {
+            tauri::RunEvent::Exit => update::install_pending(app_handle),
+            // Clicking the Dock icon brings back a main window hidden to the tray.
+            #[cfg(target_os = "macos")]
+            tauri::RunEvent::Reopen { .. } => show_main_window(app_handle),
+            _ => {}
+        });
 }

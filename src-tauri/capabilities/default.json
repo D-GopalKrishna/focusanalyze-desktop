@@ -40,6 +40,7 @@
     "allow-toggle-today-widget",
     "allow-set-tray-timer-text",
     "allow-focus-main-window",
+    "allow-install-update-on-quit",
     "core:tray:default"
   ]
 }

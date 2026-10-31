@@ -14,6 +14,7 @@ const COMMANDS: &[&str] = &[
     "toggle_today_widget",
     "set_tray_timer_text",
     "focus_main_window",
+    "install_update_on_quit",
 ];
 
 fn main() {
