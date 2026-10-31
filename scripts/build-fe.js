@@ -164,6 +164,7 @@ try {
 		env: {
 			...process.env,
 			IS_TAURI: 'true',
+			NODE_ENV: 'production',
 		},
 	});
 

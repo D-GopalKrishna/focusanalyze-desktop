@@ -139,3 +139,13 @@ This app was migrated from `focusanalyze-poc/syspoc`. The POC README build notes
 - Local SQLite storage for focus events
 - Sync to `focusanalyze-mind` API with Keycloak auth
 - Focus mode / distraction blocking
+
+## Releasing (macOS)
+
+```bash
+npm run release:mac:build -- 0.1.2 --notes "What changed"
+# install the DMG and try it, commit and push the version bump, then:
+npm run release:mac:publish -- 0.1.2
+```
+
+The build step refuses uncommitted changes and requires `focusanalyze-fe` on `main` (override with `--allow-dirty` / `--fe-branch`). It never switches branches. Its output includes the versioned DMG, the version-less `FocusAnalyze_aarch64.dmg` the website links to, the update archive and `latest.json`.

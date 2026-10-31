@@ -12,6 +12,8 @@
     "tauri": "tauri",
     "sync:frontend": "node scripts/sync-frontend-shared.js --update-local",
     "sync:frontend:check": "node scripts/sync-frontend-shared.js --no-match-branch",
+    "release:mac:build": "node scripts/release-macos.js build",
+    "release:mac:publish": "node scripts/release-macos.js publish",
     "tauri:dev": "npm run tauri:dev:fe",
     "tauri:dev:native": "tauri dev",
     "tauri:dev:local": "tauri dev --config src-tauri/tauri.fe.conf.json",
