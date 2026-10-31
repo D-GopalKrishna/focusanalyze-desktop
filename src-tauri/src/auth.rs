@@ -1,14 +1,14 @@
-use keyring::Entry;
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener};
-use std::sync::Mutex;
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
-const KEYCHAIN_SERVICE: &str = "com.focusanalyze.desktop";
-const KEYCHAIN_ACCOUNT: &str = "auth_tokens";
+const TOKEN_FILE_NAME: &str = "auth-tokens.json";
 pub const OAUTH_CALLBACK_PORT: u16 = 9473;
 
 static OAUTH_LISTENER: Mutex<Option<TcpListener>> = Mutex::new(None);
+static TOKEN_FILE: OnceLock<PathBuf> = OnceLock::new();
 
 #[derive(serde::Serialize)]
 pub struct OAuthCallbackResult {
@@ -140,34 +140,82 @@ pub fn refresh_oauth_tokens(
     serde_json::to_string(&payload).map_err(|e| e.to_string())
 }
 
-fn keychain_entry() -> Result<Entry, String> {
-    Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT).map_err(|e| e.to_string())
+/// Tokens live in a file only this OS user can read, not the OS keychain: an unsigned app has
+/// no stable identity, so macOS would prompt for the login password again on every update.
+/// Call once from `setup()`, before anything reads tokens.
+pub fn init_token_store(app_data_dir: PathBuf) {
+    let _ = TOKEN_FILE.set(app_data_dir.join(TOKEN_FILE_NAME));
+}
+
+fn token_file() -> Result<&'static PathBuf, String> {
+    TOKEN_FILE
+        .get()
+        .ok_or_else(|| "Token store is not initialized".to_string())
+}
+
+fn restrict_permissions(path: &Path, mode: u32) -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(mode))?;
+    }
+    #[cfg(not(unix))]
+    let _ = (path, mode); // %APPDATA% is already private to the user.
+    Ok(())
+}
+
+/// Atomic, so a crash or another window's concurrent read never sees a partial file.
+fn write_token_file(path: &Path, json: &str) -> Result<(), String> {
+    let dir = path.parent().ok_or_else(|| "Invalid token path".to_string())?;
+    std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    restrict_permissions(dir, 0o700).map_err(|e| e.to_string())?;
+
+    let unique = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or_default();
+    let temp = dir.join(format!("{TOKEN_FILE_NAME}.{}.{unique}.tmp", std::process::id()));
+    let result = (|| {
+        std::fs::write(&temp, "")?;
+        restrict_permissions(&temp, 0o600)?;
+        std::fs::write(&temp, json)?;
+        std::fs::rename(&temp, path)
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&temp);
+    }
+    result.map_err(|e| e.to_string())
+}
+
+fn read_token_file(path: &Path) -> Result<Option<String>, String> {
+    match std::fs::read_to_string(path) {
+        Ok(value) => Ok(Some(value)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+fn delete_token_file(path: &Path) -> Result<(), String> {
+    match std::fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 #[tauri::command]
 pub fn save_auth_tokens(json: String) -> Result<(), String> {
-    let entry = keychain_entry()?;
-    entry.set_password(&json).map_err(|e| e.to_string())
+    write_token_file(token_file()?, &json)
 }
 
 #[tauri::command]
 pub fn load_auth_tokens() -> Result<Option<String>, String> {
-    let entry = keychain_entry()?;
-    match entry.get_password() {
-        Ok(value) => Ok(Some(value)),
-        Err(keyring::Error::NoEntry) => Ok(None),
-        Err(e) => Err(e.to_string()),
-    }
+    read_token_file(token_file()?)
 }
 
 #[tauri::command]
 pub fn clear_auth_tokens() -> Result<(), String> {
-    let entry = keychain_entry()?;
-    match entry.delete_credential() {
-        Ok(()) => Ok(()),
-        Err(keyring::Error::NoEntry) => Ok(()),
-        Err(e) => Err(e.to_string()),
-    }
+    delete_token_file(token_file()?)
 }
 
 #[tauri::command]
@@ -199,10 +247,17 @@ pub fn cancel_oauth_callback_listener() -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn wait_oauth_callback(expected_state: String) -> Result<OAuthCallbackResult, String> {
-    tauri::async_runtime::spawn_blocking(move || listen_for_oauth_callback(expected_state))
-        .await
-        .map_err(|e| e.to_string())?
+pub async fn wait_oauth_callback(
+    app: tauri::AppHandle,
+    expected_state: String,
+) -> Result<OAuthCallbackResult, String> {
+    let result =
+        tauri::async_runtime::spawn_blocking(move || listen_for_oauth_callback(expected_state))
+            .await
+            .map_err(|e| e.to_string())??;
+    // The login finished in the browser, so bring the app back in front of it.
+    crate::show_main_window(&app);
+    Ok(result)
 }
 
 fn listen_for_oauth_callback(expected_state: String) -> Result<OAuthCallbackResult, String> {
@@ -386,4 +441,45 @@ fn parse_query(query: &str) -> std::collections::HashMap<String, String> {
             Some((key, value))
         })
         .collect()
+}
+
+#[cfg(test)]
+mod token_store_tests {
+    use super::*;
+
+    fn temp_token_path(name: &str) -> PathBuf {
+        std::env::temp_dir()
+            .join(format!("fa-token-test-{name}-{}", std::process::id()))
+            .join(TOKEN_FILE_NAME)
+    }
+
+    #[test]
+    fn saves_overwrites_loads_and_clears() {
+        let path = temp_token_path("roundtrip");
+        assert_eq!(read_token_file(&path).unwrap(), None);
+        write_token_file(&path, "first").unwrap();
+        write_token_file(&path, "second").unwrap();
+        assert_eq!(read_token_file(&path).unwrap().as_deref(), Some("second"));
+        delete_token_file(&path).unwrap();
+        delete_token_file(&path).unwrap();
+        assert_eq!(read_token_file(&path).unwrap(), None);
+        let dir = path.parent().unwrap();
+        assert_eq!(std::fs::read_dir(dir).unwrap().count(), 0, "no temp files left behind");
+        std::fs::remove_dir(dir).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn file_is_private_to_the_user() {
+        use std::os::unix::fs::PermissionsExt;
+        let path = temp_token_path("perms");
+        write_token_file(&path, "secret").unwrap();
+        let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600);
+        let dir = path.parent().unwrap();
+        let dir_mode = std::fs::metadata(dir).unwrap().permissions().mode() & 0o777;
+        assert_eq!(dir_mode, 0o700);
+        std::fs::remove_file(&path).unwrap();
+        std::fs::remove_dir(dir).unwrap();
+    }
 }

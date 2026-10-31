@@ -371,6 +371,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(build_updater_plugin())
         .setup(move |app| {
+            auth::init_token_store(app.path().app_data_dir()?);
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
@@ -388,9 +389,16 @@ pub fn run() {
             // `windows` array because its URL depends on which port local_server actually
             // bound — not known until runtime. tauri.fe.conf.json declares an empty
             // `windows: []` so Tauri doesn't also try to create a default one.
-            let url = format!("http://localhost:{port}/desktop-auth.html")
-                .parse()
-                .expect("invalid local server URL");
+            //
+            // `tauri dev` embeds no assets when a devUrl is set, so the local server has nothing
+            // to serve there (every path 404s) — use Next's live route, as the widgets do.
+            let url = if cfg!(debug_assertions) {
+                "http://localhost:3000/desktop-auth".to_string()
+            } else {
+                format!("http://localhost:{port}/desktop-auth.html")
+            }
+            .parse()
+            .expect("invalid local server URL");
             tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::External(url))
                 .title("FocusAnalyze")
                 .inner_size(1280.0, 800.0)

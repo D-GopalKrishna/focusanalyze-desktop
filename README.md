@@ -73,7 +73,7 @@ npm run tauri:dev:remote
 
 > The `focusanalyze-desktop` Keycloak client must exist on the target realm (local realm JSON includes it; staging/prod need the same client provisioned).
 
-Sign-in opens your **system browser** and returns via a loopback callback (`http://127.0.0.1:9473/callback`). Refresh tokens are stored in the **OS keychain** (macOS Keychain / Windows Credential Manager).
+Sign-in opens your **system browser** and returns via a loopback callback (`http://127.0.0.1:9473/callback`). Tokens are stored in a file in the app data folder that only your OS user can read (`auth-tokens.json`), not the OS keychain, because an unsigned app would trigger repeated password prompts.
 
 Or run the web UI only (auth requires Tauri):
 
@@ -113,10 +113,10 @@ If you add a new dashboard route with a dynamic `[param]` segment, it needs the 
 focusanalyze-desktop/
 ├── lib/
 │   ├── shared/           # Synced from focusanalyze-fe (API client, services, utils)
-│   └── tauri/            # Tauri-only code (auth, keychain, OAuth loopback)
+│   └── tauri/            # Tauri-only code (auth, OAuth loopback)
 ├── src/                  # Legacy native Next shell (tauri:dev:native only)
 └── src-tauri/
-    └── src/lib.rs        # Rust: OAuth keychain, process tracking, window detection
+    └── src/lib.rs        # Rust: process tracking, window detection
 ```
 
 Desktop login UI lives in **focusanalyze-fe** (`app/(tauri-shell)/desktop-auth`, `lib/tauri/auth/`).
