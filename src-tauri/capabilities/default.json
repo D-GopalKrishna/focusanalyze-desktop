@@ -41,6 +41,12 @@
     "allow-set-tray-timer-text",
     "allow-focus-main-window",
     "allow-install-update-on-quit",
+    "allow-activity-start",
+    "allow-activity-stop",
+    "allow-activity-pause",
+    "allow-activity-upload-now",
+    "allow-activity-status",
+    "allow-activity-open-screen-permission",
     "core:tray:default"
   ]
 }

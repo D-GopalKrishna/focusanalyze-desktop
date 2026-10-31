@@ -8,5 +8,7 @@
 	<string>FocusAnalyze needs camera access for Focus Sessions video calls with your work partner.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>FocusAnalyze uses on-device speech recognition to transcribe your voice for FocusAI.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>FocusAnalyze reads which website is open in your browser for your private activity report, if you turn activity tracking on. Only the site name is kept, never the full address.</string>
 </dict>
 </plist>

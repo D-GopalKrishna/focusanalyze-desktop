@@ -1,3 +1,4 @@
+mod activity;
 mod auth;
 mod local_server;
 mod update;
@@ -621,6 +622,12 @@ pub fn run() {
             set_tray_timer_text,
             focus_main_window,
             update::install_update_on_quit,
+            activity::activity_start,
+            activity::activity_stop,
+            activity::activity_pause,
+            activity::activity_upload_now,
+            activity::activity_status,
+            activity::activity_open_screen_permission,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

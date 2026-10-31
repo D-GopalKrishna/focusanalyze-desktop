@@ -15,6 +15,12 @@ const COMMANDS: &[&str] = &[
     "set_tray_timer_text",
     "focus_main_window",
     "install_update_on_quit",
+    "activity_start",
+    "activity_stop",
+    "activity_pause",
+    "activity_upload_now",
+    "activity_status",
+    "activity_open_screen_permission",
 ];
 
 fn main() {

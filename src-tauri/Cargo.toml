@@ -32,3 +32,11 @@ sysinfo = "0.33.0"
 csv = "1.1.6"
 x-win = "3.0.0"
 tauri-plugin-notification = "2"
+rusqlite = { version = "0.37", features = ["bundled"] }
+uuid = { version = "1", features = ["v4"] }
+base64 = "0.22"
+image = { version = "0.25", default-features = false, features = ["png"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+
+[target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
+user-idle = "0.6"
