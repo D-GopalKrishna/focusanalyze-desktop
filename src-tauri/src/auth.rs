@@ -4,7 +4,13 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
-const TOKEN_FILE_NAME: &str = "auth-tokens.json";
+// Dev and packaged builds share an app data folder. Separate files stop a dev run's session,
+// which is often from a local Keycloak, being sent to production by the installed app.
+const TOKEN_FILE_NAME: &str = if cfg!(debug_assertions) {
+    "auth-tokens.dev.json"
+} else {
+    "auth-tokens.json"
+};
 pub const OAUTH_CALLBACK_PORT: u16 = 9473;
 
 static OAUTH_LISTENER: Mutex<Option<TcpListener>> = Mutex::new(None);
