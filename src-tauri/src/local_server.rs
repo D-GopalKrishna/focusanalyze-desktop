@@ -15,6 +15,8 @@ enum Segment {
 /// there needs a matching template here, or a real click into that page will 500 exactly
 /// like the `/dashboard/projects/focusanalyze/<real-id>` bug this file fixes.
 const ROUTE_TEMPLATES: &[&[Segment]] = &[
+    &[Segment::Fixed("dashboard"), Segment::Fixed("focus-sessions"), Segment::Fixed("session"), Segment::Id],
+    &[Segment::Fixed("dashboard"), Segment::Fixed("focus-sessions"), Segment::Fixed("invite"), Segment::Id],
     &[Segment::Fixed("dashboard"), Segment::Fixed("admin"), Segment::Fixed("teams"), Segment::Id],
     &[Segment::Fixed("dashboard"), Segment::Fixed("admin"), Segment::Fixed("user"), Segment::Id],
     &[Segment::Fixed("dashboard"), Segment::Fixed("projects"), Segment::Fixed("focusanalyze"), Segment::Id],
